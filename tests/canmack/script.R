@@ -1,5 +1,9 @@
 setwd("C:/Users/VANBE/Desktop/post-doc/DATA/CCAM/")
 setwd("C:/Users/VANBE/Desktop/post-doc/DATA/CCAM/tests/canmack")
+
+wdIMG <- "C:/Users/vanbe/Desktop/Post-Doc/DATA/MSE/IMG/"
+wdRdata <- "C:/Users/vanbe/Desktop/Post-Doc/DATA/MSE/Rdata/"
+
 library(CCAM)
 library(plyr)
 
@@ -142,8 +146,8 @@ nosim=5
 #************* define Operating Models *************************************
 #***************************************************************************
 
-# base model
-OMbase <- list(fit=fit1,
+#--------------------- base model ------------------------------------------
+OMbase <- list(fit=fit3,
                nosim=nosim,
                OMlabel='OMbase',
                year.base=2016,
@@ -154,12 +158,12 @@ OMbase <- list(fit=fit1,
 
 copy(x=OMbase,n=c(5,3),name=c('OMcore','OMstress'))
 
-# recruitment
+# --------------------- recruitment ------------------------------------------
 OMcore1$rec.meth=6  # trailing sampling recruitment
 OMcore2$rec.meth=1  # BH AC
 OMstress1$rec.scale=0.7 # mean with AC and reduced by 0.75
 
-# different M
+# ---------------------  M ----------------------------------------------------
 newdat1 <- dat
 newdat1$natMor[,] <- 0.15
 
@@ -171,7 +175,7 @@ OMcore3$fit=fitM
 OMstress2$bio.scale=list('nm'=0.8)
 OMstress3$bio.scale=list('nm'=1.2)
 
-# different Upper limit
+# --------------------- Upper limit ------------------------------------------
 newdat2 <- dat
 oldUpper <- newdat2$logobs[which(!is.na(newdat2$logobs[,2])),1]
 newUpper <- log(exp(oldUpper) + ctUSA[-c(1:8),1])
@@ -182,11 +186,25 @@ fitC <- ccam.fit(newdat2,conf,par,phase=2)     # run phase 1 + censored
 
 OMcore4$fit=fitC
 
+
+# --------------------- OM list ------------------------------------------
+
+OM.list=list(OMbase=OMbase,
+             OMcore1=OMcore1,
+             OMcore2=OMcore2,
+             OMcore3=OMcore3,
+             OMcore4=OMcore4,
+             OMstress1=OMstress1,
+             OMstress2=OMstress2,
+             OMstress3=OMstress3)
+
 #*****************************************************************************
 #************* define Harvest Control Rules **********************************
 #*****************************************************************************
 
-nMP=5
+# --------------------- base MPs ----------------------------------------------
+
+nMP=8
 
 MP1 <- list(MP=rep(0,ny),
             MPlabel='MP1',
@@ -194,9 +212,9 @@ MP1 <- list(MP=rep(0,ny),
             HZ=257500,
             IE=NULL,
             capLower=0,
-            TAC.base=8000)
+            TAC.base=10000)
 
-copy(x=MP1,n=c(nMP-1),name=c('MP'))
+copy(x=MP1,n=c(nMP),name=c('MP'))
 
 avail('MP')
 
@@ -208,48 +226,47 @@ MP6$MP <- rep('MPeggsurveytarget',ny)
 MP7$MP <- rep('MPf40base',ny)
 MP8$MP <- rep('MPspm',ny)
 
+# --------------------- MP list ------------------------------------------
 
-# Plot different IEs
+nIE=5
+
+MPmat=expand.grid(MP=paste0('MP',1:nMP), IE=c(paste0('IEnormgamma',1:nIE),NA))
+MP.list <- lapply(split(MPmat,1:nrow(MPmat)),function(x){
+    MPx <- get(as.character(x[1,1]))
+    if(!is.na(x[1,2])) MPx$IE <- as.character(x[1,2])
+    return(MPx)
+})
+names(MP.list) <- paste(MPmat[,1],MPmat[,2],sep=".")
+
+# --------------------- plot IE  ------------------------------------------
+
 IEmeans=list(IE1 = rep(6000,100),
              IE2 = rep(7200,100),
              IE3 = c(Reduce(function(v, x) .8*v , x=numeric(3),  init=6000, accumulate=TRUE)[-1],rep(3000,97)),
              IE4 = c(Reduce(function(v, x) .75*v , x=numeric(6),  init=6000, accumulate=TRUE)[-1],rep(1000,94)),
              IE5 = rep(6000*0.8,100)
 )
+IEmeans=lapply(IEmeans,function(x) c(6000,x))
 IEsds=lapply(IEmeans,'/',3)
-
-z <- array( c( do.call('rbind',IEmeans) , do.call('rbind',IEsds)  ) , dim = c( 5 , 100 , 2 ) )
-
-png(file=paste0("./IMG/Ubars.png"),units="cm",res=300,width=18,height=13)
-ggplot(U,aes(x=time,y=value))+
-    geom_ribbon(aes(ymin=value-sd,ymax=value+sd,fill=variable),alpha=0.3)+
-    geom_line(aes(col=variable))+
-    geom_point(aes(col=variable))+
-    theme(legend.position="none")+
-    ylab('Undeclared catch (t)')+xlab('Year')
-dev.off()
+savepng(IEplot(IEmeans,IEsds)+ scale_x_continuous(limits = c(0,10),expand = c(0,0)),wdIMG,"/HCR/IE",c(9,5))
 
 #******************************************************************************
 #************* forecast for each combination **********************************
 #******************************************************************************
-myOMs <- 'OMbase'
-myMPs <- 'MP1'
+OM.list <- list(OMbase=OMbase)
+MP.list <- list(MP1=MP1)
 
-myOMs <- grep('OM',ls(),value = TRUE)
-myMPs <- paste0('MP',1:nMP)
 
-scenmat <- expand.grid(OM=myOMs, MP=myMPs)
+scenmat <- expand.grid(OM=names(OM.list), MP=names(MP.list))
 scennames <- apply(scenmat,1,paste,collapse = ".")
 
 # create a list with all scenarios to test (combos MP/OM)
 scenlist <- lapply(split(scenmat,1:nrow(scenmat)),function(x){
-    c(get(as.character(x[1,1])),get(as.character(x[1,2])))
+    c(OM.list[[as.character(x[1,1])]],MP.list[[as.character(x[1,2])]])
 })
 names(scenlist) <- scennames
 
 # forecast each scenario (combos MP/OM)
-wdRdata <- "C:/Users/vanbe/Desktop/Post-Doc/DATA/MSE/Rdata/"
-
 runlist <- lapply(scenlist,function(x){
     RUN <- do.call(forecast, x)
     save(RUN,file=paste0(wdRdata,names(x),'.Rdata'))
@@ -314,7 +331,6 @@ tradeplot(RUNbase.list,what.x='ULR', what.y='catchcumul',zone=c(75),ci=FALSE,leg
 #-----------------------------------------------------------------------------------------
 #-- compare recruitment methods ----------------------------------------------------------
 #-----------------------------------------------------------------------------------------
-wdIMG <- "C:/Users/vanbe/Desktop/Post-Doc/DATA/MSE/IMG/"
 
 OMrec1 <- list(fit=fit3,
                nosim=1000,

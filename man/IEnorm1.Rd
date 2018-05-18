@@ -2,29 +2,18 @@
 % Please edit documentation in R/ie.R
 \name{IEnorm1}
 \alias{IEnorm1}
-\alias{IEnorm1y2}
 \title{IEnorm1}
 \usage{
 IEnorm1(TAC, i)
-
-IEnorm1y2(TAC, i)
 }
 \arguments{
-\item{TAC}{TAC based on MP}
-
-\item{i}{numeric between 0 and time series length-1 indicating the timestep}
-
 \item{TAC}{TAC based on MP}
 
 \item{i}{numeric between 0 and time series length-1 indicating the timestep}
 }
 \description{
 IEnorm1
-
-IEnorm1y2
 }
 \details{
-adds catch to TAC based on normal distribution
-
-adds catch to TAC based on normal distribution
+adds catch to TAC based on normal distribution: constant 6000 (sd 2000)
 }

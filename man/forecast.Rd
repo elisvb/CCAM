@@ -7,10 +7,11 @@
 forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
   nosim = 1000, year.base = max(fit$data$years),
   ave.years = max(fit$data$years) + (-4:0), rec.years = max(fit$data$years)
-  + (-9:0), rec.meth = 5, MPlabel = NULL, OMlabel = NULL,
+  + (-9:0), rec.meth = 5, rec.scale = 1, MPlabel = NULL, OMlabel = NULL,
   overwriteSelYears = NULL, deterministic = FALSE, CZ = 0, HZ = 0,
   IE = NULL, capLower = NULL, capUpper = NULL,
-  UL.years = max(fit$data$years) + (-4:0), TAC.base = NULL)
+  UL.years = max(fit$data$years) + (-4:0), TAC.base = NULL,
+  bio.scale = NULL)
 }
 \arguments{
 \item{fit}{an assessment object of type ccam, as returned from the function ccam.fit}
@@ -21,6 +22,8 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
 
 \item{fval}{a vector of target f values. See details.}
 
+\item{MP}{a vector of management strategie names. see avail('MP')}
+
 \item{nosim}{number of simulations default is 1000}
 
 \item{year.base}{starting year default last year in assessment. Currently it is only supported to use last assessment year or the year before}
@@ -28,6 +31,10 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
 \item{ave.years}{vector of years to average for weights, maturity, M and such}
 
 \item{rec.years}{vector of years to use to resample recruitment from}
+
+\item{rec.meth}{methode to project recruitment}
+
+\item{rec.scale}{scale recruitment (default is 1)}
 
 \item{overwriteSelYears}{if a vector of years is specified, then the average selectivity of those years is used (not recommended)}
 
@@ -37,13 +44,17 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
 
 \item{HZ}{Healty zone (to calculate probability ssb above)}
 
-\item{IE}{implementation error (list of IE per time step)}
+\item{IE}{implementation error (vector). See avail('IE')}
 
 \item{capLower}{lower limit of TAC (before IE)}
 
 \item{capUpper}{upper limit of TAC (before IE)}
 
+\item{UL.years}{vector of years to use to resample upper/lower catch bound ranges from}
+
 \item{TAC.base}{TAC last year}
+
+\item{bio.scale}{names list with multipliers used to scale future bio values (nm, en, pr,sw,cw,lf,dw,lw,pm,pf)}
 
 \item{label}{optional label to appear in short table}
 }
@@ -54,5 +65,5 @@ an object of type ccamforecast
 forecast function to do shortterm
 }
 \details{
-There are three ways to specify a scenario. If e.g. four F values are specified (e.g. fval=c(.1,.2,.3,4)), then the first value is used in the last assessment year (base.year), and the three following in the three following years. Alternatively F's can be specified by a scale, or a target catch. Only one option can be used per year. So for instance to set a catch in the first year and an F-scale in the following one would write catchval=c(10000,NA,NA,NA), fscale=c(NA,1,1,1). The length of the vector specifies how many years forward the scenarios run.
+There are four ways to specify a scenario; fscale, catchval, fval and MP.
 }

@@ -15,5 +15,5 @@ IEnorm2(TAC, i)
 IEnorm2
 }
 \details{
-adds catch to TAC based on normal distribution
+adds catch to TAC based on normal distribution: constant 7200 (sd 2400)
 }

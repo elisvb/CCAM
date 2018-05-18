@@ -1260,6 +1260,26 @@ surveyplot <- function(x,col=c("#000000", "#88CCEE", "#44AA99", "#117733", "#999
     })
 }
 
+##' Plot implementation error
+##' @param IEmeans list of mean values
+##' @param IEsds list of sd values
+##' @param col colors
+##' @rdname IEplot
+##' @export
+IEplot <- function(IEmeans,IEsds, col=c("#000000", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")){
+    myIE <-cbind(melt(do.call('rbind',IEmeans)),sd=melt(do.call('rbind',IEsds))[,3])
+    p<- ggplot(myIE,aes(x=Var2-1,y=value))+
+        geom_ribbon(aes(ymin=value-sd,ymax=value+sd,fill=Var1),alpha=0.2)+
+        geom_line(aes(col=Var1),size=1.5)+
+        geom_point(aes(col=Var1))+
+        theme(legend.position="none")+
+        ylab('Undeclared catch (t)')+xlab('Year')+labs(col='',fill='')+
+        theme_classic()+
+        scale_fill_manual(values=col[1:length(unique(myIE$Var1))])+
+        scale_color_manual(values=col[1:length(unique(myIE$Var1))])
+    return(p)
+}
+
 ##' Bubble plot
 ##' @param x matrix
 ##' @param scale scaler for the bubble size (cex size: sqrt(bubblevalue)*scale)
