@@ -16,13 +16,13 @@ avail <- function(x){
 ##' @export
 copy <- function(x,n,name){
     single <- length(n)==1
-    if(!single) n <- sum(n)
-    l <- rep(list(x),n)
+    ntot <- sum(n)
+    l <- rep(list(x),ntot)
 
     if(single){ mynames <- paste0(name,1:n)
     }else{      mynames <- unlist(sapply(1:length(n),function(x) paste0(name[x],1:n[x])))}
 
-    l <- lapply(1:length(l),function(y){myl <- l[[y]]
+    l <- lapply(1:ntot,function(y){myl <- l[[y]]
     para <- names(myl)
     ix <- grep('label', para, value=TRUE)
     myl[[ix]]<-mynames[y]
@@ -65,7 +65,11 @@ gmean = function(x, na.rm=TRUE){
 ##' @importFrom gridExtra grid.arrange
 ##' @export
 savepng <- function(plot,wd, name,dim){
-    png(file=paste0(wdIMG,name,".png"),units="cm",res=300,width=dim[1],height=dim[2])
-    if("ggplot" %in% class(plot)) grid.arrange(plot) else plot
-    dev.off()
+    if("ggplot" %in% class(plot)) {
+        ggsave(plot,filename=paste0(wdIMG,name,".png"),width=dim[1],height=dim[2])
+    }else{
+        png(file=paste0(wdIMG,name,".png"),units="cm",res=300,width=dim[1],height=dim[2])
+        plot
+        dev.off()
+    }
 }

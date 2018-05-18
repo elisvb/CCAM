@@ -126,28 +126,67 @@ plot(retro)
 mohn(retro)
 
 #################################################################################################################
-########### MSE ########################################################################################
+########### MSE #################################################################################################
 #################################################################################################################
-
-### UNDER CONSTRUCTION
 
 ##### debugging
 fit=fit1; fscale=NULL; catchval=NULL; fval=NULL; nosim=2; year.base=max(fit$data$years);
 ave.years=max(fit$data$years)+(-9:0); rec.years=max(fit$data$years)+(-39:0); MPlabel=NULL;OMlabel=NULL;
 overwriteSelYears=NULL; deterministic=FALSE;CZ=103000;HZ=257500;IE=NULL;rec.meth=3
-capLower=0;capUpper=NULL;MP = rep('MPeggsurvey',3);UL.years=max(fit$data$years)+(-4:0);TAC.base=8000
-#####
+capLower=0;capUpper=NULL;MP = rep('MPspm',3);UL.years=max(fit$data$years)+(-4:0);TAC.base=8000
 
 ny=3
+nosim=5
 
+#***************************************************************************
+#************* define Operating Models *************************************
+#***************************************************************************
+
+# base model
 OMbase <- list(fit=fit1,
-               nosim=5,
+               nosim=nosim,
                OMlabel='OMbase',
                year.base=2016,
                ave.years=tail(fit1$data$years,10),
                rec.years=1977:2016,
-               rec.meth=3,
+               rec.meth=2,
                UL.years=tail(fit1$data$years,10))
+
+copy(x=OMbase,n=c(5,3),name=c('OMcore','OMstress'))
+
+# recruitment
+OMcore1$rec.meth=6  # trailing sampling recruitment
+OMcore2$rec.meth=1  # BH AC
+OMstress1$rec.scale=0.7 # mean with AC and reduced by 0.75
+
+# different M
+newdat1 <- dat
+newdat1$natMor[,] <- 0.15
+
+fitMunc <- ccam.fit(newdat1,conf,par,phase=1)     # run uncensored with lognormal error dist Ctot (sd = 0.01) and Clower becomes Cmean
+fitM <- ccam.fit(newdat1,conf,par,phase=2)     # run phase 1 + censored
+
+OMcore3$fit=fitM
+
+OMstress2$bio.scale=list('nm'=0.8)
+OMstress3$bio.scale=list('nm'=1.2)
+
+# different Upper limit
+newdat2 <- dat
+oldUpper <- newdat2$logobs[which(!is.na(newdat2$logobs[,2])),1]
+newUpper <- log(exp(oldUpper) + ctUSA[-c(1:8),1])
+newdat2$logobs[which(!is.na(newdat2$logobs[,2])),2] <- newUpper
+
+fitCunc <- ccam.fit(newdat2,conf,par,phase=1)     # run uncensored with lognormal error dist Ctot (sd = 0.01) and Clower becomes Cmean
+fitC <- ccam.fit(newdat2,conf,par,phase=2)     # run phase 1 + censored
+
+OMcore4$fit=fitC
+
+#*****************************************************************************
+#************* define Harvest Control Rules **********************************
+#*****************************************************************************
+
+nMP=5
 
 MP1 <- list(MP=rep(0,ny),
             MPlabel='MP1',
@@ -157,29 +196,75 @@ MP1 <- list(MP=rep(0,ny),
             capLower=0,
             TAC.base=8000)
 
-copy(x=OMbase,n=c(5,2),name=c('OMcore','OMstress'))
-copy(x=MP1,n=c(5),name=c('MP'))
+copy(x=MP1,n=c(nMP-1),name=c('MP'))
 
 avail('MP')
 
-MP2$MP=rep('MPeggsurvey',ny)
-MP3$MP=rep('MPeggsurveytrail3interim',ny)
-MP4$MP=rep('MPf40base',ny)
+MP2$MP <- rep('MPeggsurvey',ny)
+MP3$MP <- rep('MPeggsurveytrail3interim',ny)
+MP4$MP <- rep('MPeggsurveytrail3',ny)
+MP5$MP <- rep('MPeggsurveytargetinterim',ny)
+MP6$MP <- rep('MPeggsurveytarget',ny)
+MP7$MP <- rep('MPf40base',ny)
+MP8$MP <- rep('MPspm',ny)
 
-MSEbase.1 <- c(OMbase,MP1)
-MSEbase.2 <- c(OMbase,MP2)
-MSEbase.3 <- c(OMbase,MP3)
-MSEbase.4 <- c(OMbase,MP4)
 
-RUNbase.1 <- do.call(forecast, MSEbase.1)
-RUNbase.2 <- do.call(forecast, MSEbase.2)
-RUNbase.3 <- do.call(forecast, MSEbase.3)
-RUNbase.4 <- do.call(forecast, MSEbase.4) #bad crl transformation, wtf???
+# Plot different IEs
+IEmeans=list(IE1 = rep(6000,100),
+             IE2 = rep(7200,100),
+             IE3 = c(Reduce(function(v, x) .8*v , x=numeric(3),  init=6000, accumulate=TRUE)[-1],rep(3000,97)),
+             IE4 = c(Reduce(function(v, x) .75*v , x=numeric(6),  init=6000, accumulate=TRUE)[-1],rep(1000,94)),
+             IE5 = rep(6000*0.8,100)
+)
+IEsds=lapply(IEmeans,'/',3)
 
-RUNbase.list <- c(RUNbase.1,RUNbase.2,RUNbase.3,RUNbase.4)
-names(RUNbase.list) <- paste0('MP',1:length(RUNbase.list))
+z <- array( c( do.call('rbind',IEmeans) , do.call('rbind',IEsds)  ) , dim = c( 5 , 100 , 2 ) )
 
-### different capstuff
+png(file=paste0("./IMG/Ubars.png"),units="cm",res=300,width=18,height=13)
+ggplot(U,aes(x=time,y=value))+
+    geom_ribbon(aes(ymin=value-sd,ymax=value+sd,fill=variable),alpha=0.3)+
+    geom_line(aes(col=variable))+
+    geom_point(aes(col=variable))+
+    theme(legend.position="none")+
+    ylab('Undeclared catch (t)')+xlab('Year')
+dev.off()
+
+#******************************************************************************
+#************* forecast for each combination **********************************
+#******************************************************************************
+myOMs <- 'OMbase'
+myMPs <- 'MP1'
+
+myOMs <- grep('OM',ls(),value = TRUE)
+myMPs <- paste0('MP',1:nMP)
+
+scenmat <- expand.grid(OM=myOMs, MP=myMPs)
+scennames <- apply(scenmat,1,paste,collapse = ".")
+
+# create a list with all scenarios to test (combos MP/OM)
+scenlist <- lapply(split(scenmat,1:nrow(scenmat)),function(x){
+    c(get(as.character(x[1,1])),get(as.character(x[1,2])))
+})
+names(scenlist) <- scennames
+
+# forecast each scenario (combos MP/OM)
+wdRdata <- "C:/Users/vanbe/Desktop/Post-Doc/DATA/MSE/Rdata/"
+
+runlist <- lapply(scenlist,function(x){
+    RUN <- do.call(forecast, x)
+    save(RUN,file=paste0(wdRdata,names(x),'.Rdata'))
+})
+
+files <- split(paste0(wdRdata,scennames ,'.Rdata'),1:nrow(scenmat))
+runlist <- lapply(files, function(x) get(load(x)))
+
+names(runlist)=scennames
+class(runlist)='forecastset'
+
+#******************************************************************************
+#************* plot each forecast and compare**********************************
+#******************************************************************************
+
 ssbplot(RUNbase.1)
 ssbplot(RUNbase.list) #no applicable method for 'plotit' applied to an object of class "list"
 

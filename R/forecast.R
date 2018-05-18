@@ -36,6 +36,7 @@ rmvnorm <- function(n = 1, mu, Sigma){
 ##' @param ave.years vector of years to average for weights, maturity, M and such
 ##' @param rec.years vector of years to use to resample recruitment from
 ##' @param rec.meth methode to project recruitment
+##' @param rec.scale scale recruitment (default is 1)
 ##' @param label optional label to appear in short table
 ##' @param overwriteSelYears if a vector of years is specified, then the average selectivity of those years is used (not recommended)
 ##' @param deterministic option to turn all process noise off (not recommended, as it will likely cause bias)
@@ -46,14 +47,15 @@ rmvnorm <- function(n = 1, mu, Sigma){
 ##' @param capUpper upper limit of TAC (before IE)
 ##' @param UL.years vector of years to use to resample upper/lower catch bound ranges from
 ##' @param TAC.base TAC last year
+##' @param bio.scale names list with multipliers used to scale future bio values (nm, en, pr,sw,cw,lf,dw,lw,pm,pf)
 ##' @details There are four ways to specify a scenario; fscale, catchval, fval and MP.
 ##' @return an object of type ccamforecast
 ##' @importFrom stats median uniroot quantile
 ##' @export
 forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1000, year.base=max(fit$data$years),
-                     ave.years=max(fit$data$years)+(-4:0), rec.years=max(fit$data$years)+(-9:0),rec.meth=5, MPlabel=NULL,
+                     ave.years=max(fit$data$years)+(-4:0), rec.years=max(fit$data$years)+(-9:0),rec.meth=5, rec.scale=1, MPlabel=NULL,
                      OMlabel=NULL,overwriteSelYears=NULL, deterministic=FALSE,CZ=0,HZ=0,IE=NULL,
-                     capLower=NULL,capUpper=NULL,UL.years=max(fit$data$years)+(-4:0),TAC.base=NULL){
+                     capLower=NULL,capUpper=NULL,UL.years=max(fit$data$years)+(-4:0),TAC.base=NULL,bio.scale=NULL){
   parameters <- as.list(match.call())
 
   args <- c('fval','fscale','catchval','MP')
@@ -389,9 +391,9 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     ret
   }
   procVar<-getProcessVar(fit)
-  simlist<-list()
-  recs <- rep(NA, nosim)
   TAC <- rep(TAC.base,nosim)
+
+  simlist<-list()
 
   for(i in 0:ny){
     y<-year.base+i                       # starts with final year
@@ -408,8 +410,19 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     pr<-getThisOrAve(fit$data$propMat, y, ave.pf)
     en<-getThisOrAve(fit$data$env, y, ave.en)
 
+    if(!is.null(bio.scale)){
+        envir <- environment()
+        dummy <- lapply(1:length(bi.oscale),function(x){
+            bio <- get(names(bio.scale)[x])*bio.scale[[x]]
+            assign(names(bio.scale)[x],bio,envir = envir)
+        })
+    }
+
     # abundance at the beginning of the year
-    if(i!=0) recs <- getRec(sim, recpool, rec.meth, deterministic, i, simpara)
+    if(i!=0) {
+        recs <- getRec(sim, recpool, rec.meth, deterministic, i, simpara)
+        recs <- recs*rec.scale
+    }
     sim <- t(sapply(1:nrow(sim), function(s) step(sim[s,], nm=nm, rec=recs[s], scale=1, inyear=(i==0)))) # simulations of next year
     if(i!=0){
       if(deterministic) procVar<-procVar*0
@@ -464,7 +477,6 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
         #new parameters
         if(i==0) paras <- fit$pl
         if(i>0) paras <- steppar(paras)
-
         #new data
         if(i==0){
             dats <- list(fit$data)

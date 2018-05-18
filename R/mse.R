@@ -73,18 +73,17 @@ fleet6 <- function(x,fit,f,simpara,deterministic,nm){
 ##' @return returns and array of size (n observations,2 (lower and upper column), number of simulations)
 ##' @export
 newobs <- function(fit, sim, simpara, ULpool,deterministic, nm){
-    add <- nrow(unique(fit$data$aux[,2:3]))
-    fleetsim <- array(dim=c(add,2,nrow(sim)))
-    for(f in unique(fit$data$aux[,2])){
-        print(f)
+    aux <- unique(fit$data$aux[,2:3])
+    fleetsim <- array(dim=c(nrow(aux),2,nrow(sim)))
+    for(f in unique(aux[,1])){
         ft <- fit$data$fleetTypes[f]
         if(ft==3) {
             mysim <- fleet3(x=sim,fit,f,simpara,deterministic,ULpool)
-            fleetsim[which(aux[,2]==f),,] <- mysim
+            fleetsim[which(aux[,1]==f),,] <- mysim
         }
         if(ft==6) {
             mysim <- fleet6(x=sim,fit,f,simpara,deterministic,nm)
-            fleetsim[which(aux[,2]==f),,] <- mysim
+            fleetsim[which(aux[,1]==f),,] <- mysim
         }
     }
     return(fleetsim)

@@ -35,6 +35,113 @@ MPeggsurveytrail3interim<-function(data,TAC.base,i){
 }
 class(MPeggsurveytrail3interim) <- append(class(MPeggsurveytrail3interim),"MP")
 
+##' MPeggsurveytrail3
+##' @param data list with data objects
+##' @param TAC.base TAC of previous year
+##' @param i year in the future
+##' @rdname MPeggsurveytrail3
+##' @details simply changes TAC in function of change in I (last year/ geometric mean 3 years before). Change can not be bigger smaller than 0.5x or 2x.
+##' @export
+MPeggsurveytrail3<-function(data,TAC.base){
+        change <- unlist(lapply(data,function(x){ Ix <- tail(x$logobs[which(x$aux[,2]==3),1],4)
+                                                change <- Ix[4]/gmean(Ix[1:3])
+                                                change <- min(max(change,0.5),2)
+                                                return(change)}))
+        TAC <- TAC.base*change
+    return(TAC)
+}
+class(MPeggsurveytrail3) <- append(class(MPeggsurveytrail3),"MP")
+
+##' MPeggsurveytarget
+##' @param data list with data objects
+##' @param TAC.base TAC of previous year
+##' @param i year in the future
+##' @rdname MPeggsurveytarget
+##' @details simply changes TAC in function of change in I (last year/ geometric mean 3 years before). Change can not be bigger smaller than 0.5x or 2x.
+##' @export
+MPeggsurveytarget<-function(data,TAC.base){
+    Ihist <- cbind(I=exp(data[[1]]$logobs[,1]),data[[1]]$aux)
+    Ihist <- Ihist[which(Ihist[,3]==3),c(1,2)]
+
+    Itarget <- gmean(Ihist[which(Ihist[,2] %in% 1979:1994),1])
+    I0 <- gmean(Ihist[which(Ihist[,2] %in% c(1996:2000,2004:2008)),1])
+    TACtarget <- 30000
+    TACmin <- 8000
+    w = TACmin/TACtarget
+    Irecent <- exp(unlist(lapply(data,function(x){gmean(tail(x$logobs[which(x$aux[,2]==3),1],3))})))
+
+    ItoTac <- function(x){
+        if(x<I0){
+            TAC <- w*TACtarget*(x/I0)^2
+        }else{
+            TAC <- TACtarget*(w+(1-w)*((x-I0)/(Itarget-I0)))
+        }
+        TAC <- ifelse(TAC<TACmin,0,TAC)
+        return(TAC)
+    }
+
+    TAC <- sapply(Irecent, ItoTac)
+    if(length(TAC)==1) TAC <- rep(TAC,length(TAC.base))
+    return(TAC)
+
+    # par(mfrow=c(2,1),mar=c(4,4,1,2))
+    # plot(Ihist[,2],Ihist[,1],type='o',pch=16,ylab='SSB (t)',xlab='Year', yaxs='i', xaxs='i')
+    # points(Ihist[which(Ihist[,2] %in% 1979:1994),2],Ihist[which(Ihist[,2] %in% 1979:1994),1],col='green',pch=16)
+    # points(Ihist[which(Ihist[,2] %in% c(1996:2000,2004:2008)),2],Ihist[which(Ihist[,2] %in% c(1996:2000,2004:2008)),1],col='red',pch=16)
+    # points(Ihist[which(Ihist[,2] %in% c(2014:2016)),2],Ihist[which(Ihist[,2] %in% c(2014:2016)),1],col='grey',pch=16)
+    #
+    # x <- seq(0,Itarget*1.2,length.out = 500)
+    # y <- sapply(x, ItoTac)
+    # plot(x,y,type='l',ylab='TAC',xlab='Index',lwd=3, yaxs='i', xaxs='i')
+    # abline(v=I0,col='red',lty=2,lwd=2)
+    # abline(v=Itarget,col='green',lty=2,lwd=2)
+    # abline(h=TACtarget,col='grey',lty=2,lwd=2)
+    # abline(h=w*TACtarget,col='grey',lty=2,lwd=2)
+    # text(x=(Itarget-I0)/2,y=TACtarget,labels='TAC target',adj=c(0,0),col='grey')
+    # text(x=(Itarget-I0)/2,y=TACmin,labels='TAC minimum',adj=c(0,0),col='grey')
+    # text(x=Itarget,y=0,labels='I target',adj=c(-0.2,0),col='green')
+    # text(x=I0,y==0,labels='I0',adj=c(-0.4,0),col='red')
+    # abline(v=Irecent[1],col='darkgrey',lty=3,lwd=2)
+}
+class(MPeggsurveytarget) <- append(class(MPeggsurveytarget),"MP")
+
+##' MPeggsurveytargetinterim
+##' @param data list with data objects
+##' @param TAC.base TAC of previous year
+##' @param i year in the future
+##' @rdname MPeggsurveytargetinterim
+##' @details simply changes TAC in function of change in I (last year/ geometric mean 3 years before). Change can not be bigger smaller than 0.5x or 2x.
+##' @export
+MPeggsurveytargetinterim<-function(data,TAC.base,i){
+    if(!i %% 2 == 1){
+        TAC <- TAC.base
+    }else{
+        Ihist <- cbind(I=exp(data[[1]]$logobs[,1]),data[[1]]$aux)
+        Ihist <- Ihist[which(Ihist[,3]==3),c(1,2)]
+        Itarget <- gmean(Ihist[which(Ihist[,2] %in% 1979:1994),1])
+        I0 <- gmean(Ihist[which(Ihist[,2] %in% c(1996:2000,2004:2008)),1])
+        TACtarget <- 30000
+        TACmin <- 8000
+        w = TACmin/TACtarget
+        Irecent <- exp(unlist(lapply(data,function(x){gmean(tail(x$logobs[which(x$aux[,2]==3),1],3))})))
+
+        ItoTac <- function(x){
+            if(x<I0){
+                TAC <- w*TACtarget*(x/I0)^2
+            }else{
+                TAC <- TACtarget*(w+(1-w)*((x-I0)/(Itarget-I0)))
+            }
+            TAC <- ifelse(TAC<TACmin,0,TAC)
+            return(TAC)
+        }
+
+        TAC <- sapply(Irecent, ItoTac)
+        if(length(TAC)==1) TAC <- rep(TAC,length(TAC.base))
+    }
+    return(TAC)
+}
+class(MPeggsurveytargetinterim) <- append(class(MPeggsurveytargetinterim),"MP")
+
 ##' MPf40stages
 ##' @param fit output from ccam.fit
 ##' @param data list with data objects
@@ -116,8 +223,8 @@ MPspm <- function(data,TAC.base,i){
     }else{
         ncores <- detectCores()
         cl <- makeCluster(ncores) #set up nodes
-        clusterExport(cl, envir=environment())
-        # obsfit <- lapply(data, function(x){
+        clusterExport(cl, varlist=c("TAC.base"), envir=environment())
+        #obsfit <- lapply(data, function(x){
         obsfit <- parLapply(cl,data,function(x){
             o <- x$logobs
             aux <- x$aux
@@ -125,9 +232,7 @@ MPspm <- function(data,TAC.base,i){
                        timeC = unname(aux[which(aux[,2]==1),1]),
                        obsI = unname(exp(o[which(aux[,2]==3),1])),
                        timeI = unname(aux[which(aux[,2]==3),1]))
-
             res <- spict::fit.spict(dl)
-            #res <- manage(res, scenarios = 3)
             Bmsy <- spict::get.par('Bmsys', res)[2]
             Blast <- spict::get.par('logBl', res, exp=TRUE)[2]
             Blim <- Bmsy*0.4
@@ -149,9 +254,10 @@ MPspm <- function(data,TAC.base,i){
             }
             return(TAC)
            })
-        }
         stopCluster(cl)
         TAC <- do.call('c',obsfit)
         if(length(TAC)==1) TAC <- rep(TAC, length(TAC.base))
+    }
+    return(TAC)
 }
-class(MPf40base) <- append(class(MPf40base),"MP")
+class(MPspm) <- append(class(MPspm),"MP")

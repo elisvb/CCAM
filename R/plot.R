@@ -957,6 +957,7 @@ resplot <- function(fit, log=TRUE, ...){
 ##' @rdname resplot
 ##' @method resplot ccam
 ##' @import ggplot2
+##' @importFrom reshape2 dcast
 ##' @export
 resplot.ccam <- function(fit, log=TRUE,fleets=unique(fit$data$aux[,"fleet"]), type=1, std=TRUE,out=0,...){
     idx<-fit$data$aux[,"fleet"]%in%fleets
