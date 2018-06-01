@@ -4,29 +4,43 @@
 \alias{tableit}
 \alias{tableit.ccam}
 \alias{tableit.ccamset}
+\alias{tableit.ccamforecast}
+\alias{tableit.forecastset}
 \title{Table helper}
 \usage{
-tableit(fit, what, x = fit$data$years, trans = function(x) x, ...)
+tableit(fit, what, trans = function(x) x, fleet = NULL, ...)
 
-\method{tableit}{ccam}(fit, what, x = fit$data$years, trans = function(x) x,
+\method{tableit}{ccam}(fit, what, trans = function(x) x, fleet = NULL, ...)
+
+\method{tableit}{ccamset}(fit, what, trans = function(x) x, fleet = NULL,
   ...)
 
-\method{tableit}{ccamset}(fit, what, x = NULL, trans = function(x) x, ...)
+\method{tableit}{ccamforecast}(fit, what, trans = function(x) x,
+  fleet = NULL, ...)
+
+\method{tableit}{ccamforecast}(fit, what, trans = function(x) x,
+  fleet = NULL, ...)
 }
 \arguments{
 \item{fit}{returned object from ccam.fit}
 
 \item{what}{quoted name of what to extract}
 
-\item{x}{rownames of table}
-
 \item{trans}{function to be applied}
 
+\item{fleet}{add observations of a fleet}
+
 \item{...}{extra arguments not currently used}
+
+\item{x}{rownames of table}
 }
 \description{
 Table helper
 }
 \details{
 ...
+
+low and high correspond to standard deviations in the passed by quantiles in the future (97.5 - 2.5)
+
+low and high correspond to standard deviations in the passed by quantiles in the future (97.5 - 2.5)
 }

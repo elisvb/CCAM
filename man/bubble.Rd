@@ -5,16 +5,26 @@
 \alias{heat}
 \title{Bubble plot}
 \usage{
-bubble(x, ylab = "Year", xlab = "Age", scale = 3, ...)
+bubble(x, xlab = "Year", ylab = "Age", scale = 15, col = c("black",
+  "darkgreen"), alpha = 0.8)
 
-heat(x, col = c("darkgreen", "grey", "darkred"), xlab = "Year",
-  ylab = "Age", ncol = 20, leg = TRUE, leground = 2, posneg = FALSE,
-  ...)
+heat(x, high = c("grey", "darkgreen"), low = "darkred", xlab = "Year",
+  ylab = "Age", posneg = FALSE)
 }
 \arguments{
 \item{x}{matrix}
 
-\item{scale}{scaler for the bubble size (cex size: sqrt(bubblevalue)*scale)}
+\item{xlab}{x label}
+
+\item{ylab}{y label}
+
+\item{scale}{scaler for the bubble size (scale_range)}
+
+\item{col}{color for the bubbles. if 2 colors are given, they indicate positive and negative values}
+
+\item{alpha}{transparency of the bubbles}
+
+\item{x}{matrix}
 
 \item{col}{colors that indicate the color scale limit}
 
@@ -23,8 +33,6 @@ heat(x, col = c("darkgreen", "grey", "darkred"), xlab = "Year",
 \item{leg}{logical (plot legend?)}
 
 \item{leground}{number of digits to round legend}
-
-\item{x}{matrix}
 }
 \description{
 Bubble plot

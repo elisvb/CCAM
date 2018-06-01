@@ -12,8 +12,8 @@ Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &lo
     }
   }
   density::MVNORM_t<Type> neg_log_densityN(nvar);
-  Eigen::LLT< Matrix<Type, Eigen::Dynamic, Eigen::Dynamic> > lltCovN(nvar);
-  matrix<Type> LN = lltCovN.matrixL();
+  Eigen::LLT< Matrix<Type, Eigen::Dynamic, Eigen::Dynamic> > lltCovN(nvar); // compute the Cholesky decomposition of A
+  matrix<Type> LN = lltCovN.matrixL(); // retrieve factor L  in the decomposition
   matrix<Type> LinvN = LN.inverse();
 
   array<Type> logF = FFun(conf, logFy,logitSel, 1);
@@ -29,9 +29,9 @@ Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &lo
       }
     }
   }
-  if(conf.resFlag==1){
-    ADREPORT_F(resN,of);
-  }
+
+  REPORT_F(resN,of);
+  
   if(CppAD::Variable(keep.sum())){ // add wide prior for first state, but _only_ when computing ooa residuals
     Type huge = 10;
     for (int i = 0; i < stateDimN; i++) nll -= dnorm(logN(i, 0), Type(0), huge, true);  

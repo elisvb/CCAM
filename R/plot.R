@@ -1,945 +1,322 @@
 ##' Plot helper
-##' @param fit the fitted object from ccam.fit of a set of such fits c(fit1,fit2)
-##' @param what quoted name of object to extract
-##' @param x x-alues
-##' @param ylab label on y-axis
-##' @param xlab label on x-axis
-##' @param ex extra y's to make room for
-##' @param trans function to transform values by
-##' @param add logical, plotting is to be added on existing plot
-##' @param ci logical, confidence intervals should be plotted
-##' @param cicol color to plot the confidence polygon
-##' @param addCI A logical vector indicating if confidence intervals should be plotted for the added fits.
-##' @param drop number of years to be left unplotted at the end.
-##' @param unnamed.basename the name to assign an unnamed basefit
-##' @param xlim ...
-##' @param ... extra arguments transferred to plot
-##' @importFrom graphics plot polygon grid lines
-##' @importFrom grDevices gray
-##' @details The basic plotting used bu many of the plotting functions (e.g. ssbplot, fbarplot ...)
-plotit <-function (fit, what,...){
+##' @param x dataframe from table()
+##' @param ylab y label
+##' @param xlab x label
+##' @details The basic plotting used by many of the plotting functions (e.g. ssbplot, fbarplot ...)
+plotit <-function (x,ylab='Estimate',xlab='Year',ci=TRUE){
     UseMethod("plotit")
 }
+
 ##' @rdname plotit
-##' @method plotit ccam
+##' @method plotit dfccam
 ##' @export
-plotit.ccam <- function(fit, what, x=fit$data$years, ylab=what, xlab="Years", ex=numeric(0), trans=function(x)x, add=FALSE, ci=TRUE, cicol=gray(0,alpha=.5),
-                   addCI=NA, drop=0, unnamed.basename="current", xlim=NULL, ylim=NULL,...){
-    idx <- names(fit$sdrep$value)==what
-    y <- fit$sdrep$value[idx]
-    lowhig <- y+fit$sdrep$sd[idx]%o%c(-2,2)
-    didx <- 1:(length(x)-drop)
-    if(missing(xlim)){
-      xr <- range(x)
-    }else{
-      xr <- xlim
-    }
-    x<-x[didx]
-    y<-y[didx]
-    lowhig<-lowhig[didx,]
-    if(add){
-      lines(x, trans(y), lwd=3,...)
-    }else{
-        if(is.null(ylim)) ylim=range(c(trans(lowhig),0,ex))
-      #par(mar=c(5,5,4,2) + 0.1)
-      plot(x, trans(y), xlab=xlab, ylab="", type="n", lwd=3, xlim=xr, ylim=ylim, las=1,xaxs="i",...)
-      mtext(text = ylab,
-            side = 2,
-            line = 4)
-      grid(col="black")
-      lines(x, trans(y), lwd=3, ...)
-    }
+plotit.dfccam <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,col="black"){
+ p <- ggplot(x,aes(x=year,y=Estimate))+geom_line(size=1.5,col=col)+
+    scale_y_continuous(expand=c(0,0))+
+    scale_x_continuous(expand=c(0,0))+
+    theme_bw()+ylab(ylab)+xlab(xlab)
+ if(ci){
+     p <- p+geom_ribbon(aes(ymax=High, ymin=Low), alpha=0.2,fill=col)
+ }
+ return(p)
+}
+
+##' @rdname plotit
+##' @method plotit dfccamset
+##' @export
+plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")){
+    coll <- c(rep(col,length(unique(x$fit)) %/% length(col)),col[1:length(unique(x$fit)) %% length(col)])
+    p <- ggplot(x,aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit),size=1.5)+
+        scale_y_continuous(expand=c(0,0))+
+        scale_x_continuous(expand=c(0,0))+
+        scale_fill_manual(values=coll)+
+        scale_color_manual(values=coll)+
+        labs(col='',fill='')+
+        theme_bw()+ylab(ylab)+xlab(xlab)+
+        theme(legend.position = c(0.8,0.8),
+              legend.background = element_blank())
     if(ci){
-      polygon(c(x,rev(x)), y = c(trans(lowhig[,1]),rev(trans(lowhig[,2]))), border = cicol, col = cicol)
-      lines(x, trans(y), lwd=3, col=cicol)
-      #lines(x, trans(y), lwd=2, col="black", lty="dotted")
+        p <- p+geom_ribbon(aes(ymax=High, ymin=Low, fill=fit), alpha=0.2)
     }
-    invisible(trans(y))
-    #par(mar=c(5,4,4,2) + 0.1)
+    return(p)
 }
 
 ##' @rdname plotit
-##' @method plotit ccamset
+##' @method plotit dfccamforecast
 ##' @export
-plotit.ccamset <- function(fit, what, x=fit$data$years, ylab=what, xlab="Years", ex=numeric(0), trans=function(x)x, add=FALSE, ci=TRUE, cicol=gray(.5,alpha=.5),
-                          addCI=rep(FALSE,length(fit)), drop=0, unnamed.basename="current", xlim=NULL,leg=NULL,
-                          col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"),
-                          ...){
-    if(is.logical(addCI) & (length(addCI)==1))addCI=rep(addCI,length(fit))
-    if(any(col %in% colors())) col[col %in% colors()] <- col2hex(col[col %in% colors()])
-    idxfrom <- 1
-    leg<-names(fit)
-    if(is.null(attr(fit,"fit"))){
-        attr(fit,"fit") <- fit[[1]]
-        idxfrom <- 2
-    }else{
-        #leg<-c(unnamed.basename, leg)
-    }
-    if(is.null(x))x=attr(fit,"fit")$data$years
-    if(missing(xlim)){
-        xr <- range(x)
-    }else{
-        xr <- xlim
-    }
-    plotit(attr(fit,"fit"), what=what, x=x, ylab=ylab, xlab=xlab, ex=ex, trans=trans, add=add, ci=ci, cicol=cicol, drop=drop, xlim=xr,...)
-    d<-lapply(idxfrom:length(fit), function(i)plotit(fit[[i]], what=what, trans=trans, add=TRUE, ci=addCI[i],
-                                                     col=col[(i-1)%%length(col)+1], cicol=paste0(col[(i-1)%%length(col)+1],"99"), drop=drop, ...))
-
-    if(!is.null(leg) & add==FALSE) {
-    legend("top",legend=leg, lwd=3, col=c(par("col"),col[((idxfrom:length(fit))-1)%%length(col)+1]), ncol=4, bty="n",
-           xpd=TRUE,inset=c(-0,-0.1))
-    }
-}
-##' @rdname plotit
-##' @method plotit ccamforecast
-##' @export
-plotit.ccamforecast <- function(fit, what, x=fit$data$years, ylab=what, xlab="Years", ex=numeric(0), trans=function(x)x, add=FALSE, ci=TRUE, cicol=gray(.5,alpha=.5),
-                   addCI=NA, drop=0, unnamed.basename="current", xlim=NULL,...){
-    xy <- unlist(lapply(fit, function(xx) xx$year))
-    thisfit<-attr(fit,"fit")
-    xr <- range(thisfit$data$years, xy)
-    plotit(thisfit, what=what, ylab=ylab, xlab=xlab, ex=ex, trans=trans, add=add, ci=ci, cicol=cicol, drop=drop, xlim=xr,...)
-}
-##' @rdname plotit
-##' @method plotit forecastset
-##' @export
-plotit.forecastset <- function(fit, what, x=fit$data$years, ylab=what, xlab="Years", ex=numeric(0), trans=function(x)x, ci=TRUE, cicol=gray(.5,alpha=.5),
-                                addCI=NA, drop=0, unnamed.basename="current", xlim=NULL,...){
-    fitlocal <- lapply(1:length(fit), function(x) attr(fit[[x]],"fit"))
-    pas <- unlist(lapply(fitlocal, function(xx) xx$data$year))
-    fut <- unlist(lapply(fit,function(yy) lapply(yy, function(xx) xx$year)))
-    xr <- range(pas, fut)
-    plotit(fitlocal, what=what, ylab=ylab, xlab=xlab, ex=ex, trans=trans, add=add, ci=ci, cicol=cicol, drop=drop, xlim=xr,...)
-}
-
-##' CCAM add forecasts
-##' @param fit the object returned from ccam.fit
-##' @param what what to plot
-##' @param dotcol color for dot
-##' @param dotpch pch for dot
-##' @param dotcex cex for dot
-##' @param intervalcol color for interval
-##' @param ... extra arguments not currently used
-##' @details internal plotting fun
-##' @importFrom graphics arrows
-addforecast<-function(fit, what, dotcol="black", dotpch=19, dotcex=1.5, intervalcol=gray(.5,alpha=.5),...){
-    UseMethod("addforecast")
-}
-##' @rdname addforecast
-##' @method addforecast ccamforecast
-##' @export
-addforecast.ccamforecast <- function(fit, what, dotcol="black", dotpch=19, dotcex=1.5, intervalcol=gray(.5,alpha=.5),...){
-    x <- attr(fit,"tab")
-    y <- as.numeric(rownames(x))
-    dummy <- sapply(1:length(y),
-                    function(i){
-                        xx<-c(x[i,paste(what,"low", sep=":")],x[i,paste(what,"high", sep=":")]);
-                        if(abs(diff(xx))>0.01){
-                            arrows(y[i],xx[1],y[i],xx[2],lwd=3, col=intervalcol, angle=90, code=3, length=.1)
-                        }
-                    }
-                    )
-    points(y,x[,paste(what,"median", sep=":")], pch=dotpch, cex=dotcex, col=dotcol)
-}
-##' @rdname addforecast
-##' @method addforecast forecastset
-##' @export
-addforecast.forecastset <- function(fit, what, dotpch=19, dotcex=1.5,ci=TRUE,
-                                    col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"),...){
-    if(any(col %in% colors())) col[col %in% colors()] <- col2hex(col[col %in% colors()])
-    mycol <- c()
-    d <- lapply(1:length(fit),function(s){
-    thiscol <- col[(s-1)%%length(col)+1]
-    mycol <<- c(mycol,thiscol)
-    x <- attr(fit[[s]],"tab")
-    y <- as.numeric(rownames(x))
+plotit.dfccamforecast <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,col='black'){
+    p <- ggplot(x,aes(x=year,y=Estimate))+geom_line(size=1.5,col=col)+
+        scale_x_continuous(expand=c(0,0))+
+        theme_bw()+ylab(ylab)+xlab(xlab)+
+        geom_errorbar(data=x[x$period=='Future',],aes(ymax=High, ymin=Low),col=col,alpha=0.2)+
+        scale_y_continuous(expand=c(0,0),limits=c(0,max(df$High)*1.05))
     if(ci){
-    dummy <- sapply(1:length(y),
-                    function(i){
-                        xx<-c(x[i,paste(what,"low", sep=":")],x[i,paste(what,"high", sep=":")]);
-                        if(abs(diff(xx))>0.01){
-                            arrows(y[i],xx[1],y[i],xx[2],lwd=3, col=paste0(thiscol,99), angle=90, code=3, length=.1)
-                        }
-                    }
-    )
+        p <- p+geom_ribbon(data=x[x$period=='Passed',],aes(ymax=High, ymin=Low), alpha=0.2,fill=col)
     }
-    points(y,x[,paste(what,"median", sep=":")], pch=dotpch, cex=dotcex, col=thiscol)
-    if(length(names(fit))==0) leg =1:length(fit) else leg=names(fit)
-    #legend("topleft", bty="n", legend=leg,col = mycol,pch=dotpch, cex=dotcex)
-    par(xpd=TRUE)
-    legend("topright",inset=c(-0.4,0), bty="n", legend=leg,col = mycol,pch=dotpch, cex=dotcex)
-    par(xpd=FALSE)
-    }
-    )
+    return(p)
 }
 
-
-##' Plot by one or two
-##' @param x numeric vector of points to be plotted
-##' @param y numeric vector of points to be plotted
-##' @param z numeric vector of points to be plotted
-##' @param x.line numeric vector of points of line to be added
-##' @param y.line numeric vector of points of line to be added
-##' @param z.line numeric vector of points of line to be added
-##' @param by vector or two column matrix to create sub sets from
-##' @param bubblescale scaling of bubble size
-##' @param x.common logical: use same x-axis for all plots
-##' @param y.common logical: use same y-axis for all plots
-##' @param z.common logical: use same z-axis for all plots
-##' @param xlab normal graphical parameter
-##' @param ylab normal graphical parameter
-##' @param xlim normal graphical parameter
-##' @param ylim normal graphical parameter
-##' @param zmax internally used to scale bubbles similarly
-##' @param axes normal graphical parameter
-##' @param ... additional graphical parameters
-##' @importFrom graphics plot layout axis box mtext legend
-##' @importFrom grDevices gray rgb
-##' @details Function used for splitting plots e.g. used to plot residuals
+##' @rdname plotit
+##' @method plotit dfforecastset
 ##' @export
-##' @examples
-##' exdat<-expand.grid(age=1:5, year=1950:2016, fleet=1:3)
-##' exdat$perfectres<-rnorm(nrow(exdat))
-##' attach(exdat)
-##' par(ask=FALSE)
-##' plotby(year,age,perfectres, by=fleet)
-##' detach(exdat)
-plotby <-function(x=NULL, y=NULL, z=NULL, x.line=NULL, y.line=NULL, z.line=NULL, by=NULL,  bubblescale=1, x.common=!is.null(x), y.common=!is.null(y), z.common=!is.null(z), xlab=NULL, ylab=NULL, xlim=NULL, ylim=NULL, zmax=NULL, axes=TRUE, ...){
-  if(is.null(by)){
-    # 0
-    if(length(x)==0 & length(y)==0 & length(z)==0){
-      if(length(xlim)==0) xlim <- 0:1
-      if(length(ylim)==0) ylim <- 0:1
-      plot(NA, xlim=xlim, ylim=ylim, xlab="", ylab="", axes=FALSE, ...)
+plotit.dfforecastset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE, col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")){
+    coll <- c(rep(col,length(unique(x$fit)) %/% length(col)),col[1:length(unique(x$fit)) %% length(col)])
+    ggplot(x,aes(x=year,y=Estimate,group=fit))+geom_line(size=1.5,aes(col=fit))+
+        geom_errorbar(data=x[x$period=='Future',],aes(ymax=High, ymin=Low,col=fit))+
+        scale_y_continuous(expand=c(0,0.5),limits=c(0,max(x$High)*1.1))+
+        scale_x_continuous(expand=c(0,0))+
+        theme_bw()+ylab(ylab)+xlab(xlab)+
+        scale_fill_manual(values=coll)+
+        scale_color_manual(values=coll)+
+        labs(col='',fill='')+
+        theme(legend.position = c(0.8,0.8),
+              legend.background = element_blank())
+    if(ci){
+        p <- p+geom_ribbon(data=x[x$period=='Passed',],aes(ymax=High, ymin=Low,fill=fit), alpha=0.2)
     }
-    # 1
-    if(length(x)>0 & length(y)==0 & length(z)==0){
-      if(missing(ylab)) ylab <- deparse(substitute(x))
-      if(missing(ylim)) ylim <- c(min(x)-1, max(x)+1)
-      plot(x, ylab=ylab, ylim=ylim, axes=axes, ...)
-      if(length(x.line)>0){
-        lines(x.line,...)
-      }
-    }
-    if(length(x)==0 & length(y)>0 & length(z)==0){
-      if(missing(ylab)) ylab <- deparse(substitute(y))
-      if(missing(ylim)) ylim <- c(min(y)-1, max(y)+1)
-      plot(y, ylab=ylab, ylim=ylim, axes=axes, ...)
-      if(length(y.line)>0){
-        lines(y.line, ...)
-      }
-    }
-    if(length(x)==0 & length(y)==0 & length(z)>0){
-      if(missing(ylab)) ylab <- deparse(substitute(z))
-      if(missing(ylim)) ylim <- c(min(z)-1, max(z)+1)
-      plot(z, ylab=ylab, ylim=ylim, axes=axes, ...)
-      if(length(z.line)>0){
-        lines(z.line, ...)
-      }
-    }
-    # 2
-    if(length(x)>0 & length(y)>0 & length(z)==0){
-      if(missing(xlab)) xlab <- deparse(substitute(x))
-      if(missing(ylab)) ylab <- deparse(substitute(y))
-      if(missing(xlim)) xlim <- c(min(x)-1, max(x)+1)
-      if(missing(ylim)) ylim <- c(min(y)-1, max(y)+1)
-      plot(x, y, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, axes=axes, ...)
-      if(length(y.line)>0){
-        o<-order(x)
-        lines(x[o], y.line[o],...)
-      }
-    }
-    if(length(x)>0 & length(y)==0 & length(z)>0){
-      if(missing(xlab)) xlab <- deparse(substitute(x))
-      if(missing(ylab)) ylab <- deparse(substitute(z))
-      if(missing(xlim)) xlim <- c(min(x)-1, max(x)+1)
-      if(missing(ylim)) ylim <- c(min(z)-1, max(z)+1)
-      plot(x, z, xlab=xlab,  ylab=ylab, xlim=xlim, ylim=ylim, axes=axes, ...)
-      if(length(z.line)>0){
-        o<-order(x)
-        lines(x[o], z.line[o],...)
-      }
-    }
-    if(length(x)==0 & length(y)>0 & length(z)>0){
-      if(missing(xlab)) xlab <- deparse(substitute(y))
-      if(missing(ylab)) ylab <- deparse(substitute(z))
-      if(missing(xlim)) xlim <- c(min(y)-1, max(y)+1)
-      if(missing(ylim)) ylim <- c(min(z)-1, max(z)+1)
-      plot(y, z, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, axes=axes, ...)
-      if(length(z.line)>0){
-        o<-order(y)
-        lines(y[o], z.line[o],...)
-      }
-    }
-    # 3
-    if(length(x)>0 & length(y)>0 & length(z)>0){
-      if(missing(xlab)) xlab <- deparse(substitute(x))
-      if(missing(ylab)) ylab <- deparse(substitute(y))
-      if(missing(xlim)) xlim <- c(min(x)-1, max(x)+1)
-      if(missing(ylim)) ylim <- c(min(y)-1, max(y)+1)
-      if(is.null(zmax)) zmax <- max(sqrt(abs(z)), na.rm=TRUE)
-      cex=sqrt(abs(z))/zmax*5*bubblescale
-      plot(x, y, xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, type="n", axes=axes, ...)
-      neg <- z<0
-      points(x[neg],y[neg], cex=cex[neg], col=rgb(1, 0, 0, alpha=.5), pch=19, ...)
-      points(x[!neg],y[!neg], cex=cex[!neg], col=rgb(0, 0, 1, alpha=.5), pch=19, ...)
-    }
-  }
-  if(is.vector(by)|is.factor(by)){
-    uby <- unique(as.vector(by))
-    if(length(uby)==3){
-      div<-c(3,1)
-    }else{
-      div<-rep(ceiling(sqrt(length(uby))),2)
-      if(div[1]*(div[2]-1)>=length(uby))div[2] <- div[2]-1
-    }
-    laym<-matrix(1:(div[1]*div[2]),nrow=div[1], ncol=div[2])
-    layout(laym)
-    if(missing(xlab)) xlab <- deparse(substitute(x))
-    if(missing(ylab)) ylab <- deparse(substitute(y))
-    if(x.common) xlim <- c(min(x)-1, max(x)+1)
-    if(y.common) ylim <- c(min(y)-1, max(y)+1)
-    if(z.common) zmax <- max(sqrt(abs(z)), na.rm=TRUE)
-    if(x.common) op1<-par(oma=c(par("mar")[1], par("oma")[2], par("mar")[3], par("oma")[4]),
-                          mar=c(.2,par("mar")[2],.2,par("mar")[4]))
-    if(y.common) op2<-par(oma=c(par("oma")[1], par("mar")[2], par("oma")[3], par("mar")[4]),
-                          mar=c(par("mar")[1],.2,par("mar")[3],.2))
-
-    .fun<-function(i){
-      b<-uby[i]
-      plotby(x[by==b], y[by==b], z[by==b], x.line[by==b], y.line[by==b], z.line[by==b], xlab=ifelse(x.common,"",xlab), ylab=ifelse(y.common,"",ylab),
-             xlim=xlim, ylim=ylim, zmax=zmax, bubblescale=bubblescale, axes=FALSE, ...)
-      legend("top", bty="n", legend=uby[i], text.col=gray(.5))
-      if(!x.common)axis(1)
-      if(!y.common)axis(2)
-      if(x.common&(row(laym)[i]==div[1]))axis(1)
-      if(x.common&(i==length(uby)))axis(1)
-      if(y.common&(col(laym)[i]==1))axis(2)
-      box()
-    }
-    d <- lapply(1:length(uby), .fun)
-    if(x.common)mtext(xlab, side = 1, line = 3, outer = TRUE, ...)
-    if(y.common)mtext(ylab, side = 2, line = 2.5, outer = TRUE, ...)
-    if(x.common)par(op1)
-    if(y.common&!x.common)par(op2)
-    par(mfrow=c(1,1))
-  }
-  if(is.matrix(by)){
-    uby1 <- unique(by[,1])
-    uby2 <- unique(by[,2])
-    div<-c(length(uby1), length(uby2))
-    laym<-matrix(1:(div[1]*div[2]),nrow=div[1], ncol=div[2])
-    layout(laym)
-    if(missing(xlab)) xlab <- deparse(substitute(x))
-    if(missing(ylab)) ylab <- deparse(substitute(y))
-    if(x.common) xlim <- c(min(x)-1, max(x)+1)
-    if(y.common) ylim <- c(min(y)-1, max(y)+1)
-    if(z.common) zmax <- max(sqrt(abs(z)), na.rm=TRUE)
-    if(x.common) op1<-par(oma=c(par("mar")[1], par("oma")[2], par("mar")[3], par("oma")[4]),
-                          mar=c(.2,par("mar")[2],.2,par("mar")[4]))
-    if(y.common) op2<-par(oma=c(par("oma")[1], par("mar")[2], par("oma")[3], par("mar")[4]),
-                          mar=c(par("mar")[1],.2,par("mar")[3],.2))
-
-    fun<-function(i,j){
-      b<-(by[,1]==uby1[i])&(by[,2]==uby2[j])
-      plotby(x[b], y[b], z[b], x.line[b], y.line[b], z.line[b], xlab=ifelse(x.common,"",xlab), ylab=ifelse(y.common,"",ylab),
-             xlim=xlim, ylim=ylim, zmax=zmax, bubblescale=bubblescale, axes=FALSE, ...)
-      legend("top", bty="n", legend=paste(uby1[i],":",uby2[j], sep=""), text.col=gray(.5))
-      if(!x.common)axis(1)
-      if(!y.common)axis(2)
-      if(x.common&(i==div[1]))axis(1)
-      if(y.common&(j==1))axis(2)
-      box()
-    }
-    for(j in 1:length(uby2)){for(i in 1:length(uby1))fun(i,j)}
-    if(x.common)mtext(xlab, side = 1, line = 3, outer = TRUE, ...)
-    if(y.common)mtext(ylab, side = 2, line = 2.5, outer = TRUE, ...)
-    if(x.common)par(op1)
-    if(y.common&!x.common)par(op2)
-    par(mfrow=c(1,1))
-  }
-}
-
-##' CCAM Fbar plot
-##' @param fit the object returned from ccam.fit
-##' @param partial true if included partial F's are to be plotted
-##' @param drop number of years to be left unplotted at the end. Default (NULL) is to not show years at the end with no catch information
-##' @param pcol color of partial lines
-##' @param page partial ages to plot
-##' @param ... extra arguments transferred to plot including the following: \cr
-##' \code{add} logical, plotting is to be added on existing plot \cr
-##' \code{ci} logical, confidence intervals should be plotted \cr
-##' \code{cicol} color to plot the confidence polygon
-##' @importFrom graphics matplot
-##' @details Plot the defined fbar.
-##' @export
-fbarplot<-function(fit,...){
-    UseMethod("fbarplot")
-}
-##' @rdname fbarplot
-##' @method fbarplot ccam
-##' @param plot true if fbar should be plotted
-##' @export
-fbarplot.ccam <- function(fit,partial = FALSE, drop=NULL, pcol="lightblue", page=NULL, plot = TRUE,...){
-     if(is.null(drop)){
-        drop=max(fit$data$aux[,"year"])-max(fit$data$aux[fit$data$aux[,"fleet"]==1,"year"])
-    }
-    fbarRange<-fit$conf$fbarRange
-    fbarlab=substitute(bar(F)[X-Y],list(X=fbarRange[1],Y=fbarRange[2]))
-    fmat<-t(faytable(fit))#fitlocal$pl$logF[fitlocal$conf$keyLogFsta[1,]+1,]
-    if(is.null(page)){
-        page<-fbarRange[1]:fbarRange[2]
-    }
-    idx <- which(fit$conf$minAge:fit$conf$maxAge %in% page)
-    exx <- if(partial){fmat[idx,]}else{numeric(0)}
-    if(plot){
-        plotit(fit, "logfbar", ylab=fbarlab, trans=exp, ex=exx, drop=drop, ...)
-        if(partial){
-            idxx <- 1:(length(fit$data$years)-drop)
-            matplot(fit$data$years[idxx], t(fmat[idx,idxx]), add=TRUE, type="b", col=pcol, pch=as.character(page))
-        }
-    }
-    invisible(list(drop=drop,fbarRange=fbarRange,fbarlab=fbarlab,fmat=fmat,page=page,idx=idx,exx=exx))
-}
-##' @rdname fbarplot
-##' @method fbarplot ccamset
-##' @export
-fbarplot.ccamset <- function(fit,partial = FALSE, drop=NULL, pcol="lightblue", page=NULL,...){
-    if(!is.null(attr(fit,"fit"))){
-        fitlocal <- attr(fit,"fit")
-    }else{
-        fitlocal <- fit[[1]]
-    }
-    tmp <- fbarplot(fitlocal,partial,drop,pcol,page,plot=FALSE,...)
-    plotit(fit, "logfbar", ylab=tmp$fbarlab, trans=exp, ex=tmp$exx, drop=tmp$drop, ...)
-    if(partial){
-        idxx <- 1:(length(fitlocal$data$years)-tmp$drop)
-        matplot(fitlocal$data$years[idxx], t(tmp$fmat[tmp$idx,idxx]), add=TRUE, type="b", col=pcol, pch=as.character(tmp$page))
-    }
-}
-##' @rdname fbarplot
-##' @method fbarplot ccamforecast
-##' @export
-fbarplot.ccamforecast <- function(fit,partial = FALSE, drop=NULL, pcol="lightblue", page=NULL,...){
-    fitlocal <- attr(fit,"fit")
-    tmp <- fbarplot(fitlocal,partial,drop,pcol,page,plot=FALSE,...)
-    plotit(fit, "logfbar", ylab=tmp$fbarlab, trans=exp, ex=tmp$exx, drop=tmp$drop, ...)
-    if(partial){
-        idxx <- 1:(length(fitlocal$data$years)-tmp$drop)
-        matplot(fitlocal$data$years[idxx], t(tmp$fmat[tmp$idx,idxx]), add=TRUE, type="b", col=pcol, pch=as.character(tmp$page))
-    }
-    addforecast(fit,"fbar")
-}
-##' @rdname fbarplot
-##' @method fbarplot forecastset
-##' @export
-fbarplot.forecastset <- function(fit,drop=NULL, partial = FALSE, pcol="lightblue", page=NULL, col=NULL,...){
-    fitlocal <- lapply(1:length(fit), function(x) attr(fit[[x]],"fit"))
-    class(fitlocal) <-'ccamset'
-    mods <- modeltable(fitlocal)[,1]
-    mods <- as.numeric(factor(mods))
-    tmp <- fbarplot(fitlocal[[1]],drop,pcol,page,partial=partial,plot=FALSE,...)
-    par(mar=c(5.1, 4.1, 4.1, 11))
-    if(length(unique(mods))==1){plotit(fit[[1]], "logfbar", ylab=tmp$fbarlab, trans=exp, ex=tmp$exx, drop=tmp$drop,...)
-    }else{ plotit(fit, "logfbar", ylab=tmp$fbarlab, trans=exp, ex=tmp$exx, drop=tmp$drop,...)}
-    addforecast(fit,"fbar",col=col)
-    par(mar=c(5, 4, 4, 2) + 0.1)
+    return(p)
 }
 
 ##' CCAM SSB plot
-##' @param fit the object returned from ccam.fit
-##' @param ... extra arguments transferred to plot including the following: \cr
-##' \code{add} logical, plotting is to be added on existing plot \cr
-##' \code{ci} logical, confidence intervals should be plotted \cr
-##' \code{cicol} color to plot the confidence polygon
+##' @param x the object(s) returned from ccam.fit or forecast
+##' @param ... extra arguments transferred to plotit
 ##' @details Plot of spawning stock biomass
 ##' @export
-ssbplot<-function(fit, ...){
+ssbplot<-function(x, ...){
     UseMethod("ssbplot")
 }
 ##' @rdname ssbplot
 ##' @method ssbplot default
 ##' @export
-ssbplot.default <- function(fit,...){
-    plotit(fit, "logssb", ylab="SSB", trans=exp,...)
-}
-##' @rdname ssbplot
-##' @method ssbplot ccamforecast
-##' @export
-ssbplot.ccamforecast <- function(fit,...){
-    plotit(fit, "logssb", ylab="SSB", trans=exp,...)
-    addforecast(fit,"ssb")
-}
-##' @rdname ssbplot
-##' @method ssbplot ccamforecast
-##' @export
-ssbplot.forecastset <- function(fit,...){
-    fitlocal <- lapply(1:length(fit), function(x) attr(fit[[x]],"fit"))
-    class(fitlocal) <-'ccamset'
-    mods <- modeltable(fitlocal)[,1]
-    mods <- as.numeric(factor(mods))
-    par(mar=c(5.1, 4.1, 4.1, 11))
-    if(length(unique(mods))==1){plotit(fit[[1]], "logssb", ylab="SSB", trans=exp,...)
-    }else{plotit(fit, "logssb", ylab="SSB", trans=exp,...)}
-    addforecast(fit,"ssb",...)
-    par(mar=c(5, 4, 4, 2) + 0.1)
+ssbplot.default <- function(x,...){
+    df <- ssbtable(x)
+    plotit(df,ylab='SSB',...)
 }
 
 ##' CCAM TSB plot
-##' @param fit the object returned from ccam.fit
-##' @param ... extra arguments transferred to plot including the following: \cr
-##' \code{add} logical, plotting is to be added on existing plot \cr
-##' \code{ci} logical, confidence intervals should be plotted \cr
-##' \code{cicol} color to plot the confidence polygon
+##' @param x the object(s) returned from ccam.fit
+##' @param ... extra arguments transferred to plotit
 ##' @details Plot of total stock biomass
 ##' @export
-tsbplot<-function(fit, ...){
+tsbplot<-function(x, ...){
     UseMethod("tsbplot")
 }
-##' @rdname tsbplot
-##' @method tsbplot default
+##' @rdname ssbplot
+##' @method ssbplot default
 ##' @export
-tsbplot.default <- function(fit,...){
-    plotit(fit, "logtsb", ylab="TSB", trans=exp,...)
+tsbplot.default <- function(x,...){
+    df <- tsbtable(x)
+    plotit(df,ylab='TSB',...)
 }
 
-##' CCAM Recruits plot
-##' @param fit the object returned from ccam.fit
-##' @param ... extra arguments transferred to plot including the following: \cr
-##' \code{add} logical, plotting is to be added on existing plot \cr
-##' \code{ci} logical, confidence intervals should be plotted \cr
-##' \code{cicol} color to plot the confidence polygon
-##' @details Plot of numbers of recruits (youngest age class)
+##' CCAM exploitation rate plot
+##' @param x the object(s) returned from ccam.fit
+##' @param ... extra arguments transferred to plotit
+##' @details Plot of total stock biomass
 ##' @export
-recplot<-function(fit,...){
+expplot<-function(x, ...){
+    UseMethod("expplot")
+}
+##' @rdname expplot
+##' @method expplot default
+##' @export
+expplot.default <- function(x,...){
+    df <- exptable(x)
+    plotit(df,ylab='Exploitation rate',...)
+}
+
+##' CCAM recruitment plot
+##' @param x the object(s) returned from ccam.fit or forecast
+##' @param ... extra arguments transferred to plotit
+##' @details Plot of recruitment
+##' @export
+recplot<-function(x, ...){
     UseMethod("recplot")
 }
 ##' @rdname recplot
-##' @method recplot ccam
+##' @method recplot default
 ##' @export
-recplot.ccam <- function(fit, ...){
-    lab<-paste("Recruits (age ", fit$conf$minAge, ")", sep="")
-    plotit(fit, "logR", ylab=lab, trans=exp,...)
+recplot.default <- function(x,...){
+    df <- rectable(x)
+    plotit(df,ylab='Recruitment',...)
 }
-##' @rdname recplot
-##' @method recplot ccamset
+
+##' CCAM fbar plot
+##' @param x the object(s) returned from ccam.fit or forecast
+##' @param ... extra arguments transferred to plotit
+##' @details Plot of mean F
 ##' @export
-recplot.ccamset <- function(fit, ...){
-    if(!is.null(attr(fit,"fit"))){
-        fitlocal <- attr(fit,"fit")
-    }else{
-        fitlocal <- fit[[1]]
-    }
-    lab<-paste("Recruits (age ", fitlocal$conf$minAge, ")", sep="")
-    plotit(fit, "logR", ylab=lab, trans=exp,...)
+fbarplot<-function(x, ...){
+    UseMethod("fbarplot")
 }
-##' @rdname recplot
-##' @method recplot ccamforecast
+##' @rdname fbarplot
+##' @method fbarplot default
 ##' @export
-recplot.ccamforecast <- function(fit, ...){
-    fitlocal <- attr(fit,"fit")
-    lab<-paste("Recruits (age ", fitlocal$conf$minAge, ")", sep="")
-    plotit(fit, "logR", ylab=lab, trans=exp,...)
-    addforecast(fit, "rec")
+fbarplot.default <- function(x,...){
+    df <- fbartable(x)
+    plotit(df,ylab='Fbar',...)
 }
-##' @rdname recplot
-##' @method recplot forecastset
+
+##' CCAM selectivity plot
+##' @param x the object(s) returned from ccam.fit or forecast
+##' @param ... extra arguments transferred to plotit
+##' @details Plot of selectivity
 ##' @export
-recplot.forecastset <- function(fit, ...){
-    fitlocal <- lapply(1:length(fit), function(x) attr(fit[[x]],"fit"))
-    class(fitlocal) <-'ccamset'
-    mods <- modeltable(fitlocal)[,1]
-    mods <- as.numeric(factor(mods))
-    lab<-paste("Recruits (age ", fitlocal[[1]]$conf$minAge, ")", sep="")
-    par(mar=c(5.1, 4.1, 4.1, 11))
-    if(length(unique(mods))==1){plotit(fit[[1]], "logR", ylab=lab, trans=exp,...)
-    }else{plotit(fit, "logR", ylab=lab, trans=exp,...)}
-    addforecast(fit,"rec",...)
-    par(mar=c(5, 4, 4, 2) + 0.1)
+selplot<-function(x, ...){
+    UseMethod("selplot")
+}
+##' @rdname selplot
+##' @method selplot default
+##' @export
+selplot.default <- function(x,...){
+    df <- seltable(x)
+    plotit(df,ylab='Selectivity',...)
 }
 
 ##' CCAM catch plot
-##' @param fit the object returned from ccam.fit or forecast
-##' @param obs.show if observations are to be shown also
-##' @param drop number of years to be left unplotted at the end. Default (NULL) is to not show years at the end with no catch information
-##' @param ... extra arguments transferred to plot including the following: \cr
-##' \code{add} logical, plotting is to be added on existing plot \cr
-##' \code{ci} logical, confidence intervals should be plotted \cr
-##' \code{cicol} color to plot the confidence polygon
-##' @details Plot of estimated (and optionally observed) total catch in weight
-##' @importFrom graphics points
+##' @param x the object(s) returned from ccam.fit or forecast
+##' @param fleet add observations from this fleet
+##' @param ... extra arguments transferred to plotit
+##' @details Plot of spawning stock biomass
 ##' @export
-catchplot<-function(fit, obs.show=TRUE, drop=NULL,...){
+catchplot<-function(x,fleet=NULL,...){
     UseMethod("catchplot")
 }
 ##' @rdname catchplot
-##' @param plot true if catch should be plotted
-##' @method catchplot ccam
+##' @method catchplot default
 ##' @export
-catchplot.ccam <- function(fit, obs.show=TRUE, drop=NULL,plot=TRUE,...){
-    if(is.null(drop)){
-        drop=max(fit$data$aux[,"year"])-max(fit$data$aux[fit$data$aux[,"fleet"]==1,"year"])
+catchplot.default <- function(x,fleet=NULL,...){
+    df <- catchtable(x,fleet=fleet)
+    a <- list(...)
+    a$x <- df
+    p <- do.call(plotit, a)
+    if(!is.null(fleet)){
+        if(class(x) %in% c('ccam','ccamforecast')) p <- p+geom_line(aes(y=aux1))+geom_line(aes(y=aux2))
+        if(class(x) %in% c('ccamset','forecastset')) p <- p+geom_line(aes(y=aux1,col=fit))+geom_line(aes(y=aux2,col=fit))
     }
-    CW <- fit$data$catchMeanWeight
-    x <- as.numeric(rownames(CW))
-    obs <- NULL
-    yobsU <- NULL
-    pred <- NULL
-    if(plot)
-        pred <- plotit(fit, "logCatch", ylab="Catch", trans=exp, drop=drop,...)
-    if(obs.show){
-        aux <- fit$data$aux
-        logobs <- fit$data$logobs
-        .goget <- function(y,a){
-            ret <- exp(logobs[aux[,"fleet"]==1 & aux[,"year"]==y & aux[,"age"]==a,1])
-            ifelse(length(ret)==0,0,ret)
-        }
-
-        if(unique(aux[aux[,"fleet"]==1,'age'])==-1){
-            yobs <- exp(logobs[aux[,"fleet"]==1 & aux[,"year"] %in% rownames(CW),1])
-            if('CE' %in% fit$conf$obsLikelihoodFlag)
-                yobsU <- exp(logobs[aux[,"fleet"]==1 & aux[,"year"] %in% rownames(CW),2])
-        }else{
-            yobs <- rowSums(outer(rownames(CW), Vectorize(.goget))*CW, na.rm=TRUE)
-        }
-
-        if(plot){
-            if(is.null(yobsU)){
-                points(x, yobs, pch=4, lwd=2, cex=1.2)
-            }else{
-                  lines(x, yobs)
-                  lines(x,yobsU)
-                }
-
-        }
-        obs <- list(x=x,pred=pred,obs=yobs,obs2=yobsU, na.rm=TRUE)
-    }
-    invisible(list(drop=drop,obs=obs))
-}
-##' @rdname catchplot
-##' @method catchplot ccamset
-##' @export
-catchplot.ccamset <- function(fit, obs.show=TRUE, drop=NULL,...){
-    if(!is.null(attr(fit,"fit"))){
-        fitlocal <- attr(fit,"fit")
-    }else{
-        fitlocal <- fit[[1]]
-    }
-    tmp <- catchplot(fitlocal,obs.show,drop,plot=FALSE,...)
-    plotit(fit, "logCatch", ylab="Catch", trans=exp, drop=tmp$drop,...)
-    if(obs.show){
-        points(tmp$obs$x, tmp$obs$y, pch=4, lwd=2, cex=1.2)
-    }
-}
-##' @rdname catchplot
-##' @method catchplot ccamforecast
-##' @export
-catchplot.ccamforecast <- function(fit, obs.show=TRUE, drop=NULL,...){
-    fitlocal <- attr(fit,"fit")
-    tmp <- catchplot(fitlocal,obs.show,drop,plot=FALSE,...)
-    plotit(fit, "logCatch", ylab="Catch", trans=exp, drop=tmp$drop,...)
-    if(obs.show){
-        points(tmp$obs$x, tmp$obs$y, pch=4, lwd=2, cex=1.2)
-    }
-    addforecast(fit, "catch")
-}
-##' @rdname catchplot
-##' @method catchplot forecastset
-##' @export
-catchplot.forecastset <- function(fit, obs.show=TRUE, drop=NULL,col=NULL,...){
-    fitlocal <- lapply(1:length(fit), function(x) attr(fit[[x]],"fit"))
-    class(fitlocal) <-'ccamset'
-    mods <- modeltable(fitlocal)[,1]
-    mods <- as.numeric(factor(mods))
-    tmp <- catchplot(fitlocal[[1]],obs.show,drop,plot=FALSE,...)
-    par(mar=c(5.1, 4.1, 4.1, 11))
-    if(length(unique(mods))==1){plotit(fit[[1]], "logCatch", ylab='Catch', trans=exp, drop=tmp$drop,...)
-    }else{plotit(fit, "logCatch", ylab='Catch', trans=exp, drop=tmp$drop,...)}
-    addforecast(fit,"catch",col=col)
-    par(mar=c(5, 4, 4, 2) + 0.1)
+    p
 }
 
-##' CCAM parameter plot
-##' @param fit the object returned from ccam.fit
-##' @param cor.report.limit correlations with absolute value > this number is reported in the plot
-##' @param ... extra arguments transferred to plot
-##' @details Plot of all estimated model parameters (fixed effects). Shown with confidence interval.
+##' CCAM model plot (ssb, F, rec)
+##' @param x the object(s) returned from ccam.fit or forecast
+##' @details Plot of spawning stock biomass
 ##' @export
-##' @importFrom stats cov2cor
-parplot<-function(fit, cor.report.limit=0.95, ...){
-    UseMethod("parplot")
+modelplot<-function(x){
+    UseMethod("modelplot")
 }
-##' @rdname parplot
-##' @method parplot ccam
+##' @rdname modelplot
+##' @method modelplot default
+##' @importFrom gridExtra grid.arrange
 ##' @export
-parplot.ccam <- function(fit, cor.report.limit=0.95, ...){
-    parplot(c(fit),cor.report.limit,...)
-}
-##' @rdname parplot
-##' @method parplot ccamset
-##' @export
-parplot.ccamset <- function(fit, cor.report.limit=0.95, ...){
-  lab <- names(fit)
-  if(!is.null(attr(fit,"fit"))){
-    fit <- c(list(attr(fit,"fit")), fit)
-  }
-  param <- lapply(fit, coef)
-  nam <- names(param[[1]])
-  dup <- duplicated(nam)
-  namadd <- rep(0,length(nam))
-  for(i in 2:length(dup)){
-    if(dup[i])namadd[i] <- namadd[i-1]+1
-  }
-  nam <- paste(nam, namadd, sep="_")
-  corrs <- cov2cor(attr(param[[1]], "cov"))-diag(length(param[[1]]))
-  rownames(corrs)<-nam
-  colnames(corrs)<-nam
-  higcor <- lapply(1:nrow(corrs),function(i)corrs[i,][corrs[i,]>cor.report.limit]*100)
-  names(higcor) <- nam
-  lowcor<-lapply(1:nrow(corrs),function(i)corrs[i,][corrs[i,]<(-cor.report.limit)]*100)
-  names(lowcor) <- nam
-  for(i in 1:length(param)){
-    m <- param[[i]]+t(c(-2,0,2)%o%attr(param[[i]],"sd"))
-    if(i==1){
-      mat <- cbind(m,0)
-      rownames(mat) <- nam
-    }else{
-      if(nrow(m)==length(nam)){
-        rownames(m) <- nam
-        mat<-rbind(mat,cbind(m,-i+1))
-      }
-    }
-  }
-  .plotapar<-function(name){
-    sub <- mat[rownames(mat)==name,,drop=FALSE]
-    xold <- sub[,4]
-    if(nrow(sub)==1)sub<-rbind(cbind(sub[,1:3,drop=FALSE],-.5), cbind(sub[,1:3,drop=FALSE],.5))
-    x <- sub[,4]
-    y <- sub[,2]
-    ylim <- range(sub[,1:3])
-    if(anyNA(ylim)){ylim <- c(0,1)}
-    plot(x, y, xlim=c(min(x)-0.5,max(x)+0.5), ylim=ylim, ylab=name, xlab="", axes=FALSE, type="n",...)
-    box()
-    axis(2, las=1)
-    #axis(1, las=1, at=x, labels=lab)
-    lines(x, y, lwd=3,...)
-    polygon(c(x,rev(x)), y = c(sub[,1],rev(sub[,3])), border = gray(.5,alpha=.5), col = gray(.5,alpha=.5))
-    d <- sapply(1:length(xold), function(i)lines(xold[c(i,i)],c(sub[i,1],sub[i,3]), lty="dotted", lwd=.5))
-    idx <- which(nam==name)
-    mtext(side=1,text=lab,at=x,line=-1,cex=0.7)
-    if(length(higcor[[name]])!=0){
-      legend("topright", legend=paste0(names(higcor[[name]]),": ",round(higcor[[name]]),"%"), bty="n", text.col="blue")
-    }
-    if(length(lowcor[[name]])!=0){
-      legend("bottomright", legend=paste0(names(lowcor[[name]]),": ",round(lowcor[[name]]),"%"), bty="n", text.col="red")
-    }
-  }
-  div <- rep(ceiling(sqrt(length(nam))),2)
-  if(div[1]*(div[2]-1)>=length(nam))div[2] <- div[2]-1
-  op <- par(mar=c(.2,par("mar")[2],.2,par("mar")[4]))
-  laym <- matrix(1:(div[1]*div[2]),nrow=div[1], ncol=div[2])
-  layout(laym)
-  d <- sapply(nam, .plotapar)
-  par(op)
+modelplot.default <- function(x){
+    grid.arrange(ssbplot(x),
+                 fbarplot(x),
+                 recplot(x),
+                 ncol=1)
 }
 
-##' Extract observation covariance matrices from a CCAM fit
-##' @param fit the object returned from ccam.fit
-##' @param corr if TRUE return correlation matrices rather than covariances
-##' @param ... extra arguments not currently used
-##' @return a list of matrices
-##' @export
-obscov<-function(fit, corr=FALSE,...){
-    UseMethod("obscov")
-}
-##' @rdname obscov
-##' @method obscov ccam
-##' @export
-obscov.ccam<-function(fit, corr=FALSE,...){
-    res<-fit$rep$obsCov
-    for(i in 1:length(res)) rownames(res[[i]])<-fit$data$minAgePerFleet[i]:(fit$data$minAgePerFleet[i]+nrow(res[[i]])-1)
-    if(corr) for(i in 1:length(res)) if(any(is.na(res[[i]])))res[[i]][]<-NA else res[[i]]<-cov2cor(res[[i]])
-    res
-}
-##' @rdname obscov
-##' @method obscov ccamset
-##' @export
-obscov.ccamset <- function(fit, corr=FALSE,...){
-    return(lapply(fit,obscov))
-}
-
-##' Plots the estimated correlation matrices by fleet.
-##' @param fit the object returned from ccam.fit
-##' @param ... extra arguments to plot
-##' @export
-obscorrplot<-function(fit,...){
-    UseMethod("obscorrplot")
-}
-##' @rdname obscorrplot
-##' @method obscorrplot ccam
-##' @export
-obscorrplot.ccam <- function(fit,...){
-    x <- obscov(fit,TRUE)
-    fn <- attr(fit$data,"fleetNames")
-    for(i in 1:length(x)){
-        xx <- x[[i]]
-        ages <- fit$data$minAgePerFleet[i]:fit$data$maxAgePerFleet[i]
-        if( fit$conf$obsLikelihoodFlag[i]=="ALN" ) ages<-ages[ -length(ages) ]
-        rownames(xx) <- ages
-        colnames(xx) <- ages
-        x[[i]] <- xx
-    }
-    corplotcommon(x,fn,...)
-}
-
-##' Plots the residual between-age correlation matrices by fleet.
-##' @param res the object returned from residuals.ccam
-##' @param ... extra arguments to plot
-##' @importFrom stats cor xtabs
-##' @export
-empirobscorrplot<-function(res,...){
-    UseMethod("empirobscorrplot")
-}
-##' @rdname empirobscorrplot
-##' @method empirobscorrplot ccamres
-##' @export
-empirobscorrplot.ccamres <- function(res,...){
-    dat <- data.frame(resid=res$residual,age=res$age,year=res$year,fleet=res$fleet)
-    fleets <- unique( dat$fleet)
-    fn <- attr(res,"fleetNames")
-    x <- list()
-    for(i in 1:length(fleets)){
-        tmp <- xtabs( resid ~ age + year, data=dat[dat$fleet==fleets[i],])
-        xx <- cor( t(tmp) )
-        x[[ length(x) + 1 ]] <- xx
-    }
-    corplotcommon(x,fn,...)
-}
-##' Common function for plotting correlation matrices.
-##' @param x a list of correlation matrices
-##' @param fn a vector of fleet names
-##' @param ... extra arguments to plotcorr
-##' @importFrom ellipse plotcorr
-##' @export
-corplotcommon<-function(x,fn,...){
-    op <- par(no.readonly=TRUE)
-    ccolors <- c("#A50F15","#DE2D26","#FB6A4A","#FCAE91","#FEE5D9","white",
-                 "#EFF3FF","#BDD7E7","#6BAED6","#3182BD","#08519C")
-
-    if(length(x)==3){
-      div <- c(3,1)
-    }else{
-      div <- rep(ceiling(sqrt(length(x))),2)
-      if(div[1]*(div[2]-1)>=length(x))div[2] <- div[2]-1
-    }
-    laym <- matrix(1:(div[1]*div[2]),nrow=div[1], ncol=div[2])
-    layout(laym)
-
-    for(i in 1:length(x)){
-        xx <- x[[i]]
-        if(!any(is.na(xx))){
-          plotcorr(xx,col=ccolors[5*xx+6],mar=0.1+c(2,2,2,2), main=substr(fn[i], 1, 20),...)
-        }
-    }
-    par(op)
-}
-
-##' Plots between-age correlations by fleet, either estimated or empirical using residuals.
-##' @param x Either a ccam fit as returned by s=ccam.fit OR the object returned from residuals.ccam
-##' @param ... extra arguments to plot
-##' @importFrom ellipse plotcorr
-##' @export
-corplot<-function(x,...){
-    UseMethod("corplot")
-}
-##' @rdname corplot
-##' @method corplot ccam
-##' @export
-corplot.ccam <- function(x,...){
-    obscorrplot(x,...)
-}
-##' @rdname corplot
-##' @method corplot ccamres
-##' @export
-corplot.ccamres <- function(x,...){
-    empirobscorrplot(x,...)
-}
-
+# srplot
 ##' Plots the stock recruitment
 ##' @param fit the object returned from ccam.fit
-##' @param ... extra arguments to plot
-##' @importFrom graphics text
+##' @param textcol color of years on plot
+##' @param linecol color of lines
+##' @param curve add SR curve
+##' @import ggplot2
 ##' @export
-srplot<-function(fit, ...){
+srplot<-function(fit,textcol="red",linecol='black',curve=FALSE){
     UseMethod("srplot")
 }
+
 ##' @rdname srplot
 ##' @method srplot ccam
-##' @param textcol color of years on plot
-##' @param add false if a new plot should be created
 ##' @export
-srplot.ccam <- function(fit,textcol="red",linecol='black',add=FALSE,curve=FALSE, ...){
-  X <- summary(fit)
-  n<-nrow(X)
-  lag <- fit$conf$minAge
-  idxR <- (lag+1):n
-  idxS <- 1:(n-lag)
-  R<-X[idxR,1]
-  S<-X[idxS,4]
-  Rnam<-colnames(X)[1]
-  Snam<-colnames(X)[4]
-  y<-rownames(X)
-  if(add){
-      lines(S,R)
-  }else{
-      plot(S,R, xlab=Snam, ylab=Rnam, type="l", xlim=range(0,S), ylim=range(0,R))
-  }
-  if(curve & fit$conf$stockRecruitmentModelCode %in% c(1,2)){
-      a=fit$opt$par['rec_loga']
-      b=fit$opt$par['rec_logb']
-      eq = function(x){exp(a+log(x)-log(1.0+exp(b)*x))}
-      curve(eq, from=0, to=max(S), lwd=2,add=TRUE,col=linecol)
-      if(any(colSums(fit$data$env)!=0)){
-          e=fit$opt$par[which(names(fit$opt$par)=='rec_e')]
-          for(i in 1:length(1)){
-              l=exp(a+log(S)-log(1.0+exp(b)*S)+e*fit$data$env[idxS,i])
-              #lines(sort(l),R,col='grey')
-          }
-      }
-  }
-
-  text(S,R, labels=y[idxR], cex=.7, col=textcol )
+srplot.ccam <- function(fit,...){
+    fit <- c(fit)
+    srplot(fit,...)
 }
 
-##' Plots fit to data
-##' @param fit the object returned from ccam.fit
-##' @param log should the plot be against log-obs
-##' @param fleets an integer vector of fleets to plot. Default is all of them
-##' @param ... extra arguments to plot
+
+##' @rdname srplot
+##' @method srplot ccamset
 ##' @export
-fitplot <- function(fit, log=TRUE, ...){
-    UseMethod("fitplot")
+srplot.ccamset <- function(fit,textcol="red",linecol='black',curve=FALSE){
+    li <- lapply(1:length(fit),function(x){
+        X <- summary(fit[[x]])
+        n<-nrow(X)
+        lag <- fit[[x]]$conf$minAge
+        idxR <- (lag+1):n
+        idxS <- 1:(n-lag)
+        R<-X[idxR,1]
+        S<-X[idxS,4]
+        Rnam<<-colnames(X)[1]
+        Snam<<-colnames(X)[4]
+        y<-rownames(X)[idxR]
+        Fnam <- names(fit)[x]
+        if(is.null(Fnam)) Fnam <- x
+        df<- data.frame(R=R,S=S, Rnam=Rnam,Snam=Snam,y=y,fit=Fnam)
+        if(curve){
+            a <- fit[[x]]$opt$par['rec_loga']
+            b <- fit[[x]]$opt$par['rec_logb']
+            e <- fit[[x]]$opt$par['rec_e']
+            if(is.na(e)) e <- 0
+            env <-fit[[x]]$data$env[idxS,1]
+            df$SRenv <- exp(a+log(S)-log(1.0+exp(b)*S)+e*env)
+        }
+        return(df)
+    })
+    df <- do.call('rbind',li)
+
+    p <- ggplot(df,aes(x=S,y=R))+geom_point()+
+        geom_path()+
+        ylab(Rnam)+xlab(Snam)+
+        theme_bw()+
+        geom_text(aes(label=y),col=textcol,hjust=0,vjust=0)
+
+    if(curve){
+        p <- p+geom_line(aes(y=SRenv),size=1.5)
+    }
+    if(length(fit)>1){
+        p<- p+ facet_wrap(~fit)+
+            theme(strip.background = element_blank(),
+                  panel.border = element_rect(colour = "black"))
+    }
+    p
 }
-##' @rdname fitplot
-##' @method fitplot ccam
+
+##' CCAM PE plot
+##' @param x the object(s) returned from ccam.fit or forecast
+##' @param heat logical. If true a heat plot is used, if false a bubble plot
+##' @param ... parameters used in heat() or bubble()
+##' @details Plot of proces error
+##' @import ggplot2
+##' @importFrom reshape2 melt
 ##' @export
-fitplot.ccam <- function(fit, log=TRUE,fleets=unique(fit$data$aux[,"fleet"]), ...){
-  idx<-fit$data$aux[,"fleet"]%in%fleets
-  trans <- function(x)if(log){x}else{exp(x)}
-  p <- trans(fit$obj$report(c(fit$sdrep$par.fixed,fit$sdrep$par.random))$predObs[idx])
-  o <- trans(fit$data$logobs[idx,1])
-  aa <- fit$data$aux[idx,"age"]
-  neg.age <- (aa < -1.0e-6)
-  aa[neg.age] <- NA
-  a <- paste0("a=",aa," ")
-  f <- paste0(" f=",strtrim(attr(fit$data,"fleetNames")[fit$data$aux[idx,"fleet"]],50))
-  Year <- fit$data$aux[idx,"year"]
-  if(length(fleets)==1){
-    myby <- paste(a, ":", f)
-  }else{
-    myby <- cbind(a,f)
-  }
-  plotby(Year, o, y.line=p, by=myby, y.common=FALSE, ylab="", ...)
+peplot<-function(x,heat=TRUE,...){
+    UseMethod("peplot")
+}
+
+##' @rdname peplot
+##' @method peplot ccam
+##' @export
+peplot.ccam <- function(x,...){
+    x <- c(x)
+    peplot(x,...)
+}
+
+##' @rdname peplot
+##' @method peplot ccamset
+##' @export
+peplot.ccamset <- function(x,heat=TRUE,...){
+    pe <- lapply(x,function(y){pe <- t(y$rep$resN)
+                               pe <- rbind(0,pe)
+                               dimnames(pe) <- dimnames(y$data$natMor)
+                               pe
+    })
+    if(heat){
+     heat(pe,...)
+    }else{
+        bubble(pe,...)
+    }
 }
 
 ##' Plots residuals
@@ -959,9 +336,8 @@ resplot <- function(fit, log=TRUE, ...){
 ##' @import ggplot2
 ##' @importFrom reshape2 dcast
 ##' @export
-resplot.ccam <- function(fit, log=TRUE,fleets=unique(fit$data$aux[,"fleet"]), type=1, std=TRUE,out=0,...){
+resplot.ccam <- function(fit, trans=function(x) x,fleets=unique(fit$data$aux[,"fleet"]), type=1, std=TRUE,out=0,...){
     idx<-fit$data$aux[,"fleet"]%in%fleets
-    trans <- function(x)if(log){x}else{exp(x)}
     p <- trans(fit$obj$report(c(fit$sdrep$par.fixed,fit$sdrep$par.random))$predObs[idx])
     o <- trans(fit$data$logobs[idx,1])
     res <- p-o
@@ -974,6 +350,7 @@ resplot.ccam <- function(fit, log=TRUE,fleets=unique(fit$data$aux[,"fleet"]), ty
     keysd <- keysd[keysd>-1]
     sd <- sds[keysd+1]
     if(std) res <- res/sd[ifelse(is.na(aa),1,aa)]
+    df <- data.frame(year=Year, p=p, o=o, res=res, age=aa)
 
     if(out!=0){
         res <- res[!is.na(res)]
@@ -985,286 +362,183 @@ resplot.ccam <- function(fit, log=TRUE,fleets=unique(fit$data$aux[,"fleet"]), ty
 
     if(all(is.na(aa))){  #not age structured
         switch (type,
-            'one' = {
-                plot(Year, res,ylab='Residuals',xlab='Year',yaxt="n",xaxt="n", bty = "L",pch=16)
-                axis(1, tck=-.01)
-                axis(2, tck=-.01)
-                abline(h=0)
-            },
-            'two' = {
-                plot(p, res,ylab='Residuals',xlab='Predicted',yaxt="n",xaxt="n", bty = "L",pch=16)
-                axis(1, tck=-.01)
-                axis(2, tck=-.01)
-                abline(h=0)
-                if(out!=0) text(p[e],res[e],lab,adj = c(0,0))
-            },
-            'three' = {
-                plot(o, p,ylab='Predicted',xlab='Observed',yaxt="n",xaxt="n", bty = "L",pch=16)
-                axis(1, tck=-.01)
-                axis(2, tck=-.01)
-                abline(a = 0,b=1)
-                if(out!=0) text(o[e],p[e],lab,adj = c(0,0))
-            },
-            {
-                stop('type should be 1, 2 or 3')
-            }
+                'one' = {
+                    p <- ggplot(df,aes(x=year,y=res))+geom_point()+theme_bw()+ylab('Residuals')+xlab('Year')+
+                        geom_hline(yintercept = 0,lty='dashed')
+                },
+                'two' = {
+                    p <- ggplot(df,aes(x=p,y=res))+geom_point()+theme_bw()+ylab('Residuals')+xlab('Predicted')+
+                        geom_hline(yintercept = 0,lty='dashed')
+                },
+                'three' = {
+                    p <- ggplot(df,aes(x=o,y=p))+geom_point()+theme_bw()+ylab('Predicted')+xlab('Observed')+
+                        geom_abline(intercept=0, slope=1, lty='dashed')
+                },
+                'four' = {
+                    p <- ggplot(df,aes(x=year))+geom_line(aes(y=p))+geom_point(aes(y=o))+
+                    theme_bw()+
+                    ylab('Value')+xlab('Year')
+                },
+                {
+                    stop('type should be between 1 and 4 (without age level)')
+                }
         )
     }else{
         switch (type,
                 'one' = {
                     m <- as.matrix(dcast(data.frame(x=Year,y=aa,value=res),x~y)[,-1])
                     rownames(m) <- unique(Year)
-                    heat(m,posneg=TRUE)
+                    p <- heat(m,posneg=TRUE)
                 },
                 'two' = {
-                    plot(p, res,ylab='Residuals',xlab='Predicted',yaxt="n",xaxt="n", bty = "L",pch=16)
-                    axis(1, tck=-.01)
-                    axis(2, tck=-.01)
-                    abline(h=0)
-                    if(out!=0) text(p[e],res[e],lab,adj = c(0,0))
+                    p <- ggplot(df,aes(x=p,y=res,col=age))+geom_point()+theme_bw()+ylab('Residuals')+xlab('Predicted')+
+                        geom_hline(yintercept = 0,lty='dashed')+
+                        labs(col='Age')+scale_color_gradient(low='violetred',high='orange')
                 },
                 'three' = {
-                    plot(o, p,ylab='Predicted',xlab='Observed',yaxt="n",xaxt="n", bty = "L",pch=16)
-                    axis(1, tck=-.01)
-                    axis(2, tck=-.01)
-                    abline(a = 0,b=1)
-                    if(out!=0) text(o[e],p[e],lab,adj = c(0,0))
+                    p <- ggplot(df,aes(x=p,y=o,col=age))+geom_point()+theme_bw()+ylab('Residuals')+xlab('Observed')+
+                        geom_abline(intercept=0, slope=1, lty='dashed')+
+                        labs(col='Age')+scale_color_gradient(low='violetred',high='orange')
                 },
                 'four' = {
-                    df <- data.frame(year=Year,y=res,age=aa)
-                    ggplot(df,aes(x=year,y=res))+geom_point()+
+                    p <- ggplot(df,aes(x=year))+geom_line(aes(y=p))+geom_point(aes(y=o))+
                         facet_wrap(~age,ncol=3)+
-                        geom_line(y=0)+
-                        geom_smooth(method = "loess")+
-                        theme_classic()+
-                        theme(panel.border = element_rect(colour = "black", fill=NA))+
+                        theme_bw()+
+                        theme(panel.border = element_rect(colour = "black", fill=NA),
+                              strip.background = element_blank())+
+                        ylab('Value')+xlab('Year')
+                },
+                'five' = {
+                    p <- ggplot(df,aes(x=year,y=res))+geom_point()+
+                        facet_wrap(~age,ncol=3)+
+                        geom_hline(yintercept = 0, lty='dashed')+
+                        geom_smooth(method = "loess",col='black')+
+                        theme_bw()+
+                        theme(panel.border = element_rect(colour = "black", fill=NA),
+                              strip.background = element_blank())+
                         ylab('Residuals')+xlab('Year')
-
-                    # par(mfrow=n2mfrow(length(unique(aa))),mar=c(4,4,2,1)+0.1)
-                    # dummy <- lapply(unique(aa),function(x){
-                    #     idx <- which(aa==x)
-                    #     plot(Year[idx], res[idx],ylab='',xlab='',yaxt="n",xaxt="n",pch=16,main=x)
-                    #     axis(1, tck=-.01)
-                    #     axis(2, tck=-.01)
-                    #     abline(h=0)
-                    # })
-                    # mtext('Residuals',side=2,line=-2)
-                    # mtext('Year',side=2,line=-2)
-                    # par(mar=c(5, 4, 4, 2) + 0.1,mfrow=c(1,1))
                 },
                 {
-                    stop('type should be 1, 2 or 3')
+                    stop('type should be between 1 and 5 (with age level)')
                 }
         )
     }
+    if(out!=0) p <- p + geom_text(data=df[e,],aes(label=lab),hjust=0,vjust=0)
+    print(p)
 
 }
 
 
-
-##' Plots fit to data
-##' @param fit the object returned from ccam.forecast
-##' @param what statistic returned from ccam.forecast
-##' @param ylab y label
-##' @param xlab x label
-##' @param zone color zone above this y value
-##' @param ci logical (ci are quantile ranges)
-##' @param ... extra arguments to plot
-##' @details Plot of probability of what over time
-##' @importFrom graphics points
+##' CCAM parameter plot
+##' @param fit the object returned from ccam.fit
+##' @param cor.report.limit correlations with absolute value > this number is reported in the plot
+##' @param col colors
+##' @param ... extra arguments transferred to plot
+##' @details Plot of all estimated model parameters (fixed effects). Shown with confidence interval.
 ##' @export
-foreplot <- function(fit, what, ylab='value',xlab='Year',zone=NULL,ci=TRUE,...){
-    UseMethod("foreplot")
+##' @importFrom stats cov2cor
+parplot<-function(fit, cor.report.limit=0.95, col=NULL){
+    UseMethod("parplot")
 }
-##' @rdname foreplot
-##' @method foreplot ccamforecast
+
+##' @rdname parplot
+##' @method parplot default
 ##' @export
-foreplot.ccamforecast <- function(...){
-    tab <- attr(fit,'tab')
-    idx <- grep(what,colnames(tab))
-    if(what=='catch') idx=idx[1:3]
-    df <- as.data.frame(tab[,idx,drop=FALSE])
-    df$x <- as.numeric(rownames(df))
-
-    inter <- ifelse(ncol(df)==2,FALSE,TRUE)
-    colnames(df)[1]<- 'y'
-    p=ggplot(df,aes(x=x,y=y))
-    if(!is.null(zone)) p=p+ geom_rect(data=df[1,],aes(xmin=-Inf, xmax=Inf, ymin=zone, ymax=Inf),fill='darkgreen',alpha=0.1)
-    p=p+geom_point()+geom_line(size=0.8,col='grey')+
-        theme_classic()+
-        xlab(xlab)+ylab(ylab)
-
-    if(inter & CI){
-        colnames(df)[2:3]=c('low','high')
-        p=p+geom_errorbar(data = df,aes(ymin=low,ymax=high),size=1,width=0.5)
+parplot.default <- function(fit, cor.report.limit=0.95, col=NULL){
+    if(class(fit)=='ccam') fit=c(fit)
+    if(is.null(col)){
+        col <- if(length(fit)==1) 'black' else c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")
     }
-    return(p)
-}
-
-##' @rdname foreplot
-##' @method foreplot forecastset
-##' @export
-foreplot.forecastset <- function(...){
-    tab <- attr(fit[[1]],'tab')
-    idx <- grep(what,colnames(tab))
-    if(what=='catch') idx=idx[1:3]
-    df <- extract(fit,idx)
-    colnames(df)[1]<- 'y'
-
-    inter <- ifelse(ncol(df)==3,FALSE,TRUE)
-    if(inter){
-     colnames(df)[2:3]=c('low','high')
+    coll <- c(rep(col,length(fit) %/% length(col)),col[1:length(fit) %% length(col)])
+    lab <- names(fit)
+    if(is.null(lab)) lab <- 1:length(fit)
+    param <- lapply(fit, coef)
+    nam <- names(param[[1]])
+    dup <- duplicated(nam)
+    namadd <- rep(0,length(nam))
+    for(i in 2:length(dup)){
+        if(dup[i])namadd[i] <- namadd[i-1]+1
     }
+    nam <- paste(nam, namadd, sep="_")
 
-    if(length(names(fit))!=0) df$id <- as.factor(names(fit)[df$id])
-    pd <- position_dodge(width = 0.2)
+    mat <- lapply(1:length(param),function(i){
+        m <- param[[i]]+t(c(-2,0,2)%o%attr(param[[i]],"sd"))
+        rownames(m) <- 1:nrow(m)
+        m <- data.frame(m)
+        colnames(m) <- c('low','est','high')
+        m$nam <- nam
+        m$fit <- lab[i]
+        m}
+    )
+    mat <- do.call('rbind',mat)
 
-    p <- ggplot(df,aes(x=year,y=y,col=as.factor(id),group=as.factor(id)))
+    corrs <- lapply(1:length(param), function(x) {corrs <- cov2cor(attr(param[[x]], "cov"))-diag(length(param[[x]]))
+                                        rownames(corrs)<-nam
+                                        colnames(corrs)<-nam
+                                        co <- data.frame(melt(corrs))
+                                        names(co) <- c('nam','label','value')
+                                        co$hc <- ifelse(co$value>cor.report.limit,round(co$value*100),NA)
+                                        co$lc <- ifelse(co$value< -cor.report.limit,round(co$value*100),NA)
+                                        co <- co[!(is.na(co$hc) & is.na(co$lc)),]
+                                        co$fit <- lab[x]
+                                        co
+    })
+    print(do.call('rbind',corrs))
 
-    if(!is.null(zone)) p <- p+ geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=zone, ymax=Inf),fill='darkgreen',alpha=0.8,col=NA)
-    p <- p+geom_point(position = pd)+geom_line(size=0.8,alpha=0.8, position = pd)+
-        theme_classic()+
-        labs(col='')+
-        xlab(xlab)+ylab(ylab)
+    p <- ggplot(mat,aes(x=nam,y=est,col=as.factor(fit),group=as.factor(fit)))+
+        geom_point(position=position_dodge(width=0.5))+
+        geom_errorbar(aes(ymin=low,ymax=high),position=position_dodge(width=0.5),width=0)+
+        xlab('Estimate')+ylab('Parameter')+
+        theme_bw()+labs(col='')+
+        coord_flip()+
+        scale_color_manual(values=coll)
 
-    if(inter& CI){
-        p <-p+geom_errorbar(aes(ymin=low,ymax=high),size=1,width=0.5, position = pd)
-    }
-    return(p)
-}
-
-##' trade plot for forecasts
-##' @param fit the object returned from ccam.forecast
-##' @param what.x what probability (ULR, Growth or Double)
-##' @param what.y what variable (catch, catchcum, ...)
-##' @param ... extra arguments to plot
-##' @details Plot of probability of what over time
-##' @importFrom graphics points
-##' @importFrom graphics arrows
-##' @export
-tradeplot <- function(fit, what.x, what.y, ...){
-    UseMethod("tradeplot")
-}
-##' @rdname tradeplot
-##' @method tradeplot ccamforecast
-##' @export
-##' @param add logical, plotting is to be added on existing plot
-##' @param dotpch numeric, pch
-##' @param dotcex cex
-##' @param zone color zone in plot green. numeric giving the boundary
-##' @param col color of lines and dots
-##' @param lab logical, add year labels?
-##' @param ci add error bars (97.5/2.5 quantiles)
-##' @param ylab y label
-##' @param xlab x label
-##' @param ylim y limits
-##' @param xlim x limits
-##' @param ... additional parameters for plot
-tradeplot.ccamforecast <- function(fit,what.x, what.y, add=FALSE, dotpch=19,dotcex=1.5,zone=NULL,col='black',lab=TRUE,ci=FALSE,
-                                   ylab=NULL,xlab=NULL,ylim=NULL,xlim=NULL,...){
-    tab <- attr(fit,"tab")
-    x <- tab[,paste0('prob',what.x)]*100
-    y <- tab[,paste0(what.y,":median")]
-    if(is.null(ylim) & !ci) ylim <- c(0,max(y))
-    if(is.null(ylim) & ci) ylim <- c(0,max(tab[,paste0(what.y,":high")]))
-    if(is.null(xlim)) xlim <- c(0,100)
-    col[col %in% colors()] <- col2hex(col[col %in% colors()])
-    if(is.null(xlab)) xlab <-paste('Probability',what.x,"(%)")
-    if(is.null(ylab)) ylab <-what.y
-    if(!add){
-        plot(0, type="n", xlab=xlab, ylab=ylab, ylim=ylim, xlim=xlim, yaxt="n",xaxt="n",...)
-        axis(1, tck=-.02)
-        axis(2, tck=-.02)
-        if(!is.null(zone)) {
-            if(length(zone)!=1){
-                polyx=c(zone[1],110,110,zone[1])
-                polyy=c(zone[2],zone[2],max(ylim[2])*1.1,max(ylim[2])*1.1)
-            }else{
-                polyx=c(zone,110,110,zone)
-                polyy=c(-max(y),-max(y),max(ylim[2])*1.1,max(ylim[2])*1.1)
-            }
-            polygon(polyx, polyy,col = "#00640099",border=NA)
-        }
-        if(ci){
-            yl <- tab[,paste0(what.y,":low")]
-            yh <- tab[,paste0(what.y,":high")]
-            dummy <- sapply(1:length(y),
-                            function(i){
-                                yy<-c(yl[i],yh[i])
-                                if(abs(diff(yy))>0.01){
-                                    arrows(x[i],yy[1],x[i],yy[2],lwd=2, col=paste0(col,'99'), angle=90, code=3, length=.1)
-                                }
-                            }
-            )
-        }
-        lines(x,y,col=col)
-        points(x,y,pch=dotpch,cex=dotcex,col=col)
-        if(lab) text(x, y, labels=names(x), cex= 0.7, adj=c(-0.5,-0.5))
-    }else{
-        if(ci){
-            yl <- tab[,paste0(what.y,":low")]
-            yh <- tab[,paste0(what.y,":high")]
-            dummy <- sapply(1:length(y),
-                            function(i){
-                                yy<-c(yl[i],yh[i])
-                                if(abs(diff(yy))>1){
-                                    arrows(x[i],yy[1],x[i],yy[2],lwd=2, col=col, angle=90, code=3, length=.1)
-                                }
-                            }
-            )
-        }
-        lines(x,y,col=col)
-        points(x,y,pch=dotpch,cex=dotcex,col=col)
-        if(lab) text(x, y, labels=names(x), cex= 0.7, adj=c(-0.5,-0.5))
-    }
-}
-##' @rdname tradeplot
-##' @method tradeplot forecastset
-##' @export
-##' @param leg logical; plot legend
-##' @param col color of lines and dots
-##' @param ylab y label
-##' @param xlab x label
-##' @param ylim y limits
-##' @param xlim x limits
-##' @param ... additional parameters for tradeplot.ccamforecast
-tradeplot.forecastset <- function(fit,what.x, what.y,leg=NULL,
-                                  col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"),
-                                  ylab=NULL,xlab=NULL,ylim=NULL,xlim=NULL,...){
-        if(is.null(ylim) & !ci) ylim <- c(0,max(modeltable(fit)[,paste0(what.y,":median")]))
-        if(is.null(ylim) & ci) ylim <- c(0,max(modeltable(fit)[,paste0(what.y,":high")]))
-        if(any(col %in% colors())) col[col %in% colors()] <- col2hex(col[col %in% colors()])
-        tradeplot(fit[[1]],what.x=what.x,what.y=what.y,col=col[1],ylab=ylab,xlab=xlab,ylim=ylim,xlim=xlim,...)
-        dummy <- lapply(2:length(fit),
-                        function(x) tradeplot(fit[[x]],what.x=what.x,what.y=what.y,col=col[(x-1)%%length(col)+1],ylab=ylab,xlab=xlab,ylim=ylim,xlim=xlim,add=TRUE,...))
-        if(!is.null(leg)){
-            legend(x=80,y=ylim[2],legend=leg, lwd=3, col=col[((1:length(fit))-1)%%length(col)+1], ncol=1, bty="n",
-                   xpd=TRUE,seg.len = 0.5)
-        }
+    if(length(fit)==1) p <- p + theme(legend.position = 'none')
+    p
 }
 
 ##' Plot surveys
-##' @param x surveys from read.icea
+##' @param x surveys from read.ices
 ##' @rdname surveyplot
+##' @import ggplot2
+##' @importFrom reshape2 melt
 ##' @export
-surveyplot <- function(x,col=c("#000000", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"),xlim=NULL,ylim=NULL,...){
-    s <- do.call('cbind',surveys)
-    xs <- as.numeric(rownames(s))
-    if(is.null(ylim)) ylim <- c(0,max(s,na.rm=T))
-    if(is.null(xlim)) xlim <- range(xs)
-    plot(0, type="n", ylim=ylim, xlim=xlim,ylab='Index',xlab='Year',yaxt="n",xaxt="n",...)
-    axis(1, tck=-.02)
-    axis(2, tck=-.02)
-    dummy <-lapply(1:length(x),function(i){
-        lines(xs,s[,i],col=col[(i-1)%%length(col)+1],lwd=2)
-    })
+surveyplot <- function(x){
+     ages <- do.call('c',lapply(x,colnames))
+
+     x2 <- lapply(1:length(x),function(i){
+        y <- x[[i]]
+        m <- matrix(NA,nrow=nrow(y),ncol=length(ages),dimnames = list(rownames(y),ages))
+        m[,colnames(y)] <- y
+        m <- as.data.frame(m)
+        m$year <- as.numeric(rownames(m))
+        n <- names(x)[i]
+        if(is.null(n)) n <- i
+        m$survey <- n
+        m
+     })
+     x2 <- do.call('rbind',x2)
+     df <- melt(x2,id=c('year','survey'),variable.name = 'age')
+     p <- ggplot(df,aes(x=year,y=value,col=age))+geom_line(size=1.5)+
+        ylab('Value')+xlab('Year')+labs(col='Age')+
+        theme_bw()+
+        facet_wrap(~survey,scale='free')+
+         theme(strip.background = element_blank(),
+               panel.border = element_rect(colour = "black"))
+     if(length(unique(df$survey)==1) & length(unique(df$age))){
+         p <- p+ theme(legend.position = 'none')+
+             scale_color_manual(values='black')
+     }
+     p
 }
+
 
 ##' Plot implementation error
 ##' @param IEmeans list of mean values
 ##' @param IEsds list of sd values
 ##' @param col colors
 ##' @rdname IEplot
+##' @import ggplot2
 ##' @export
 IEplot <- function(IEmeans,IEsds, col=c("#000000", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")){
     myIE <-cbind(melt(do.call('rbind',IEmeans)),sd=melt(do.call('rbind',IEsds))[,3])
@@ -1274,27 +548,50 @@ IEplot <- function(IEmeans,IEsds, col=c("#000000", "#88CCEE", "#44AA99", "#11773
         geom_point(aes(col=Var1))+
         theme(legend.position="none")+
         ylab('Undeclared catch (t)')+xlab('Year')+labs(col='',fill='')+
-        theme_classic()+
+        theme_bw()+
         scale_fill_manual(values=col[1:length(unique(myIE$Var1))])+
         scale_color_manual(values=col[1:length(unique(myIE$Var1))])
     return(p)
 }
 
+
 ##' Bubble plot
 ##' @param x matrix
-##' @param scale scaler for the bubble size (cex size: sqrt(bubblevalue)*scale)
+##' @param scale scaler for the bubble size (scale_range)
+##' @param col color for the bubbles. if 2 colors are given, they indicate positive and negative values
+##' @param alpha transparency of the bubbles
+##' @param xlab x label
+##' @param ylab y label
 ##' @rdname bubble
+##' @import ggplot2
 ##' @export
-bubble <- function(x,ylab='Year',xlab='Age',scale=3,...){
-    m <- as.data.frame(as.table(x))
-    names(m) <- c('x','y','z')
-    m$x <- as.numeric(as.character(m$x))
-    m$y <- as.numeric(as.character(m$y))
-    with(m,plot(y,x,cex=sqrt(abs(z))*scale, col=ifelse(z<0,'#8B000099','#00640099'), pch=ifelse(z<0,16,16),xlab=xlab,ylab=ylab,
-                yaxt="n",xaxt="n",...))
-    with(m,points(x[z>0],y[z>0],cex=sqrt(z[z>0])*scale, col='#00640099', pch=1, ...))
-    axis(1, tck=-.01)
-    axis(2, tck=-.01)
+bubble <- function(x,xlab='Year',ylab='Age',scale=15,col=c('black','darkgreen'),alpha=0.8){
+    if(class(x)!='list') x=list(x)
+    n <- names(x)
+    if(is.null(n)) n <- 1:length(x)
+    xx <- lapply(n,function(y){
+        xx <- melt(x[[y]])
+        xx$id <- y
+        xx
+    })
+    xx <- do.call('rbind',xx)
+
+    xx$posneg <- ifelse(xx$value<0,'#8B000099','#00640099')
+    coll <- length(unique(xx$posneg))
+    p <- ggplot(xx,aes(x=Var1,y=Var2,size=value,col=posneg))+geom_point(alpha=alpha)+
+        scale_size(range = c(1,scale)) +
+        theme_bw()+ylab(ylab)+xlab(xlab)+
+        labs(size="")+
+        scale_color_manual(values=col[1:coll])+
+        guides(col=FALSE)
+
+    if(length(unique(xx$id))>1){
+        p <- p+facet_wrap(~id)+
+            theme(strip.background = element_blank(),
+                  panel.border = element_rect(colour = "black"))
+
+    }
+    p
 }
 
 ##' Heat plot
@@ -1305,44 +602,258 @@ bubble <- function(x,ylab='Year',xlab='Age',scale=3,...){
 ##' @param leground number of digits to round legend
 ##' @rdname bubble
 ##' @importFrom reshape2 melt
+##' @import ggplot2
 ##' @export
-heat <- function(x,col=c('darkgreen','grey','darkred'),xlab='Year',ylab='Age',ncol=20,leg=TRUE,leground=2,posneg=FALSE,...){
-    colramp <- colorRampPalette(col)(ncol)
+heat <- function(x,high=c('grey','darkgreen'), low='darkred',xlab='Year',ylab='Age',posneg=FALSE){
+    if(class(x)!='list') x=list(x)
+    n <- names(x)
+    if(is.null(n)) n <- 1:length(x)
+    xx <- lapply(n,function(y){
+        xx <- melt(x[[y]])
+        xx$id <- y
+        xx
+    })
+    xx <- do.call('rbind',xx)
 
-    if(leg) layout(matrix(1:2,ncol=2), width = c(5,1),height = c(1,1))
-    image(x,xaxt="n", yaxt="n",col=colramp,xlab=xlab,ylab=ylab)
-    box()
-    axis(1, at=seq(0,1,length.out=nrow(x)), labels=as.numeric(rownames(x)),tck=-.01)
-    axis(2, at=seq(0,1,length.out=ncol(x)), labels=as.numeric(colnames(x)),tck=-.01)
 
+    xx$posneg <- ifelse(xx$value<0,'-','+')
+    p <- ggplot(xx,aes(x=Var1,y=Var2,fill=value))+geom_tile()+
+        theme_bw()+ylab(ylab)+xlab(xlab)+
+        scale_x_continuous(expand=c(0,0))+
+        scale_y_continuous(expand=c(0,0))+
+        labs(fill='')+
+        scale_fill_gradient(low=low,high=high)
     if(posneg){
-        ix <- m<0
-        sym <- x
-        sym[ix] <- "-"
-        sym[!ix] <- "+"
-        xs <- melt(sym)[,1]
-        ys <- melt(sym)[,2]
-        v <- melt(sym)[,3]
-        xs <- (xs-min(xs))/(max(xs)-min(xs))
-        ys <- (ys-min(ys))/(max(ys)-min(ys))
-        text(xs,ys,v)
+        p <- p+geom_text(aes(label=posneg))
+    }
+    if(length(unique(xx$id))>1){
+        p <- p+facet_wrap(~id)+
+            theme(strip.background = element_blank(),
+                  panel.border = element_rect(colour = "black"))
+
+    }
+    p
+}
+
+##' Plots fit to data
+##' @param x the object(s) returned from ccam.forecast
+##' @param what.y statistic returned from ccam.forecast
+##' @param what.x statistic returned from ccam.forecast
+##' @param ylab y label
+##' @param xlab x label
+##' @param rect color zone above this y value
+##' @param ci logical (ci are quantile ranges)
+##' @param vline plot vertical line(s)
+##' @param hline plot horizontal line(s)
+##' @param by IE, MP, OM
+##' @param text logical. plot year labels
+##' @param ... extra arguments to plot
+##' @details Plot of probability of what over time
+##' @importFrom graphics points
+##' @export
+foreplot <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',rect=NULL,ci=TRUE,vline=NULL,hline=NULL,by=NULL,text=FALSE){
+    UseMethod("foreplot")
+}
+##' @rdname foreplot
+##' @method foreplot ccamforecast
+##' @export
+foreplot.ccamforecast <- function(x,...){
+    x=c(x)
+    foreplot(x,...)
+}
+
+##' @rdname foreplot
+##' @method foreplot forecastset
+##' @export
+foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',rect=NULL,ci=TRUE,vline=NULL,hline=NULL,by=NULL, text=FALSE){
+
+    byopt <- c('OM','IE','MP')
+    if(!is.null(by) & !all(by %in% byopt)){stop('"by" may only include OM, IE or MP')}
+
+    # create data frame
+    df <- extract(x,what.y,add=TRUE)
+    colnames(df)[1]='y'
+    df[is.na(df$IE),'IE'] <- 'IE0'
+    df[is.na(df$MP),'MP'] <- 'MP0'
+    df[is.na(df$IE),'OM'] <- 'OM0'
+
+    inter <- ifelse(ncol(df)==6,FALSE,TRUE)
+    if(inter){
+        colnames(df)[2:3]=c('ylow','yhigh')
     }
 
-    if(leg){m <- matrix(colramp, ncol=1)
-    m <- m[nrow(m):1,,drop=F]
-    legend_image <- as.raster(m)
-    par(mar=c(5, 0, 4, 2) + 0.1)
-    plot(c(0,2),c(0,1),type = 'n', axes = F,xlab = '', ylab = '', main='')
-    text(x=1.5, y = seq(0,1,l=3), labels = round(c(min(x),mean(x),max(x)),leground))
-    rasterImage(legend_image, 0, 0, 1,1)
-    par(mar=c(5, 4, 4, 2) + 0.1)
-    layout(matrix(1,ncol=1))}
+    if(!is.null(what.x)){
+       df$x <- extract(x,what.x)[,1]
+       xlab <- what.x
+    }else{
+       colnames(df)[which(colnames(df)=='year')]='x'
+    }
 
+    # aestethics
+    if(length(by)==0){
+        p <- ggplot(df,aes(x=x,y=y,col=as.factor(id)))
+    }
+    if(length(by)==1){
+        int <- paste0("interaction(", paste0(byopt[byopt!=by], collapse =  ", "), ")")
+        p <- ggplot(df,aes_string(x='x',y='y',col=int))+facet_wrap(reformulate(by) )
+    }
+    if(length(by)==2){
+        p <- ggplot(df,aes_string(x='x',y='y',col=byopt[!byopt %in% by]))+facet_grid(reformulate(by[1],by[2]) )
+    }
+    if(length(by)==3){
+        p <- ggplot(df,aes(x=x,y=yEstimate))+facet_grid(reformulate(by[1],by[2:3])  )
+    }
+    # rectangle
+    if(!is.null(rect)) p <- p+ geom_rect(aes(xmin=-Inf, xmax=Inf, ymin=rect, ymax=Inf),fill='lightgrey',alpha=0.3,col='white')
+
+    # basis
+    p <- p+ geom_point()+
+            geom_path()+
+            theme_bw()+ylab(ylab)+xlab(xlab)+
+            labs(col='')+
+            theme(strip.background = element_blank(),
+                  panel.border = element_rect(colour = "black"))
+
+    # vline
+    if(!is.null(vline)){
+        for(i in 1:length(vline)){
+            p <- p+geom_vline(xintercept = vline[i],lty='dashed',col='darkgrey')
+        }
+    }
+
+    # hline
+    if(!is.null(hline)){
+        for(i in 1:length(hline)){
+            p <- p+geom_hline(yintercept = hline[i],lty='dashed',col='darkgrey')
+        }
+    }
+
+    # text
+    if(text){p <- p+geom_text(aes(label=year),hjust=-0.5,vjust=-0.5)}
+
+    # quantiles
+    if(inter & ci){
+        colnames(df)[2:3]=c('low','high')
+        p <- p+geom_errorbar(data = df,aes(ymin=low,ymax=high),size=1,width=0.5,alpha=0.2)+
+            scale_y_continuous(expand=c(0,0),limits=c(0,max(df$high)*1.05))
+    }else{
+        p <- p+scale_x_continuous(expand=c(0,0))
+    }
+
+    # color
+    if(length(unique(df$id))==1){
+        p <- p+scale_color_manual(values ='black')+theme(legend.position = '')
+    }
+
+    return(p)
 }
 
-##' convert R color name to hex value
-##' @param x color name
+##' Plot MSE criteria
+##' @param x the object(s) returned from forecast
+##' @details types are residuals ~ year (1); residuals ~ predicted (2); predicted ~ observed (3)
 ##' @export
-col2hex <- function(x){
-    apply(col2rgb(x),2,function(x) rgb(x[1], x[2], x[3], maxColorValue=255))
+MSEplot <- function(x){
+    UseMethod("MSEplot")
 }
+
+##' @rdname MSEplot
+##' @method MSEplot ccamforecast
+##' @export
+MSEplot.ccamforecast <- function(x,...){
+    x <- list(x)
+    MSEplot(x,...)
+}
+
+##' @rdname MSEplot
+##' @method MSEplot forecastset
+##' @import ggplot2
+##' @importFrom plyr ddply
+##' @importFrom gtable gtable_filter gtable_matrix gtable_add_grob
+##' @importFrom grid grid.newpage unit grid.draw
+##' @details plots a table with the result for each objective (as TRUE/FALSE or a number) by OM, IE and MP. Objectives need to be adapted inside the plot code.
+##' @export
+MSEplot.forecastset <- function(x){
+
+    meltfacet <- function(x,n1,n2){
+        z <- ggplotGrob(x)
+        locations <- grep("strip-t", z$layout$name)
+        strip <- gtable_filter(z, "strip-t", trim = FALSE)
+        ix <- 1:nrow(strip$layout)
+        top <- strip$layout$t[1]
+        l   <- strip$layout$l[seq(1,max(ix),by=n2) ]
+        r   <- strip$layout$r[seq(n2,max(ix),by=n2) ]
+        mat   <- matrix(vector("list", length = (n1*2-1)*2), nrow = 2)
+        mat[] <- list(zeroGrob())
+        res <- gtable_matrix("toprow", mat, unit(c(rep(c(1,0),n1-1),1), "null"), unit(c(1, 1), "null"))
+        se <- seq(1,length(locations),by=n2)
+        for(i in se){
+            zz. <- gtable_add_grob(res,z$grobs[[locations[i]]]$grobs[[1]], 1, 1, 1, (n2)*2-1)
+            z <- gtable_add_grob(z, zz., t = top,  l = l[which(se==i)],  b = top,  r = r[which(se==i)], name = c("add-strip"))
+        }
+        grid.newpage()
+        print(grid.draw(z))
+    }
+
+    # 1) by next 5 year 75 % probCZ
+    x=runlist
+    df <- extract(x,'probCZ',add=TRUE)
+    df <- df[df$year==(min(df$year)+5),]
+    df$ylog <- ifelse(df$var>=0.75,TRUE,FALSE)
+    df$ytext <- NA
+    df$performance <- "in 5 year 75 % >CZ"
+    out <- df
+    # 2) by next 10 years 75% probHZ
+    df <- extract(x,'probHZ',add=TRUE)
+    df <- df[df$year==(min(df$year)+5),]
+    df$ylog <- ifelse(df$var>=0.75,TRUE,FALSE)
+    df$performance <- "in 10 year 75 % >HZ"
+    df$ytext <- NA
+    out <- rbind(out,df)
+    # 3) never below 50% chance of 20% growth when in the critical zone (95%)
+    df <- extract(x,'probgrowth20',add=TRUE)
+    df2 <- extract(x,'probCZ',add=TRUE)
+    ys <- ddply(df2, c('id'),summarise,year=year[var<0.95])  ##ddply!!!
+    sel <- merge(df,ys)
+    ylog <- ddply(sel,c('id'),summarise,ylog=any(var<0.50))
+    sel <- ddply(sel,c('id'),summarise,year=max(year))
+    sel <- merge(merge(ylog,sel),df)
+    sel$performance <- "at least 20% growth (>50%) when in CZ (95%)"
+    sel$ytext=NA
+    out <- rbind(out,sel)
+    # 4) show number of years TAC at or above 8000t
+    df <- extract(x,'TAC',add=TRUE)
+    colnames(df)[1] <- 'var'
+    sel <- ddply(df[!df$year==min(df$year),],c('id','OM','MP','IE'),summarise,ytext=length(var[var>=8000]))
+    sel$year <- NA
+    sel$var <- NA
+    sel$ylog <- NA
+    sel$performance <- 'n years TAC >= 8000t'
+    out <- rbind(out,sel)
+    # 5) range of change
+    #df <- extract(x,'TACrel',add=TRUE)
+    #colnames(df)[1] <- 'var'
+    #sel <- ddply(df[!df$year==min(df$year),],c('id','OM','MP','IE'),summarise,y=paste(range(var,collapse = '-')))
+    #sel$year <- NA
+    #sel$var <- NA
+    #sel$performance <- 'range of change'
+    #out <- rbind(out,sel)
+
+
+    out$colo <- ifelse(is.logical(out$y),out$y,'black')
+
+    p <- ggplot(out,aes(x=1,y=performance))+geom_point(aes(col=ylog),size=2)+
+        geom_text(aes(label=ytext))+
+        facet_grid(OM~MP+as.numeric(as.factor(IE)))+
+        scale_x_continuous(expand=c(0,0))+
+        theme_classic()+
+        theme(axis.title.x = element_blank(),
+              axis.text.x = element_blank(),
+              axis.ticks.x = element_blank(),
+              legend.position="")+
+        ylab('')+xlab('')+
+        scale_color_manual(values=c('red','green'))
+
+    meltfacet(p,length(unique(out$MP)),length(unique(out$IE)))
+
+}
+

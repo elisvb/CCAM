@@ -27,27 +27,31 @@ array<Type> FFun(confSet &conf, vector<Type> &logFy, vector<Type> &logitSel,int 
 }
 
 
-template <class Type>
-Type ssbi(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int i){
+template <class Type> // changed by EVB
+Type ssbi(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int i, int s){
   int stateDimN=logN.dim[0];
   Type ssb=0;
+  Type Zprop;
   for(int j=0; j<stateDimN; ++j){
-    if(conf.keyLogFsta(0,j)>(-1)){
-      ssb += exp(logN(j,i))*exp(-exp(logF(conf.keyLogFsta(0,j),i))*dat.propF(i,j)-dat.natMor(i,j)*dat.propM(i,j))*dat.propMat(i,j)*dat.stockMeanWeight(i,j);
+    if(s==1){
+      Zprop=0; // if s(tart) = 0 ssb is calcuted at another time of year then the beginning
     }else{
-      ssb += exp(logN(j,i))*exp(-dat.natMor(i,j)*dat.propM(i,j))*dat.propMat(i,j)*dat.stockMeanWeight(i,j);
+      Zprop=dat.natMor(i,j)*dat.propM(i,j);
+        if(conf.keyLogFsta(0,j)<0) Zprop+=exp(logF(conf.keyLogFsta(0,j),i))*dat.propF(i,j);
     }
+    Zprop = exp(-Zprop);
+    ssb += exp(logN(j,i))*Zprop*dat.propMat(i,j)*dat.stockMeanWeight(i,j);
   }
   return ssb;
 }
 
 template <class Type>
-vector<Type> ssbFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF){
+vector<Type> ssbFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int s){
   int timeSteps=logF.dim[1];
   vector<Type> ssb(timeSteps);
   ssb.setZero();
   for(int i=0;i<timeSteps;i++){
-    ssb(i)=ssbi(dat,conf,logN,logF,i);
+    ssb(i)=ssbi(dat,conf,logN,logF,i,s);
   }
   return ssb;
 }
@@ -69,7 +73,7 @@ array<Type> catchNrFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, arr
   return cat;
 }
 
-template <class Type>
+template <class Type> // changed by EVB
 vector<Type> catchFun(dataSet<Type> &dat, confSet &conf, array<Type> &catNr){
   int timeSteps=dat.catchMeanWeight.dim(0);
   vector<Type> cat(timeSteps);
@@ -82,7 +86,7 @@ vector<Type> catchFun(dataSet<Type> &dat, confSet &conf, array<Type> &catNr){
   return cat;
 }
 
-template <class Type>
+template <class Type> // changed by EVB
 vector<Type> varLogCatchFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, paraSet<Type> par){
   int len=dat.catchMeanWeight.dim(0);
   vector<Type> cat(len);

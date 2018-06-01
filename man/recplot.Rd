@@ -2,33 +2,21 @@
 % Please edit documentation in R/plot.R
 \name{recplot}
 \alias{recplot}
-\alias{recplot.ccam}
-\alias{recplot.ccamset}
-\alias{recplot.ccamforecast}
-\alias{recplot.forecastset}
-\title{CCAM Recruits plot}
+\alias{recplot.default}
+\title{CCAM recruitment plot}
 \usage{
-recplot(fit, ...)
+recplot(x, ...)
 
-\method{recplot}{ccam}(fit, ...)
-
-\method{recplot}{ccamset}(fit, ...)
-
-\method{recplot}{ccamforecast}(fit, ...)
-
-\method{recplot}{forecastset}(fit, ...)
+\method{recplot}{default}(x, ...)
 }
 \arguments{
-\item{fit}{the object returned from ccam.fit}
+\item{x}{the object(s) returned from ccam.fit or forecast}
 
-\item{...}{extra arguments transferred to plot including the following: \cr
-\code{add} logical, plotting is to be added on existing plot \cr
-\code{ci} logical, confidence intervals should be plotted \cr
-\code{cicol} color to plot the confidence polygon}
+\item{...}{extra arguments transferred to plotit}
 }
 \description{
-CCAM Recruits plot
+CCAM recruitment plot
 }
 \details{
-Plot of numbers of recruits (youngest age class)
+Plot of recruitment
 }

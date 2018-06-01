@@ -7,8 +7,9 @@
 \usage{
 resplot(fit, log = TRUE, ...)
 
-\method{resplot}{ccam}(fit, log = TRUE, fleets = unique(fit$data$aux[,
-  "fleet"]), type = 1, std = TRUE, out = 0, ...)
+\method{resplot}{ccam}(fit, trans = function(x) x,
+  fleets = unique(fit$data$aux[, "fleet"]), type = 1, std = TRUE,
+  out = 0, ...)
 }
 \arguments{
 \item{fit}{the object returned from ccam.fit}

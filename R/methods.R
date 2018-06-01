@@ -2,32 +2,94 @@
 ##' @method plot ccam
 ##' @param  x ...
 ##' @param  ... extra arguments (not possible to use add=TRUE --- please collect to a list of fits using e.g the c(...), and then plot that collected object)
-##' @importFrom graphics par
+##' @importFrom gridExtra grid.arrange
+##' @importFrom grid unit.pmax
+##' @import ggplot2
 ##' @details ...
 ##' @export
 plot.ccam<-function(x, ...){
-  dots <- list(...)
-  if("add" %in% names(dots) && dots$add==TRUE){stop("Not possible to use add=TRUE here --- please collect to a list of fits using c(...)")}
-  op<-par(mfrow=c(3,1))
-  ssbplot(x,...)
-  fbarplot(x,...)
-  recplot(x,...)
-  par(op)
+    p1 <- ggplot_gtable(ggplot_build(ssbplot(x,...)))
+    p2 <- ggplot_gtable(ggplot_build(fbarplot(x,...)))
+    p3 <- ggplot_gtable(ggplot_build(recplot(x,...)))
+    maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3])
+    p1$widths[2:3] <- maxWidth
+    p2$widths[2:3] <- maxWidth
+    p3$widths[2:3] <- maxWidth
+  grid.arrange(p1,p2,p3)
+}
+
+##' Plot ccam object
+##' @method plot ccamset
+##' @param  x ...
+##' @param  ... extra arguments
+##' @importFrom gridExtra grid.arrange arrangeGrob
+##' @importFrom grid unit.pmax
+##' @import ggplot2
+##' @details ...
+##' @export
+plot.ccamset<-function(x, ...){
+    extractLegend<-function(p){
+        tmp <- ggplot_gtable(ggplot_build(p))
+        leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+        legend <- tmp$grobs[[leg]]
+        return(legend)
+     }
+
+    p1 <- ggplot_gtable(ggplot_build(ssbplot(x,...)+theme(legend.position='')))
+    p2 <- ggplot_gtable(ggplot_build(fbarplot(x,...)+theme(legend.position='')))
+    p3 <- ggplot_gtable(ggplot_build(recplot(x,...)+theme(legend.position='')))
+    maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3])
+    p1$widths[2:3] <- maxWidth
+    p2$widths[2:3] <- maxWidth
+    p3$widths[2:3] <- maxWidth
+    mylegend<-extractLegend(ssbplot(x)+theme(legend.position='right'))
+    grid.arrange(arrangeGrob(p1,p2,p3),mylegend,ncol=2,widths=c(0.8,0.2))
 }
 
 ##' Plot ccamforecast object
 ##' @method plot ccamforecast
 ##' @param  x ...
 ##' @param  ... extra arguments
-##' @importFrom graphics par
+##' @importFrom grid unit.pmax
+##' @import ggplot2
 ##' @details ...
 ##' @export
 plot.ccamforecast<-function(x, ...){
-  op<-par(mfrow=c(3,1))
-  ssbplot(x,...)
-  fbarplot(x, drop=0,...)
-  recplot(x,...)
-  par(op)
+    p1 <- ggplot_gtable(ggplot_build(ssbplot(x,...)))
+    p2 <- ggplot_gtable(ggplot_build(fbarplot(x,...)))
+    p3 <- ggplot_gtable(ggplot_build(recplot(x,...)))
+    maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3])
+    p1$widths[2:3] <- maxWidth
+    p2$widths[2:3] <- maxWidth
+    p3$widths[2:3] <- maxWidth
+    grid.arrange(p1,p2,p3)
+}
+
+##' Plot ccamforecast object
+##' @method plot forecastset
+##' @param  x ...
+##' @param  ... extra arguments
+##' @importFrom grid unit.pmax
+##' @import ggplot2
+##' @details ...
+##' @export
+plot.forecastset<-function(x, ...){
+    extractLegend<-function(p){
+        tmp <- ggplot_gtable(ggplot_build(p))
+        leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+        legend <- tmp$grobs[[leg]]
+        return(legend)
+    }
+
+    p1 <- ggplot_gtable(ggplot_build(ssbplot(x,...)+theme(legend.position='')))
+    p2 <- ggplot_gtable(ggplot_build(fbarplot(x,...)+theme(legend.position='')))
+    p3 <- ggplot_gtable(ggplot_build(recplot(x,...)+theme(legend.position='')))
+    maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3])
+    p1$widths[2:3] <- maxWidth
+    p2$widths[2:3] <- maxWidth
+    p3$widths[2:3] <- maxWidth
+    mylegend<-extractLegend(ssbplot(x)+theme(legend.position='right'))
+    grid.arrange(arrangeGrob(p1,p2,p3),mylegend,ncol=2,widths=c(0.8,0.2))
 }
 
 ##' Collect ccam objects
@@ -49,21 +111,6 @@ c.ccamforecast<-function(...){
     ret<-list(...)
     class(ret)<-"forecastset"
     ret
-}
-
-##' Plot ccam object
-##' @method plot ccamset
-##' @param  x ...
-##' @param  ... extra arguments
-##' @importFrom graphics par
-##' @details ...
-##' @export
-plot.ccamset<-function(x, ...){
-  op<-par(mfrow=c(3,1))
-  ssbplot(x,...)
-  fbarplot(x,...)
-  recplot(x,...)
-  par(op)
 }
 
 ##' Compute process residuals (single joint sample)
@@ -248,7 +295,7 @@ residuals.ccam<-function(object, discrete=FALSE, ...){
 ##' @details ...
 ##' @export
 summary.ccam<-function(object, ...){
-  ret <- cbind(round(rectable(object)), round(ssbtable(object)), round(fbartable(object),3))
+  ret <- cbind(round(rectable(object)[,-4]), round(ssbtable(object)[,-4]), round(fbartable(object),3)[,-4])
   colnames(ret)[1] <- paste("R(age ", object$conf$minAge, ")", sep="")
   colnames(ret)[4] <- "SSB"
   colnames(ret)[7] <- paste("Fbar(",object$conf$fbarRange[1], "-", object$conf$fbarRange[2], ")", sep="")
@@ -286,28 +333,45 @@ simulate.ccam<-function(object, nsim=1, seed=NULL, full.data=TRUE, ...){
 ##' @method plot ccamypr
 ##' @param  x ...
 ##' @param  ... extra arguments
-##' @importFrom graphics par title
+##' @importFrom gridExtra grid.arrange
+##' @import ggplot2
 ##' @details ...
 ##' @export
 plot.ccamypr<-function(x, ...){
-  par(mar=c(5.1,4.1,4.1,5.1))
-  plot(x$fbar, x$yield, type='l', xlab=x$fbarlab, ylab='Yield per recruit', ...)
-  lines(c(x$fmax,x$fmax), c(par('usr')[1],x$yield[x$fmaxIdx]), lwd=3, col='red')
-  lines(c(x$f01,x$f01), c(par('usr')[1],x$yield[x$f01Idx]), lwd=3, col='blue')
-  ssbscale <- max(x$yield)/max(x$ssb)
+    df <- data.frame(YPR=x$yield,Fbar=x$fbar, SPR=x$ssb)
 
-  lines(x$fbar, ssbscale*x$ssb, lty='dotted')
-  ssbtick <- pretty(x$ssb)
-  ssbat <- ssbtick*ssbscale
-  axis(4,at=ssbat, labels=ssbtick)
-  mtext('SSB per recruit', side=4, line=2)
+    yend <- df[which(abs(df$Fbar-x$f01)==min(abs(df$Fbar-x$f01))),'YPR']
+    yend.max <- df[which(abs(df$Fbar-x$fmax)==min(abs(df$Fbar-x$fmax))),'YPR']
+    yend.spr30=df[which(abs(df$Fbar-x$f30)==min(abs(df$Fbar-x$f30))),'SPR']
+    yend.spr40=df[which(abs(df$Fbar-x$f40)==min(abs(df$Fbar-x$f40))),'SPR']
+    maxf <- max(df$Fbar)
+    maxypr <- max(df$YPR)
 
-  lines(c(x$f35,x$f35), c(par('usr')[1],x$ssb[x$f35Idx]*ssbscale), lwd=3, col='green')
+    a <- ggplot(df,aes(x=Fbar,y=YPR))+geom_line(size=1.5)+xlab(x$fbarlab)+ylab('Yield per Recruit')+
+        geom_segment(aes(x=x$f01 , y = 0, xend = x$f01, yend =yend), linetype = "dotted")+
+        geom_text(aes(x=x$f01*1.1,y=yend*0.9,label=paste("F0.1 =",x$f01)),vjust=0,hjust=0)+
+        scale_x_continuous(expand=c(0,0))+scale_y_continuous(expand=c(0,0),limits=c(0,max(df$YPR)*1.1))+
+        theme_bw()
 
-  title(eval(substitute(expression(F[max]==fmax~ ~ ~ ~ ~F[0.10]==f01~ ~ ~ ~ ~F[0.35*SPR]==f35),
-                        list(fmax=round(x$fmax,2), f01=round(x$f01,2), f35=round(x$f35,2)))))
+    if(x$fmax>max(df$Fbar)){
+        a <- a+geom_segment(aes(x=maxf*0.9,y=maxypr*0.9,xend=maxf,yend=maxypr*0.9),arrow = arrow(length = unit(0.2,"cm")))+
+            geom_text(aes(x=maxf*0.8,y=maxypr*0.9),label='Fmax')
+    }else{
+        a <- a+geom_segment(aes(x=x$fmax, y = 0, xend = x$fmax, yend = yend.max), linetype = "dotted")+
+            geom_text(aes(x=x$fmax*1.1,y=yend.max*0.9,label=paste("Fmax =",x$fmax)),vjust=0,hjust=0)
+    }
+
+
+    b <- ggplot(df,aes(x=Fbar,y=SPR),environment=environment())+geom_line(size=1.5)+xlab(x$fbarlab)+ylab('Spawners per Recruit')+
+        geom_segment(aes(x=x$f30, y = 0, xend = x$f30, yend = yend.spr30), linetype = "dotted")+
+        geom_segment(aes(x=x$f40, y = 0, xend = x$f40, yend = yend.spr40), linetype = "dotted")+
+        geom_text(aes(x=x$f30*1.05,y=yend.spr30*1.05,label=paste("F30% =",x$f30)),hjust=0,vjust=0.2)+
+        geom_text(aes(x=x$f40*1.05,y=yend.spr40*1.05,label=paste("F40% =",x$f40)),hjust=0,vjust=0.2)+
+        scale_x_continuous(expand=c(0,0))+scale_y_continuous(expand=c(0,0))+
+        theme_bw()
+
+    grid.arrange(a,b)
 }
-
 
 ##' Print ccamypr object
 ##' @method print ccamypr

@@ -3,21 +3,24 @@
 \name{srplot}
 \alias{srplot}
 \alias{srplot.ccam}
+\alias{srplot.ccamset}
 \title{Plots the stock recruitment}
 \usage{
-srplot(fit, ...)
+srplot(fit, textcol = "red", linecol = "black", curve = FALSE)
 
-\method{srplot}{ccam}(fit, textcol = "red", linecol = "black",
-  add = FALSE, curve = FALSE, ...)
+\method{srplot}{ccam}(fit, ...)
+
+\method{srplot}{ccamset}(fit, textcol = "red", linecol = "black",
+  curve = FALSE)
 }
 \arguments{
 \item{fit}{the object returned from ccam.fit}
 
-\item{...}{extra arguments to plot}
-
 \item{textcol}{color of years on plot}
 
-\item{add}{false if a new plot should be created}
+\item{linecol}{color of lines}
+
+\item{curve}{add SR curve}
 }
 \description{
 Plots the stock recruitment

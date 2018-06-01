@@ -4,7 +4,8 @@
 \alias{fleet3}
 \title{fleet 3}
 \usage{
-fleet3(x, fit, f, simpara, deterministic, ULpool = NULL)
+fleet3(x, fit, f, simpara, deterministic, ULpool = NULL, nm = nm, sw = sw,
+  mo = mo, pm = pm, pf = pf, cw = cw)
 }
 \arguments{
 \item{x}{simulations of states}
@@ -22,5 +23,5 @@ returns a matrix of dim nrow(sim)x2 (second column is upper limit)
 fleet 3
 }
 \details{
-generates observations of fleet 3 (only keybiomasstreat 0,1 and 3 for now)
+generates observations of fleet 3 (keybiomasstreat 4 not yet implemented, 3 needs to be verified)
 }

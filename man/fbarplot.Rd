@@ -2,47 +2,21 @@
 % Please edit documentation in R/plot.R
 \name{fbarplot}
 \alias{fbarplot}
-\alias{fbarplot.ccam}
-\alias{fbarplot.ccamset}
-\alias{fbarplot.ccamforecast}
-\alias{fbarplot.forecastset}
-\title{CCAM Fbar plot}
+\alias{fbarplot.default}
+\title{CCAM fbar plot}
 \usage{
-fbarplot(fit, ...)
+fbarplot(x, ...)
 
-\method{fbarplot}{ccam}(fit, partial = FALSE, drop = NULL,
-  pcol = "lightblue", page = NULL, plot = TRUE, ...)
-
-\method{fbarplot}{ccamset}(fit, partial = FALSE, drop = NULL,
-  pcol = "lightblue", page = NULL, ...)
-
-\method{fbarplot}{ccamforecast}(fit, partial = FALSE, drop = NULL,
-  pcol = "lightblue", page = NULL, ...)
-
-\method{fbarplot}{forecastset}(fit, drop = NULL, partial = FALSE,
-  pcol = "lightblue", page = NULL, col = NULL, ...)
+\method{fbarplot}{default}(x, ...)
 }
 \arguments{
-\item{fit}{the object returned from ccam.fit}
+\item{x}{the object(s) returned from ccam.fit or forecast}
 
-\item{...}{extra arguments transferred to plot including the following: \cr
-\code{add} logical, plotting is to be added on existing plot \cr
-\code{ci} logical, confidence intervals should be plotted \cr
-\code{cicol} color to plot the confidence polygon}
-
-\item{partial}{true if included partial F's are to be plotted}
-
-\item{drop}{number of years to be left unplotted at the end. Default (NULL) is to not show years at the end with no catch information}
-
-\item{pcol}{color of partial lines}
-
-\item{page}{partial ages to plot}
-
-\item{plot}{true if fbar should be plotted}
+\item{...}{extra arguments transferred to plotit}
 }
 \description{
-CCAM Fbar plot
+CCAM fbar plot
 }
 \details{
-Plot the defined fbar.
+Plot of mean F
 }

@@ -3,44 +3,89 @@
 ##' @param what quoted name of what to extract
 ##' @param x rownames of table
 ##' @param trans function to be applied
+##' @param fleet add observations of a fleet
 ##' @param ... extra arguments not currently used
 ##' @details ...
-tableit <-function (fit, what, x=fit$data$years, trans=function(x)x,...){
+##' @export
+tableit <-function (fit, what, trans=function(x)x,fleet=NULL,...){
     UseMethod("tableit")
 }
 ##' @rdname tableit
 ##' @method tableit ccam
 ##' @export
-tableit.ccam <- function (fit, what, x=fit$data$years, trans=function(x)x,...){
+tableit.ccam <- function (fit, what, trans=function(x)x,fleet=NULL,...){
    idx<-names(fit$sdrep$value)==what
    y<-fit$sdrep$value[idx]
    ci<-y+fit$sdrep$sd[idx]%o%c(-2,2)
    ret<-trans(cbind(y,ci))
-   rownames(ret)<-x
    colnames(ret)<-c("Estimate","Low","High")
+   if(length(rownames(ret))==length(fit$data$years)) {
+       rownames(ret)<-fit$data$years
+       ret <- cbind(ret,year=fit$data$years)
+       }else{
+      rownames(ret)<-fit$conf$minAge:fit$conf$maxAge
+      ret <- cbind(ret,year=c(fit$conf$minAge:fit$conf$maxAge))
+   }
+
+   ret <- data.frame(ret)
+   if(!is.null(fleet)){
+       obs <- trans(fit$data$logobs[which(fit$data$aux[,2]==fleet),])
+       ret <- cbind(ret,obs)
+   }
+   attr(ret,'class') <- c('data.frame','dfccam')
    return(ret)
 }
 
 ##' @rdname tableit
 ##' @method tableit ccamset
 ##' @export
-tableit.ccamset <- function (fit, what, x=NULL, trans=function(x)x,...){
-    if(is.null(x)) x <- unique(unlist(lapply(1:length(fit),function(x) fit[[1]]$data$years)))
-    ret <- tableset(fit, tableit, what, x, trans,...)
+tableit.ccamset <- function (fit, what, trans=function(x)x,fleet=NULL,...){
+    ret <- tableset(fit, tableit, what, trans=trans,fleet=fleet,...)
+    attr(ret,'class') <- c('data.frame','dfccamset')
+    return(ret)
+}
+
+##' @rdname tableit
+##' @method tableit ccamforecast
+##' @details low and high correspond to standard deviations in the passed by quantiles in the future (97.5 - 2.5)
+##' @export
+tableit.ccamforecast <- function (fit, what, trans=function(x)x,fleet=NULL,...){
+    pa <- tableit(attr(fit,'fit'),what=what, trans=trans,fleet=fleet,...)
+    fu <- extract(fit,what)
+    if(!is.null(fleet)){fu=cbind(fu,aux1=NA,aux2=NA)}
+    colnames(fu) <- colnames(pa)
+    pa$period <- 'Passed'
+    fu$period <- 'Future'
+    ret <- rbind(pa,fu)
+    attr(ret,'class') <- c('data.frame','dfccamforecast')
+    return(ret)
+}
+
+##' @rdname tableit
+##' @method tableit ccamforecast
+##' @details low and high correspond to standard deviations in the passed by quantiles in the future (97.5 - 2.5)
+##' @export
+tableit.forecastset <- function (fit, what,  trans=function(x)x, fleet=NULL,...){
+    ret <- tableset(fit, tableit, what, trans=trans,fleet=fleet,...)
+    attr(ret,'class') <- c('data.frame','dfforecastset')
     return(ret)
 }
 
 ##' tableset
 ##' @param fit list of returned objects from ccam.fit
 ##' @param fun table function to be applied to each list element
+##' @param what variable
 ##' @export
-tableset <- function(fit, fun, ...){
+tableset <- function(fit, fun, what, ...){
     na <- 1:length(fit)
     tabs <- lapply(na,function(x) {
-        tab <- fun(fit[[x]],...)
-        tab <- cbind(tab,fit=x)
+        tab <- fun(fit[[x]],what,...)
+        tab <- cbind(tab,fit=as.factor(x))
         return(tab)})
     ret <- do.call('rbind',tabs)
+    rownames(ret) <- 1:nrow(ret)
+    ret <- data.frame(ret)
+    if(!is.null(names(fit))) ret$fit <- as.factor(rep(names(fit),each=(nrow(ret)/length(fit))))
     return(ret)
 }
 
@@ -74,6 +119,22 @@ tsbtable<-function(fit,...){
 tsbtable.default <- function(fit,...){
    ret<-tableit(fit, "logtsb", trans=exp,...)
    return(ret)
+}
+
+##' exploitation rate table
+##' @param  fit ...
+##' @param ... extra arguments not currently used
+##' @details ...
+##' @export
+exptable<-function(fit,...){
+    UseMethod("exptable")
+}
+##' @rdname exptable
+##' @method exptable default
+##' @export
+exptable.default <- function(fit,...){
+    ret<-tableit(fit, "exploit",...)
+    return(ret)
 }
 
 ##' Fbar table
@@ -114,33 +175,31 @@ rectable.default <- function(fit,...){
 ##' @param ... extra arguments not currently used
 ##' @details ...
 ##' @export
-catchtable<-function(fit, obs.show=FALSE,...){
+catchtable<-function(fit, fleet=NULL,...){
     UseMethod("catchtable")
 }
 ##' @rdname catchtable
-##' @method catchtable ccam
+##' @method catchtable default
 ##' @export
-catchtable.ccam <- function(fit, obs.show=FALSE,...){
-   CW <- fit$data$catchMeanWeight
-   xx <- as.integer(rownames(CW))
-   ret <- tableit(fit, x=xx, "logCatch", trans=exp)
-   if(obs.show){
-     aux <- fit$data$aux
-     logobs <- fit$data$logobs
-     .goget <- function(y,a){
-       ret <- exp(logobs[aux[,"fleet"]==1 & aux[,"year"]==y & aux[,"age"]==a])
-       ifelse(length(ret)==0,0,ret)
-      }
-      sop<-rowSums(outer(rownames(CW), colnames(CW), Vectorize(.goget))*CW, na.rm=TRUE)
-      ret<-cbind(ret,sop.catch=sop)
-   }
+catchtable.default <- function(fit, fleet=NULL,...){
+   ret <- tableit(fit, what="logCatch", trans=exp,fleet=fleet)
    return(ret)
 }
-##' @rdname catchtable
-##' @method catchtable ccamset
+
+##' Selectivity table
+##' @param  fit ...
+##' @param ... extra arguments not currently used
+##' @details ...
 ##' @export
-catchtable.ccamset <- function(fit, obs.show=FALSE,...){
-    return(tableset(fit, fun=catchtable, ...))
+seltable<-function(fit, fleet=NULL,...){
+    UseMethod("seltable")
+}
+##' @rdname catchtable
+##' @method catchtable default
+##' @export
+seltable.default <- function(fit, fleet=NULL,...){
+    ret <- tableit(fit, what="Sel")
+    return(ret)
 }
 
 ##' N table
@@ -294,27 +353,44 @@ modeltable.forecastset <- function(fits,...){
 
 ##' extract predictions for a given variable
 ##' @param x A forecast object
+##' @param what value from forecast
 ##' @param ... extra arguments
 ##' @details ...
 ##' @export
-extract <- function(x,...){
+extract <- function(x,what,add=FALSE){
  UseMethod("extract")
 }
 ##' @rdname extract
 ##' @method extract ccamforecast
 ##' @export
-extract.ccamforecast <- function(x,what){
+extract.ccamforecast <- function(x,what,add=FALSE){
     tab <- attr(x,'tab')
-    ret <- tab[,what]
+    what <- tolower(gsub('log','',what))
+    args <- gsub(':median','',gsub(':high','',gsub(':low','',colnames(tab))))
+    args <- tolower(gsub('log','',args))
+    if(what=='r') what='rec'
+    var <- tab[,args==what]
+    ret <- cbind(var,year=as.numeric(rownames(tab)))
+    ret <- data.frame(ret)
+    if(add){
+        toadd <- c('OM','IE','MP')
+        ret$OM <- attr(x,"OMlabel")
+        ret$MP <- attr(x,"MPlabel")
+        ret$IE <- attr(x,'parameters')$IE
+        cadd <- toadd[which(!toadd %in%colnames(ret))]
+        if(length(cadd)!=0) ret[cadd] <- NA
+        ret[is.na(ret$IE),'IE'] <- 'IE0'
+        ret[is.na(ret$MP),'MP'] <- 'MP0'
+        ret[is.na(ret$IE),'OM'] <- 'OM0'
+    }
     return(ret)
 }
 ##' @rdname extract
 ##' @method extract forecastset
 ##' @export
-extract.forecastset <- function(x,what){
-    ret <- do.call('rbind',lapply(1:length(x),function(y) {d <- as.data.frame(extract(x[[y]],what=what))
+extract.forecastset <- function(x,what,add=FALSE){
+    ret <- do.call('rbind',lapply(1:length(x),function(y) {d <- extract(x[[y]],what,add)
                                                            d$id <- y
-                                                           d$year <- as.numeric(rownames(d))
                                                            return(d)}))
     ret <- as.data.frame(ret)
     return(ret)
@@ -427,16 +503,11 @@ ypr.ccam <- function(fit, Flimit=2, Fdelta=0.01, aveYears=min(15,length(fit$data
 ##' @rdname ypr
 ##' @method ypr ccamset
 ##' @export
-ypr.ccamset <- function(fit,what=names(ypr(fit[[1]])),...){
-    ret <- tableset(fit, fun=ypr,...)
-    if(!identical(what,names(ypr(fit[[1]])))){
-        elem <- names(ypr(fit[[1]]))
-        take <- which(elem %in% what)
-        take <- as.vector(sapply(take, function(x) seq(from=x,by=length(elem),length.out = length(fit))))
-
-        ret <- ret[take]
-        names(ret) <- rep(elem,length(fit))[take]
-    }
+ypr.ccamset <- function(fit,...){
+    ret <- lapply(fits,ypr,...)
+    class(ret) <- "ccanyprset"
     return(ret)
 }
+
+
 

@@ -2,20 +2,19 @@
 % Please edit documentation in R/plot.R
 \name{parplot}
 \alias{parplot}
-\alias{parplot.ccam}
-\alias{parplot.ccamset}
+\alias{parplot.default}
 \title{CCAM parameter plot}
 \usage{
-parplot(fit, cor.report.limit = 0.95, ...)
+parplot(fit, cor.report.limit = 0.95, col = NULL)
 
-\method{parplot}{ccam}(fit, cor.report.limit = 0.95, ...)
-
-\method{parplot}{ccamset}(fit, cor.report.limit = 0.95, ...)
+\method{parplot}{default}(fit, cor.report.limit = 0.95, col = NULL)
 }
 \arguments{
 \item{fit}{the object returned from ccam.fit}
 
 \item{cor.report.limit}{correlations with absolute value > this number is reported in the plot}
+
+\item{col}{colors}
 
 \item{...}{extra arguments transferred to plot}
 }

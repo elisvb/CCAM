@@ -4,7 +4,8 @@
 \alias{newobs}
 \title{create new observations (logobs), only for one new year}
 \usage{
-newobs(fit, sim, simpara, ULpool, deterministic, nm)
+newobs(fit, sim, simpara, ULpool, deterministic, nm, sw = sw, mo = mo,
+  pm = pm, pf = pf, cw = cw)
 }
 \arguments{
 \item{fit}{returned from ccam.fit}
@@ -12,6 +13,20 @@ newobs(fit, sim, simpara, ULpool, deterministic, nm)
 \item{sim}{simulation of states}
 
 \item{ULpool}{matrix with ratios of predicted values vs the upper or lower bound}
+
+\item{deterministic}{logical}
+
+\item{nm}{vector of nm (natural mortality)}
+
+\item{sw}{vector of sw (stock mean weight)}
+
+\item{mo}{vector of mo (propotion mature)}
+
+\item{pm}{vector of pm (proportion natural mortality)}
+
+\item{pf}{vector of pf (proportion fishing mortality)}
+
+\item{cw}{vector of cw (catch weight)}
 }
 \value{
 returns and array of size (n observations,2 (lower and upper column), number of simulations)

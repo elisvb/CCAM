@@ -13,7 +13,7 @@ ypr(fit, Flimit = 2, Fdelta = 0.01, aveYears = min(15,
   length(fit$data$years)), ageLimit = 100, rec.years = fit$data$years,
   deterministic = TRUE, simpara = NULL, ...)
 
-\method{ypr}{ccamset}(fit, what = names(ypr(fit[[1]])), ...)
+\method{ypr}{ccamset}(fit, ...)
 }
 \arguments{
 \item{fit}{the object returned from ccam.fit}

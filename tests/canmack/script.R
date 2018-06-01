@@ -14,6 +14,7 @@ library(plyr)
 cn <- read.ices("cn.dat")
 ct <- read.ices("ct.dat")
 ctUSA <- read.ices("ctUSA.dat")
+ctForeign <- read.ices("ctForeign.dat")
 cw <- read.ices("cw.dat")
 dw <- read.ices("dw.dat")
 lf <- read.ices("lf.dat")
@@ -57,65 +58,81 @@ conf$fbarRange=c(4,10)
 par <- defpar(dat,conf)
 
             # check input data
-            # bubble(t(cn),scale=0.03) # raw data
-            # bubble(spay(t(cn)))      # to check cohorts
-            # bubble(spya(t(cn)))      # to compare between years
-            # heat(mo,ncol=100)
-            # heat(cw,col=c('black','darkgreen'))
+            # bubble(cn,col='darkblue') # raw data
+            # bubble(t(spay(t(cn))))   # to check cohorts
+            # bubble(t(spya(t(cn))))   # to compare between years
+            # heat(mo)
+            # heat(cw)
             # matplot(mo,type='l',ylab='Proportion mature',xlab='Year')
             # matplot(cw,type='l',ylab='Catch weight',xlab='Year')
             # matplot(ct,type='l',ylab='Catch (t)', xlab='Year')
             # surveyplot(surveys)
+            # allC <- cbind(ct[,1],ctUSA[-c(1:8),1],ctForeign[-c(1:8),1])
+            # allC <- cbind(allC, rowSums(allC))
+            # matplot(rownames(allC),allC,type='l',lty = c(1,1,1,2),ylab='Catch',xlab='Year',bty="l")
+            # legend('topright', c('CAN','USA','Foreign','Total'),fill=seq_len(ncol(allC)),box.col = 'white',cex=1.2)
 
 #################################################################################################################
 ########### fit model ###########################################################################################
 #################################################################################################################
 
-fit1 <- ccam.fit(dat,conf,par,silent=TRUE)              # run uncensored with lognormal error dist Ctot (sd = parameter)
+conf$obsLikelihoodFlag[1]='LN'
+fit1 <- ccam.fit(dat,conf,par,silent=TRUE)              # lognormal distribution (sd 0.000001)
 
 conf$obsLikelihoodFlag[1]='CE'
+fit2 <- ccam.fit(dat,conf,par,silent=TRUE)              # censored
 
-fit2 <- ccam.fit(dat,conf,par,phase=1)     # run uncensored with lognormal error dist Ctot (sd = 0.01) and Clower becomes Cmean
-fit3 <- ccam.fit(dat,conf,par,phase=2)     # run phase 1 + censored
+fitBase=fit2
+    #save(fitBase, file=paste0(wdRdata,'fitBase.Rdata'))
+    #load(file=paste0(wdRdata,'fitBase.Rdata'))
 
-fits=c(fit1,fit2,fit3)
-names(fits)=c('normal','uncens','cens')
+fits=c(fit1,fit2)
+names(fits)=c('uncens','cens')
 
 
 #################################################################################################################
 ########### PLOTS & TABLES ######################################################################################
 #################################################################################################################
 
-srplot(fit3,curve=TRUE)
-ypr(fit3,rec.years=1980:2016)
-catchplot(fit3,ci=FALSE)
+srplot(fit2,curve=TRUE)
 
-ssbplot(fits)
-ssbplot(fits,ci=FALSE,addCI=FALSE)
-fbarplot(fits,ci=FALSE)
-recplot(fits,ci=FALSE)
-catchplot(fits,ylim=c(0,70000))
-plot(fits)
+catchplot(fit2,fleet = 1)
+catchplot(fits)
+
+ssbplot(fit2)
+ssbplot(fits,ci=TRUE)
+
+fbarplot(fit2)
+fbarplot(fits)
+expplot(fit2)
+expplot(fits)
+
+recplot(fit2)
+recplot(fits)
+
+peplot(fit2)
+peplot(fits)
+
+y <- ypr(fit2,rec.years=1980:2016)
+y
+plot(y)
+
+plot(fit2)
 
 modeltable(fits)
 partable(fits)
-catchtable(fits)
-ssbtable(fits)
 
-# Residuals
-par(mfrow=c(3,2))
-resplot(fit1,fleets = 3,type=1)
-resplot(fit1,fleets = 3,type=2,out=1)
-resplot(fit1,fleets = 3,type=3)
+# Residuals (not one step ahead!!!)
+resplot(fit2,fleets = 3,type=1)
+resplot(fit2,fleets = 3,type=2,out=1)
+resplot(fit2,fleets = 3,type=3)
+resplot(fit2,fleets = 3,type=4)
 
-resplot(fit1,fleets = 2,type=1)
-resplot(fit1,fleets = 2,type=2,out=3)
-resplot(fit1,fleets = 2,type=3,out=3)
-resplot(fit1,fleets = 2,type=4)
-
-fitplot(fit1,fleets = 3,log = FALSE,pch=16)
-fitplot(fit1,fleets = 2,log = FALSE,pch=16)
-fitplot(fit1,fleets = 1,log = FALSE,pch=16)
+resplot(fit2,fleets = 2,type=1)
+resplot(fit2,fleets = 2,type=2,out=3)
+resplot(fit2,fleets = 2,type=3,out=3)
+resplot(fit2,fleets = 2,type=4)
+resplot(fit2,fleets = 2,type=5)
 
 #unfinished
 # res <- residuals(fit1)  #problems because logobs has become a matrix (instead of vector)!!
@@ -125,8 +142,8 @@ fitplot(fit1,fleets = 1,log = FALSE,pch=16)
 # sims=simulate(fit)  #simulate data (not yet ok for lower and upper catch limits)
 
 #retrospective analysis
-retro <- retro(fit1,year=7)  #maybe make plot with relative change
-plot(retro)
+retro <- retro(fit2,year=7)  #maybe make plot with relative change
+plot(retro,ci=FALSE)
 mohn(retro)
 
 #################################################################################################################
@@ -134,20 +151,20 @@ mohn(retro)
 #################################################################################################################
 
 ##### debugging
-fit=fit1; fscale=NULL; catchval=NULL; fval=NULL; nosim=2; year.base=max(fit$data$years);
+fit=fitBase; fscale=NULL; catchval=NULL; fval=NULL; nosim=2; year.base=max(fit$data$years);
 ave.years=max(fit$data$years)+(-9:0); rec.years=max(fit$data$years)+(-39:0); MPlabel=NULL;OMlabel=NULL;
-overwriteSelYears=NULL; deterministic=FALSE;CZ=103000;HZ=257500;IE=NULL;rec.meth=3
-capLower=0;capUpper=NULL;MP = rep('MPspm',3);UL.years=max(fit$data$years)+(-4:0);TAC.base=8000
+overwriteSelYears=NULL; deterministic=FALSE;CZ=103000;HZ=257500;IE=NULL;rec.meth=3;bio.scale=NULL;rec.scale=1
+capLower=0;capUpper=NULL;MP = rep('MPspm',5);UL.years=max(fit$data$years)+(-4:0);TAC.base=8000
 
-ny=3
-nosim=5
+ny=15
+nosim=100
 
 #***************************************************************************
 #************* define Operating Models *************************************
 #***************************************************************************
 
 #--------------------- base model ------------------------------------------
-OMbase <- list(fit=fit3,
+OMbase <- list(fit=fitBase,
                nosim=nosim,
                OMlabel='OMbase',
                year.base=2016,
@@ -167,8 +184,10 @@ OMstress1$rec.scale=0.7 # mean with AC and reduced by 0.75
 newdat1 <- dat
 newdat1$natMor[,] <- 0.15
 
-fitMunc <- ccam.fit(newdat1,conf,par,phase=1)     # run uncensored with lognormal error dist Ctot (sd = 0.01) and Clower becomes Cmean
 fitM <- ccam.fit(newdat1,conf,par,phase=2)     # run phase 1 + censored
+
+    #save(fitM, file=paste0(wdRdata,'fitM.Rdata'))
+    #load(file=paste0(wdRdata,'fitM.Rdata'))
 
 OMcore3$fit=fitM
 
@@ -178,14 +197,15 @@ OMstress3$bio.scale=list('nm'=1.2)
 # --------------------- Upper limit ------------------------------------------
 newdat2 <- dat
 oldUpper <- newdat2$logobs[which(!is.na(newdat2$logobs[,2])),1]
-newUpper <- log(exp(oldUpper) + ctUSA[-c(1:8),1])
+newUpper <- log(exp(oldUpper) + ctUSA[-c(1:8),1] + ctForeign[-c(1:8),1])
 newdat2$logobs[which(!is.na(newdat2$logobs[,2])),2] <- newUpper
 
-fitCunc <- ccam.fit(newdat2,conf,par,phase=1)     # run uncensored with lognormal error dist Ctot (sd = 0.01) and Clower becomes Cmean
 fitC <- ccam.fit(newdat2,conf,par,phase=2)     # run phase 1 + censored
 
-OMcore4$fit=fitC
+    #save(fitC, file=paste0(wdRdata,'fitC.Rdata'))
+    #load(file=paste0(wdRdata,'fitC.Rdata'))
 
+OMcore4$fit=fitC
 
 # --------------------- OM list ------------------------------------------
 
@@ -197,6 +217,11 @@ OM.list=list(OMbase=OMbase,
              OMstress1=OMstress1,
              OMstress2=OMstress2,
              OMstress3=OMstress3)
+
+
+OMfits=c(fitBase=fitBase,FitM=fitM,fitC=fitC)
+ssbplot(OMfits,ci=FALSE)
+catchplot(OMfits)
 
 #*****************************************************************************
 #************* define Harvest Control Rules **********************************
@@ -226,14 +251,14 @@ MP6$MP <- rep('MPeggsurveytarget',ny)
 MP7$MP <- rep('MPf40base',ny)
 MP8$MP <- rep('MPspm',ny)
 
-# --------------------- MP list ------------------------------------------
+# --------------------- MP list (include different IEs) ------------------------------------------
 
 nIE=5
 
-MPmat=expand.grid(MP=paste0('MP',1:nMP), IE=c(paste0('IEnormgamma',1:nIE),NA))
+MPmat=expand.grid(MP=paste0('MP',1:nMP), IE=c(paste0('IEnormgamma',1:nIE),'IEnothing'))
 MP.list <- lapply(split(MPmat,1:nrow(MPmat)),function(x){
     MPx <- get(as.character(x[1,1]))
-    if(!is.na(x[1,2])) MPx$IE <- as.character(x[1,2])
+    if(!is.na(x[1,2])) MPx$IE <- rep(as.character(x[1,2]),ny)
     return(MPx)
 })
 names(MP.list) <- paste(MPmat[,1],MPmat[,2],sep=".")
@@ -244,89 +269,101 @@ IEmeans=list(IE1 = rep(6000,100),
              IE2 = rep(7200,100),
              IE3 = c(Reduce(function(v, x) .8*v , x=numeric(3),  init=6000, accumulate=TRUE)[-1],rep(3000,97)),
              IE4 = c(Reduce(function(v, x) .75*v , x=numeric(6),  init=6000, accumulate=TRUE)[-1],rep(1000,94)),
-             IE5 = rep(6000*0.8,100)
+             IE5 = rep(6000*0.8,100),
+             IE6 = rep(0,100)
 )
 IEmeans=lapply(IEmeans,function(x) c(6000,x))
-IEsds=lapply(IEmeans,'/',3)
-savepng(IEplot(IEmeans,IEsds)+ scale_x_continuous(limits = c(0,10),expand = c(0,0)),wdIMG,"/HCR/IE",c(9,5))
+IEsds=lapply(IEmeans,'/',4)
+savepng(IEplot(IEmeans,IEsds)+ scale_x_continuous(limits = c(0,ny+1),expand = c(0,0)),wdIMG,"/HCR/IE",c(9,5))
 
 #******************************************************************************
 #************* forecast for each combination **********************************
 #******************************************************************************
-OM.list <- list(OMbase=OMbase)
-MP.list <- list(MP1=MP1)
-
+#OM.list <- list(OMbase=OMbase)
+#MP.list <- list(MP1=MP1)
 
 scenmat <- expand.grid(OM=names(OM.list), MP=names(MP.list))
 scennames <- apply(scenmat,1,paste,collapse = ".")
 
 # create a list with all scenarios to test (combos MP/OM)
-scenlist <- lapply(split(scenmat,1:nrow(scenmat)),function(x){
+scen.list <- lapply(split(scenmat,1:nrow(scenmat)),function(x){
     c(OM.list[[as.character(x[1,1])]],MP.list[[as.character(x[1,2])]])
 })
-names(scenlist) <- scennames
+names(scen.list) <- scennames
+
+length(scen.list)
 
 # forecast each scenario (combos MP/OM)
-runlist <- lapply(scenlist,function(x){
-    RUN <- do.call(forecast, x)
-    save(RUN,file=paste0(wdRdata,names(x),'.Rdata'))
+Date = "2018-05-18"
+Date = Sys.Date()
+DateDir = paste0(wdRdata,Date,"/")
+dir.create(DateDir)
+
+    #save(scen.list, file=paste0(wdRdata,'scen.list.Rdata'))
+    #load(file=paste0(wdRdata,'scen.list.Rdata'))
+
+x=names(scen.list)[48]
+
+
+scen.list=scen.list[-grep('MP7',names(scen.list))]
+
+# 48 is missing
+runlist <- lapply(names(scen.list)[-grep('MP8',names(scen.list))],function(x){
+    y <- scen.list[[x]]
+    RUN <- do.call(forecast, y)
+    save(RUN,file=paste0(DateDir,x,'.Rdata'))
+    return(RUN)
 })
 
-files <- split(paste0(wdRdata,scennames ,'.Rdata'),1:nrow(scenmat))
-runlist <- lapply(files, function(x) get(load(x)))
+runlist <- lapply(names(scen.list)[grep('MP8',names(scen.list))],function(x){
+    y <- scen.list[[x]]
+    RUN <- do.call(forecast, y)
+    save(RUN,file=paste0(DateDir,x,'.Rdata'))
+    return(RUN)
+})
 
-names(runlist)=scennames
+filenames <- dir(DateDir, pattern = ".Rdata")
+files <- paste0(DateDir,filenames)
+  #files <- split(paste0(DateDir,names(scen.list) ,'.Rdata'),1:length(names(scen.list)))
+runlist <- lapply(files, function(x) {print(x);get(load(x))})
+names(runlist)=gsub(pattern = ".Rdata",replacement = "",x = filenames)
 class(runlist)='forecastset'
 
 #******************************************************************************
 #************* plot each forecast and compare**********************************
 #******************************************************************************
 
-ssbplot(RUNbase.1)
-ssbplot(RUNbase.list) #no applicable method for 'plotit' applied to an object of class "list"
+# examples of plots for 1 forecast
+foreplot(runlist[[1]],what.y='probCZ',rect=0.75)
+foreplot(runlist[[1]],what.y='probHZ',rect=0.75)
+foreplot(runlist[[1]],what.y='probGrowth')
+foreplot(runlist[[1]],what.y='TAC')
+foreplot(runlist[[1]],what.y='ssbmsyratio',ylab='ssb/ssbmsy')
+foreplot(runlist[[1]],what.y='fmsyratio',ylab='F/Fmsy')
+foreplot(runlist[[1]],what.y='Umsyratio',ylab='U/Umsy')
 
-catchplot(RUNbase.1)
-catchplot(RUNbase.list)
-
-recplot(RUNbase.1)
-recplot(RUNbase.list)
-
-fbarplot(RUNbase.1)
-fbarplot(RUNbase.list)
-
-foreplot(RUNbase.1,what='probCZ',zone=0.75)
-foreplot(RUNbase.1,what='probHZ',zone=0.75)
-foreplot(RUNbase.1,what='probGrowth')
-foreplot(RUNbase.1,what='TAC')
-foreplot(RUNbase.1,what='ssbmsyratio',ylab='ssb/ssbmsy')
-foreplot(RUNbase.1,what='fmsyratio',ylab='F/Fmsy')
-foreplot(RUNbase.1,what='Umsyratio',ylab='U/Umsy')
-
+# trade off plots
+foreplot(runlist,what.y='catchcumul',what.x='probCZ',by='OM',ci=FALSE)
+foreplot(runlist,what.y='Umsyratio',what.x='ssbmsyratio',by='OM',ci=FALSE,hline=1,vline=1)
 
 ### Objective 1: rebuild out of critical zone and into healthy zone with 75% prob
-foreplot(RUNbase.list,what='probCZ',zone=0.75,ylab='Probability out of the CZ')
-foreplot(RUNbase.list,what='probHZ',zone=0.75,ylab='Probability into the HZ')
+foreplot(runlist,what.y='probCZ',ylab='Probability out of the CZ',by=c('OM','MP'),vline=c(5,10)+2016,rect=0.75)
 
 ## Objective 2: maintain a positive growth trajectory
-foreplot(RUNbase.list,what='probGrowth')
-
+foreplot(runlist,what.y='probgrowth20',by=c('OM','MP'))
+foreplot(runlist,what.y='probgrowth20',by='OM')
 
 # stuff should be added here (Numberof years prob of growth below x%)
 
 
 ## Objective 3: Maximize annual catches
-foreplot(RUNbase.list,what='catch')
+foreplot(runlist,what='catch',by=c('OM','MP'))
 
 ## Obective 4: maximise fishery stability
 
+## all objectives
+MSEplot(runlist)
 
-
-## tradeplots
-tradeplot(RUNbase.1,what.x='ULR', what.y='catch',zone=c(75,8000),ci=TRUE,lab=TRUE)
-tradeplot(RUNbase.1,what.x='ULR', what.y='catchcumul',zone=c(75),ci=TRUE)
-
-tradeplot(RUNbase.list,what.x='ULR', what.y='ssb',zone=c(75),ci=FALSE,leg=c(1,2))
-tradeplot(RUNbase.list,what.x='ULR', what.y='catchcumul',zone=c(75),ci=FALSE,leg=c(1,2))
 
 #-----------------------------------------------------------------------------------------
 #-- compare recruitment methods ----------------------------------------------------------
@@ -378,3 +415,31 @@ names(CZ)[1]='prob'
 reasonable=ddply(CZ,'id',summarise,length(prob[prob<0.75]))
 reasonable$id=names(RUNrec.list.reduced)
 reasonable
+
+### test with just one scenario
+
+
+ny=5
+
+OMbase <- list(fit=fitBase,
+               nosim=5,
+               OMlabel='OMbase',
+               year.base=2016,
+               ave.years=tail(fit1$data$years,10),
+               rec.years=1977:2016,
+               rec.meth=3,
+               UL.years=tail(fit1$data$years,10))
+
+MP1 <- list(fval=rep(0.01,ny),
+            MPlabel='MP1',
+            CZ=103000,  #this should have uncertainty as well...
+            HZ=257500,
+            IE=NULL,
+            capLower=0,
+            TAC.base=8000)
+
+
+MSEbase.1 <- c(OMbase,MP1)
+
+RUNbase.1 <- do.call(forecast, MSEbase.1)
+

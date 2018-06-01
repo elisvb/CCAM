@@ -6,14 +6,16 @@
 \alias{extract.forecastset}
 \title{extract predictions for a given variable}
 \usage{
-extract(x, ...)
+extract(x, what, add = FALSE)
 
-\method{extract}{ccamforecast}(x, what)
+\method{extract}{ccamforecast}(x, what, add = FALSE)
 
-\method{extract}{forecastset}(x, what)
+\method{extract}{forecastset}(x, what, add = FALSE)
 }
 \arguments{
 \item{x}{A forecast object}
+
+\item{what}{value from forecast}
 
 \item{...}{extra arguments}
 }

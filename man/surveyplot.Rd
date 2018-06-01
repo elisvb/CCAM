@@ -4,12 +4,10 @@
 \alias{surveyplot}
 \title{Plot surveys}
 \usage{
-surveyplot(x, col = c("#000000", "#88CCEE", "#44AA99", "#117733", "#999933",
-  "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"), xlim = NULL,
-  ylim = NULL, ...)
+surveyplot(x)
 }
 \arguments{
-\item{x}{surveys from read.icea}
+\item{x}{surveys from read.ices}
 }
 \description{
 Plot surveys

@@ -15,18 +15,14 @@ avail <- function(x){
 ##' @details list names are name plus a number from 1 to n, OM/MP label is automatically adapted
 ##' @export
 copy <- function(x,n,name){
-    single <- length(n)==1
-    ntot <- sum(n)
-    l <- rep(list(x),ntot)
+    n <- sum(n)
+    l <- rep(list(x),n)
+    mynames <- paste0(rep(name,test),unlist(sapply(test,function(x) seq(1,x))))
 
-    if(single){ mynames <- paste0(name,1:n)
-    }else{      mynames <- unlist(sapply(1:length(n),function(x) paste0(name[x],1:n[x])))}
-
-    l <- lapply(1:ntot,function(y){myl <- l[[y]]
-    para <- names(myl)
-    ix <- grep('label', para, value=TRUE)
-    myl[[ix]]<-mynames[y]
-    return(myl)})
+    l <- lapply(1:n,function(y){myl <- x
+                                ix <- grep('label', names(myl), value=TRUE)
+                                myl[[ix]]<-mynames[y]
+                                return(myl)})
     names(l) <- mynames
     list2env(l, envir = .GlobalEnv)
 }
@@ -65,11 +61,7 @@ gmean = function(x, na.rm=TRUE){
 ##' @importFrom gridExtra grid.arrange
 ##' @export
 savepng <- function(plot,wd, name,dim){
-    if("ggplot" %in% class(plot)) {
-        ggsave(plot,filename=paste0(wdIMG,name,".png"),width=dim[1],height=dim[2])
-    }else{
-        png(file=paste0(wdIMG,name,".png"),units="cm",res=300,width=dim[1],height=dim[2])
-        plot
-        dev.off()
-    }
+    png(file=paste0(wdIMG,name,".png"),units="cm",res=300,width=dim[1],height=dim[2])
+    if("ggplot" %in% class(plot)) grid.arrange(plot) else plot
+    dev.off()
 }

@@ -6,8 +6,8 @@
 ##' @export
 IEnorm1 <- function(TAC,i){
     IEmean=rep(6000,100)
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IE=max(0,rnorm(1,IEmean[i],IEmean[i]))
     ret=TAC+IE
     return(ret)
 }
@@ -21,8 +21,8 @@ class(IEnorm1) <- append(class(IEnorm1),"IE")
 ##' @export
 IEnorm2 <- function(TAC,i){
     IEmean=rep(7200,100)
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IE=max(0,rnorm(1,IEmean[i],IEmean[i]))
     ret=TAC+IE
     return(ret)
 }
@@ -36,8 +36,8 @@ class(IEnorm2) <- append(class(IEnorm2),"IE")
 ##' @export
 IEnorm3 <- function(TAC,i){
     IEmean=c(Reduce(function(v, x) .8*v , x=numeric(3),  init=6000, accumulate=TRUE)[-1],rep(3000,97))
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IE=max(0,rnorm(1,IEmean[i],IEmean[i]))
     ret=TAC+IE
     return(ret)
 }
@@ -51,8 +51,8 @@ class(IEnorm3) <- append(class(IEnorm3),"IE")
 ##' @export
 IEnorm4 <- function(TAC,i){
     IEmean=c(Reduce(function(v, x) .75*v , x=numeric(6),  init=6000, accumulate=TRUE)[-1],rep(1000,94))
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IE=max(0,rnorm(1,IEmean[i],IEmean[i]))
     ret=TAC+IE
     return(ret)
 }
@@ -66,8 +66,8 @@ class(IEnorm4) <- append(class(IEnorm4),"IE")
 ##' @export
 IEnorm5 <- function(TAC,i){
     IEmean=rep(6000*0.8,100)
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IEmax(0,rnorm(1,IEmean[i],IEmean[i]))
     ret=TAC+IE
     return(ret)
 }
@@ -96,8 +96,8 @@ class(IEgamma1) <- append(class(IEgamma1),"IE")
 ##' @export
 IEnormgamma1 <- function(TAC,i){
     IEmean=rep(6000,100)
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IE=max(0,rnorm(1,IEmean[i],IEmean[i]))
     IEpar1=0.6
     IEpar2=15
     IEg=rgamma(1,IEpar1,IEpar2)
@@ -114,7 +114,7 @@ class(IEnormgamma1) <- append(class(IEnormgamma1),"IE")
 ##' @export
 IEnormgamma2 <- function(TAC,i){
     IEmean=rep(7200,100)
-    IEsd=IEmean/3
+    IEsd=IEmean/4
     IE=rnorm(1,IEmean[i],IEmean[i])
     IEpar1=0.6
     IEpar2=15
@@ -132,8 +132,8 @@ class(IEnormgamma2) <- append(class(IEnormgamma2),"IE")
 ##' @export
 IEnormgamma3 <- function(TAC,i){
     IEmean=c(Reduce(function(v, x) .8*v , x=numeric(3),  init=6000, accumulate=TRUE)[-1],rep(3000,97))
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IE=max(0,rnorm(1,IEmean[i],IEmean[i]))
     IEpar1=0.6
     IEpar2=15
     IEg=rgamma(1,IEpar1,IEpar2)
@@ -150,8 +150,8 @@ class(IEnormgamma3) <- append(class(IEnormgamma3),"IE")
 ##' @export
 IEnormgamma4 <- function(TAC,i){
     IEmean=c(Reduce(function(v, x) .75*v , x=numeric(6),  init=6000, accumulate=TRUE)[-1],rep(1000,94))
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IE=max(0,rnorm(1,IEmean[i],IEmean[i]))
     IEpar1=0.6
     IEpar2=15
     IEg=rgamma(1,IEpar1,IEpar2)
@@ -168,8 +168,8 @@ class(IEnormgamma4) <- append(class(IEnormgamma4),"IE")
 ##' @export
 IEnormgamma5 <- function(TAC,i){
     IEmean=rep(6000*0.8,100)
-    IEsd=IEmean/3
-    IE=rnorm(1,IEmean[i],IEmean[i])
+    IEsd=IEmean/4
+    IE=max(0,rnorm(1,IEmean[i],IEmean[i]))
     IEpar1=0.6
     IEpar2=15
     IEg=rgamma(1,IEpar1,IEpar2)
@@ -177,3 +177,14 @@ IEnormgamma5 <- function(TAC,i){
     return(ret)
 }
 class(IEnormgamma5) <- append(class(IEnormgamma5),"IE")
+
+##' IEnothing
+##' @param TAC TAC based on MP
+##' @param i numeric between 0 and time series length-1 indicating the timestep
+##' @rdname IEnothing
+##' @details keeps TAC as it is
+##' @export
+IEnothing <- function(TAC,i){
+    return(TAC)
+}
+class(IEnothing) <- append(class(IEnothing),"IE")

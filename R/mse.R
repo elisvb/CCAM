@@ -3,14 +3,15 @@
 ##' @param fit object from ccam.fit
 ##' @param f fleet (numeric)
 ##' @param deterministic logistic
-##' @details generates observations of fleet 3 (only keybiomasstreat 0,1 and 3 for now)
+##' @details generates observations of fleet 3 (keybiomasstreat 4 not yet implemented, 3 needs to be verified)
 ##' @return returns a matrix of dim nrow(sim)x2 (second column is upper limit)
 ##' @export
-fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL){
+fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw){
     if(fit$conf$keyBiomassTreat[f]==0) obs <- apply(x, 1, ssb, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf)
-    if(fit$conf$keyBiomassTreat[f] %in% c(0,3)) obs <- apply(x, 1, catch, nm=nm, cw=cw)
+    if(fit$conf$keyBiomassTreat[f] %in% c(1,3)) obs <- apply(x, 1, catch, nm=nm, cw=cw)
+    if(fit$conf$keyBiomassTreat[f]==2) obs <- apply(x, 1, fsb, cw, nm)
     if(fit$conf$keyBiomassTreat[f]<3){
-        q <- simpara[,which(colnames(simpara)=="logFpar"),drop=F]
+        q <- simpara[,which(colnames(simpara)=="logFpar"),drop=FALSE]
         q <- q[,fit$conf$keyLogFpar[f,1]+1]
         obs <- obs*exp(q)
     }
@@ -19,7 +20,7 @@ fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL){
     if(!deterministic){
         sdObs <- exp(simpara[,which(colnames(simpara)=="logSdLogObs")])
         aux <- cbind(year=tail(fit$data$years,1)+1,unique(fit$data$aux[,2:3]))
-        sds <- sdObs[,fit$conf$keyVarObs[f,1:length(which(aux[,2]==f))]+1,drop=F]
+        sds <- sdObs[,fit$conf$keyVarObs[f,1:length(which(aux[,2]==f))]+1,drop=FALSE]
         if(fit$conf$obsLikelihoodFlag[f]=='LN'){
             if(ncol(sds)==0) sds <- rep(0.0001,nrow(simpara))
             obs[,1] <- rnorm(length(sds),obs[,1],sds)
@@ -49,17 +50,14 @@ fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL){
 ##' @export
 fleet6 <- function(x,fit,f,simpara,deterministic,nm){
     caasim <- apply(x,1,caa,nm=nm)
-    obs <- apply(caasim,2,crlTransform)
-    if(any(apply(obs,2,function(x) sum(crlInverse(x)))!=1)) stop('Bad crl transformation')
-
+    obs <- crlTransform(caasim)
 
     if (!deterministic) {
         sdObs <- exp(simpara[,which(colnames(simpara)=="logSdLogObs")])
         aux <- cbind(year=tail(fit$data$years,1)+1,unique(fit$data$aux[,2:3]))
         sds <- t(sdObs[,fit$conf$keyVarObs[f,1:length(which(aux[,2]==f))]+1])
         obs[] <- rnorm(length(obs), mean=obs, sd=sds)
-        if(any(apply(obs,2,function(x) sum(crlInverse(x)))!=1)) stop('Bad crl transformation')
-    }
+     }
     obs <- lapply(split(t(obs),1:ncol(obs)),cbind,NA)
     obs <- sapply(1:length(obs), function(y) obs[[y]], simplify = 'array')
     return(obs)
@@ -69,16 +67,23 @@ fleet6 <- function(x,fit,f,simpara,deterministic,nm){
 ##' @param fit returned from ccam.fit
 ##' @param sim simulation of states
 ##' @param ULpool matrix with ratios of predicted values vs the upper or lower bound
+##' @param deterministic logical
+##' @param nm vector of nm (natural mortality)
+##' @param sw vector of sw (stock mean weight)
+##' @param mo vector of mo (propotion mature)
+##' @param pm vector of pm (proportion natural mortality)
+##' @param pf vector of pf (proportion fishing mortality)
+##' @param cw vector of cw (catch weight)
 ##' @details create new observations to apply model based management procedures
 ##' @return returns and array of size (n observations,2 (lower and upper column), number of simulations)
 ##' @export
-newobs <- function(fit, sim, simpara, ULpool,deterministic, nm){
+newobs <- function(fit, sim, simpara, ULpool,deterministic, nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw){
     aux <- unique(fit$data$aux[,2:3])
     fleetsim <- array(dim=c(nrow(aux),2,nrow(sim)))
     for(f in unique(aux[,1])){
         ft <- fit$data$fleetTypes[f]
         if(ft==3) {
-            mysim <- fleet3(x=sim,fit,f,simpara,deterministic,ULpool)
+            mysim <- fleet3(x=sim,fit,f,simpara,deterministic,ULpool, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw)
             fleetsim[which(aux[,1]==f),,] <- mysim
         }
         if(ft==6) {

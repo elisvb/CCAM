@@ -6,25 +6,38 @@
 \alias{foreplot.forecastset}
 \title{Plots fit to data}
 \usage{
-foreplot(fit, what, ylab = "value", xlab = "Year", zone = NULL,
-  ci = TRUE, ...)
+foreplot(x, what.y, what.x = NULL, ylab = what.y, xlab = "Year",
+  rect = NULL, ci = TRUE, vline = NULL, hline = NULL, by = NULL,
+  text = FALSE)
 
-\method{foreplot}{ccamforecast}(...)
+\method{foreplot}{ccamforecast}(x, ...)
 
-\method{foreplot}{forecastset}(...)
+\method{foreplot}{forecastset}(x, what.y, what.x = NULL, ylab = what.y,
+  xlab = "Year", rect = NULL, ci = TRUE, vline = NULL, hline = NULL,
+  by = NULL, text = FALSE)
 }
 \arguments{
-\item{fit}{the object returned from ccam.forecast}
+\item{x}{the object(s) returned from ccam.forecast}
 
-\item{what}{statistic returned from ccam.forecast}
+\item{what.y}{statistic returned from ccam.forecast}
+
+\item{what.x}{statistic returned from ccam.forecast}
 
 \item{ylab}{y label}
 
 \item{xlab}{x label}
 
-\item{zone}{color zone above this y value}
+\item{rect}{color zone above this y value}
 
 \item{ci}{logical (ci are quantile ranges)}
+
+\item{vline}{plot vertical line(s)}
+
+\item{hline}{plot horizontal line(s)}
+
+\item{by}{IE, MP, OM}
+
+\item{text}{logical. plot year labels}
 
 \item{...}{extra arguments to plot}
 }

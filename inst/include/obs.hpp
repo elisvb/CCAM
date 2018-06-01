@@ -109,8 +109,10 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   Type nll=0;
   vector<Type> Sel = SelFun(conf,logitSel); 
   array<Type> logF = FFun(conf, logFy,logitSel, 1);
-  vector<Type> ssb = ssbFun(dat, conf, logN, logF);
+  vector<Type> ssb = ssbFun(dat, conf, logN, logF, 0);
   vector<Type> logssb = log(ssb);
+  vector<Type> ssb0 = ssbFun(dat, conf, logN, logF, 1);
+  vector<Type> logssb0 = log(ssb0);
 
   vector<Type> fsb = fsbFun(dat, conf, logN, logF);
   vector<Type> logfsb = log(fsb);
@@ -134,7 +136,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   vector<Type> fbar = fbarFun(conf, logF);
   vector<Type> logfbar = log(fbar);
 
-  vector<Type> exploit = exploitFun(cat, ssb);
+  vector<Type> exploit = exploitFun(cat, ssb0);
 
   vector<Type> predObs = predObsFun(dat, conf, par, logN, logF, logssb, logfsb, logCatch, catNr, logLand);
 
@@ -221,7 +223,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
     int totalParKey = 0;
     for(int f=0;f<dat.noFleets;f++){
       if(isNAINT(dat.idx1(f,y))) continue;
-      //if(debug==1) std::cout << "---------- "  << counter << std::endl;
+      //std::cout << "---------- "  << counter << std::endl;
       counter+=1;
       int idxfrom=dat.idx1(f,y);
       int idxlength=dat.idx2(f,y)-dat.idx1(f,y)+1;
@@ -231,7 +233,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
         {
         vector<Type> currentVar=nllVec(f).cov().diagonal();
         vector<Type> sqrtW(currentVar.size());
-          //if(debug==1) std::cout << "llflag"  << conf.obsLikelihoodFlag(f) << std::endl;
+        //std::cout << "llflag"  << conf.obsLikelihoodFlag(f) << std::endl;
           switch(conf.obsLikelihoodFlag(f)){
             case 0: // (LN) log-Normal distribution
                     
@@ -252,7 +254,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
               SIMULATE_F(of){
                 dat.logobs.block(idxfrom,0,idxlength,1) = predObs.segment(idxfrom,idxlength) + (nllVec(f).simulate()*sqrtW);
               }
-                //if(debug==1) std::cout << "ans catches y: "  << y <<" f: "<< f << " nll: "<< nll<<std::endl;
+              //std::cout << "ans catches y: "  << y <<" f: "<< f << " nll: "<< nll<<std::endl;
               break;
             case 1: // (ALN) Additive logistic-normal proportions + log-normal total numbers
               nll +=  nllVec(f)(addLogratio((vector<Type>)dat.logobs.block(idxfrom,0,idxlength,1))-addLogratio((vector<Type>)predObs.segment(idxfrom,idxlength)));
@@ -282,7 +284,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
         }
         case 3:
         {
-          //if(debug==1) std::cout << "llflag"  << conf.obsLikelihoodFlag(f) << std::endl;
+ //std::cout << "llflag"  << conf.obsLikelihoodFlag(f) << std::endl;
           switch(conf.obsLikelihoodFlag(f)){
             case 0:      // lognormal distributions
               if(conf.keyBiomassTreat(f)==3){ 
@@ -294,24 +296,26 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
                   sd = exp(par.logSdLogObs(conf.keyVarObs(f,0)));
                 }
               }
-              //if(debug==1) std::cout << "sd "<< sd <<"pred "<< predObs(idxfrom) << " nll"<<nll <<std::endl;  
+ 
               nll += -keep(idxfrom)*dnorm(dat.logobs(idxfrom,0),predObs(idxfrom),sd,true);
               SIMULATE_F(of){
                dat.logobs(idxfrom,0) = rnorm(predObs(idxfrom),sd);
               }
-              //if(debug==1) std::cout << nll << std::endl;
+              //std::cout << nll << std::endl;
              break;
-            case 2:  // censored
-              //if(debug==1) std::cout << "pred "  <<  predObs(idxfrom) <<  " /obs1 "  <<  dat.logobs(idxfrom,0)  << " /obs2 "  <<  dat.logobs(idxfrom,1) << std::endl;
+            case 2:  // censored   
+                //std::cout << "pred "  <<  predObs(idxfrom) <<  " /obs1 "  <<  dat.logobs(idxfrom,0)  << " /obs2 "  <<  dat.logobs(idxfrom,1) << std::endl;
+           
                 ZU = (dat.logobs(idxfrom,1) - predObs(idxfrom))/0.01;
                 ZL = (dat.logobs(idxfrom,0) - predObs(idxfrom))/0.01;
-                //if(debug==1) std::cout << "ZU "  <<  ZU << " /ZL" << ZL << std::endl;
-                //if(debug==1) std::cout << "pnormZU "  <<  pnorm(ZU) << " /pnormZL" << pnorm(ZL) << std::endl;
-                //if(debug==1) std::cout << "log(pnorm(ZU) - pnorm(ZL))"  <<  log(pnorm(ZU) - pnorm(ZL)) << std::endl;
+                //std::cout << "ZU "  <<  ZU << " /ZL" << ZL << std::endl;
+                //std::cout << "pnormZU "  <<  pnorm(ZU) << " /pnormZL" << pnorm(ZL) << std::endl;
+                //std::cout << "log(pnorm(ZU) - pnorm(ZL))"  <<  log(pnorm(ZU) - pnorm(ZL)) << std::endl;
                 nll -= log(pnorm(ZU) - pnorm(ZL));
                   //SIMULATE_F(of){
                    // Not figured out yet
                   //}
+                //std::cout << nll << std::endl;
              break;
             default:
               error("obsLikelihoodFlag for fleetType 3 should be either LN or CE");
@@ -332,11 +336,8 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
         case 6:
         {
            for(int i=idxfrom; i<(idxfrom+idxlength); ++i){
-            //if(debug==1) std::cout << "i"  << i << std::endl;
              sd = exp(par.logSdLogObs(conf.keyVarObs(f,dat.aux(i,2)-dat.minAgePerFleet(f))));
-             //if(debug==1) std::cout << "sd"  << sd << std::endl;
              nll += -keep(i)*dnorm(dat.logobs(i,0),predObs(i),sd,true);
-             //if(debug==1) std::cout << "nll"  << nll << std::endl;
               SIMULATE_F(of){
                 dat.logobs(i,0) = rnorm(predObs(i),sd);
               }
@@ -349,7 +350,6 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
         break;
         }
       }
-      //if(debug==1) std::cout << " y: "  << y << " fleetType: "  << dat.fleetTypes(f) <<" nll: "<< nll <<std::endl;
     }    
   }
 
@@ -365,6 +365,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   REPORT_F(logN,of);
   REPORT_F(logFy,of);
   ADREPORT_F(logssb,of);
+  ADREPORT_F(logssb0,of);
   ADREPORT_F(Sel,of);
   ADREPORT_F(logfbar,of);
   ADREPORT_F(logCatch,of);

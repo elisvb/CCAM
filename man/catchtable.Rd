@@ -2,22 +2,22 @@
 % Please edit documentation in R/tables.R
 \name{catchtable}
 \alias{catchtable}
-\alias{catchtable.ccam}
-\alias{catchtable.ccamset}
+\alias{catchtable.default}
+\alias{seltable.default}
 \title{Catch table}
 \usage{
-catchtable(fit, obs.show = FALSE, ...)
+catchtable(fit, fleet = NULL, ...)
 
-\method{catchtable}{ccam}(fit, obs.show = FALSE, ...)
+\method{catchtable}{default}(fit, fleet = NULL, ...)
 
-\method{catchtable}{ccamset}(fit, obs.show = FALSE, ...)
+\method{catchtable}{default}(fit, fleet = NULL, ...)
 }
 \arguments{
 \item{fit}{...}
 
-\item{obs.show}{logical add a column with catch sum of product rowsums(C*W)}
-
 \item{...}{extra arguments not currently used}
+
+\item{obs.show}{logical add a column with catch sum of product rowsums(C*W)}
 }
 \description{
 Catch table

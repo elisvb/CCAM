@@ -4,12 +4,14 @@
 \alias{tableset}
 \title{tableset}
 \usage{
-tableset(fit, fun, ...)
+tableset(fit, fun, what, ...)
 }
 \arguments{
 \item{fit}{list of returned objects from ccam.fit}
 
 \item{fun}{table function to be applied to each list element}
+
+\item{what}{variable}
 }
 \description{
 tableset

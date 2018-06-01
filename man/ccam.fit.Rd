@@ -7,7 +7,7 @@
 ccam.fit(data, conf, parameters, newtonsteps = 3, rm.unidentified = FALSE,
   run = TRUE, lower = getLowerBounds(parameters),
   upper = getUpperBounds(parameters), sim.condRE = TRUE, paracheck = TRUE,
-  phase = NULL, ...)
+  ...)
 }
 \arguments{
 \item{data}{data for the ccam model as returned from the setup.ccam.data function}
@@ -29,8 +29,6 @@ ccam.fit(data, conf, parameters, newtonsteps = 3, rm.unidentified = FALSE,
 \item{sim.condRE}{logical with default \code{TRUE}. Simulated observations will be conditional on estimated values of F and N, rather than also simulating F and N forward from their initial values.}
 
 \item{paracheck}{logical. Check if initial parameters are consistent?}
-
-\item{phase}{logical (1 for first state of censoring and 2 for second, NULL if censoring not appropriate)}
 
 \item{...}{extra arguments to MakeADFun}
 }

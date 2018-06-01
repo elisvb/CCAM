@@ -9,7 +9,6 @@
 ##' @param upper named list with upper bounds for optimization (only met before extra newton steps)
 ##' @param sim.condRE logical with default \code{TRUE}. Simulated observations will be conditional on estimated values of F and N, rather than also simulating F and N forward from their initial values.
 ##' @param paracheck logical. Check if initial parameters are consistent?
-##' @param phase logical (1 for first state of censoring and 2 for second, NULL if censoring not appropriate)
 ##' @param ... extra arguments to MakeADFun
 ##' @return an object of class \code{ccam}
 ##' @details The model configuration object \code{conf} is a list of different objects defining different parts of the model. The different elements of the list are:
@@ -45,7 +44,7 @@
 ##' data(canmackConf)
 ##' data(canmackParameters)
 ##' fit <- ccam.fit(canmackData, canmacknscodConf, canmackParameters)
-ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALSE, run=TRUE, lower=getLowerBounds(parameters), upper=getUpperBounds(parameters), sim.condRE=TRUE, paracheck=TRUE,phase=NULL,...){
+ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALSE, run=TRUE, lower=getLowerBounds(parameters), upper=getUpperBounds(parameters), sim.condRE=TRUE, paracheck=TRUE,...){
   definit <- defpar(data, conf)
   if(paracheck){
       if(!identical(parameters,relist(unlist(parameters), skeleton=definit))){
@@ -54,23 +53,26 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
       }
   }
 
-  censored='CE' %in% conf$obsLikelihoodFlag
+  censored <- 'CE' %in% conf$obsLikelihoodFlag
   if(censored){
-          data$logobs[!is.na(data$logobs[,2]),1] =log(apply(exp(data$logobs[!is.na(data$logobs[,2]),]),1,mean))
-          rem=unique(conf$keyVarObs[1,])+1
-          if(rem!=0) parameters$logSdLogObs=parameters$logSdLogObs[-rem]
-          conf$obsLikelihoodFlag[1]='LN'
-          if(!all(conf$keyVarObs[1,]<0)) conf$keyVarObs = conf$keyVarObs-1
-          conf$keyVarObs[conf$keyVarObs<0]=-1
-          print('run phase 1')
+          TrueObs <- data$logobs
+          data$logobs[!is.na(data$logobs[,2]),1] <- log(apply(exp(data$logobs[!is.na(data$logobs[,2]),]),1,mean))
+          conf$obsLikelihoodFlag[1] <- 'LN'
+          if(!all(conf$keyVarObs[1,]<0)){
+              conf$keyVarObs <- conf$keyVarObs-1
+              conf$keyVarObs[conf$keyVarObs<0] <- -1
+              parameters$logSdLogObs <- parameters$logSdLogObs[-(unique(conf$keyVarObs[1,])+1)]
+          }
   }
-  data<-clean.void.catches(data,conf)
+
+  data <- clean.void.catches(data,conf)
   tmball <- c(data, conf, simFlag=as.numeric(sim.condRE))
   if(is.null(tmball$resFlag)){tmball$resFlag <- 0}
   nmissing <- sum(is.na(data$logobs[,1]))
   parameters$missing <- numeric(nmissing)
   ran <- c("logN", "logFy", "missing")
   obj <- MakeADFun(tmball, parameters, random=ran, DLL="CCAM",...)
+
   if(rm.unidentified){
     skel <- parameters[!names(parameters)%in%ran]
     gr <- obj$gr()
@@ -87,37 +89,33 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
   if(!run) return( list(sdrep=NA, pl=parameters, plsd=NA, data=data, conf=conf, opt=NA, obj=obj) )
 
   opt <- nlminb(obj$par, obj$fn,obj$gr ,control=list(trace=1, eval.max=2000, iter.max=1000),lower=lower2,upper=upper2)
-  for(i in seq_len(newtonsteps)) { # Take a few extra newton steps
-    g <- as.numeric( obj$gr(opt$par) )
-    h <- optimHess(opt$par, obj$fn, obj$gr)
-    opt$par <- opt$par - solve(h, g)
-    opt$objective <- obj$fn(opt$par)
-  }
 
   if(censored){
-      if(phase==2){
-      parameters=obj$env$parList(opt$par)
+      parameters <- obj$env$parList(opt$par)
+      data$logobs <- TrueObs
       conf$obsLikelihoodFlag[1]='CE'
-      print('run phase 2')
-      data<-clean.void.catches(data,conf)
+
       tmball <- c(data, conf, simFlag=as.numeric(sim.condRE))
       if(is.null(tmball$resFlag)){tmball$resFlag <- 0}
-      obj <- MakeADFun(tmball, parameters, random=ran, DLL="CCAM",...)
-      if(rm.unidentified){
-          skel <- parameters[!names(parameters)%in%ran]
-          gr <- obj$gr()
-          safemap <- relist(gr,skel)
-          safemap <- lapply(safemap, function(x)factor(ifelse(abs(x)>1.0e-15,1:length(x),NA)))
-          obj <- MakeADFun(tmball, parameters, random=ran, map=safemap, DLL="CCAM", ...)
-      }
-      lower2<-rep(-Inf,length(obj$par))
-      upper2<-rep(Inf,length(obj$par))
-      for(nn in names(lower)) lower2[names(obj$par)==nn]=lower[[nn]]
-      for(nn in names(upper)) upper2[names(obj$par)==nn]=upper[[nn]]
+      obj <- MakeADFun(tmball, parameters, random=ran, DLL="CCAM")
+
+          if(rm.unidentified){
+              skel <- parameters[!names(parameters)%in%ran]
+              gr <- obj$gr()
+              safemap <- relist(gr,skel)
+              safemap <- lapply(safemap, function(x)factor(ifelse(abs(x)>1.0e-15,1:length(x),NA)))
+              obj <- MakeADFun(tmball, parameters, random=ran, map=safemap, DLL="CCAM", ...)
+          }
+
       opt <- nlminb(obj$par, obj$fn,obj$gr ,control=list(trace=1, eval.max=2000, iter.max=1000),lower=lower2,upper=upper2)
-    }
   }
 
+  for(i in seq_len(newtonsteps)) { # Take a few extra newton steps
+      g <- as.numeric( obj$gr(opt$par) )
+      h <- optimHess(opt$par, obj$fn, obj$gr)
+      opt$par <- opt$par - solve(h, g)
+      opt$objective <- obj$fn(opt$par)
+  }
 
   rep <- obj$report()
   sdrep <- sdreport(obj,opt$par)

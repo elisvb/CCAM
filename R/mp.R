@@ -151,24 +151,30 @@ class(MPeggsurveytargetinterim) <- append(class(MPeggsurveytargetinterim),"MP")
 ##' @details determine TAC by fiting censored model, determining F40% and health zones and applying F based on the latter.
 ##' @export
 ##' @import parallel
-MPf40base <- function(fit, data,parameters,TAC.base, i){
-    if(!i %% 2 == 1){
-        TAC <- TAC.base
-    }else{
+MPf40base <- function(fit, data, parameters,TAC.base, i){
+    #if(!i %% 2 == 1){
+     #   TAC <- TAC.base
+    #}else{
         ncores <- detectCores()
         cl <- makeCluster(ncores) #set up nodes
         clusterExport(cl, varlist=c("fit","parameters"), envir=environment())
+        #obsfit <- lapply(data,function(x){
         obsfit <- parLapply(cl,data,function(x){
-                    cen <- 'CE' %in% fit$conf$obsLikelihoodFlag
-                    obsfit <- CCAM::ccam.fit(x,fit$conf,parameters,silent=FALSE,paracheck=FALSE,phase=ifelse(cen,1,NULL))
-                    if(cen){
-                        cenpar <- obsfit$pl
-                        obsfit <- CCAM::ccam.fit(x,fit$conf,cenpar,silent=FALSE,paracheck=FALSE,phase=2)
-                    }
-                    return(obsfit)
+            #conf <- fit$conf
+            #conf$obsLikelihoodFlag[1] <- 'LN'
+                    y <- CCAM::ccam.fit(x,fit$conf,parameters,silent=TRUE,paracheck=FALSE)
+                    #obsfit <- ccam.fit(x,fit$conf,parameters,silent=FALSE,paracheck=TRUE)
+                    return(y)
                     })
         stopCluster(cl)
         class(obsfit) <- 'ccamset'
+
+        conv. <- do.call('rbind',lapply(obsfit,function(x) x$opt$message))
+        if(i==1){
+            conv <<- matrix(conv.,ncol=1,nrow=length(TAC.base))
+        }else{
+            conv <<- cbind(conv,conv.)
+        }
 
         # determine reference point and health zones
         catches <- catchtable(obsfit)
@@ -203,7 +209,7 @@ MPf40base <- function(fit, data,parameters,TAC.base, i){
             return(TAC)
             }))
 
-    }
+    #}
    return(TAC)
 }
 class(MPf40base) <- append(class(MPf40base),"MP")

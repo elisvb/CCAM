@@ -2,41 +2,23 @@
 % Please edit documentation in R/plot.R
 \name{catchplot}
 \alias{catchplot}
-\alias{catchplot.ccam}
-\alias{catchplot.ccamset}
-\alias{catchplot.ccamforecast}
-\alias{catchplot.forecastset}
+\alias{catchplot.default}
 \title{CCAM catch plot}
 \usage{
-catchplot(fit, obs.show = TRUE, drop = NULL, ...)
+catchplot(x, fleet = NULL, ...)
 
-\method{catchplot}{ccam}(fit, obs.show = TRUE, drop = NULL, plot = TRUE,
-  ...)
-
-\method{catchplot}{ccamset}(fit, obs.show = TRUE, drop = NULL, ...)
-
-\method{catchplot}{ccamforecast}(fit, obs.show = TRUE, drop = NULL, ...)
-
-\method{catchplot}{forecastset}(fit, obs.show = TRUE, drop = NULL,
-  col = NULL, ...)
+\method{catchplot}{default}(x, fleet = NULL, ...)
 }
 \arguments{
-\item{fit}{the object returned from ccam.fit or forecast}
+\item{x}{the object(s) returned from ccam.fit or forecast}
 
-\item{obs.show}{if observations are to be shown also}
+\item{fleet}{add observations from this fleet}
 
-\item{drop}{number of years to be left unplotted at the end. Default (NULL) is to not show years at the end with no catch information}
-
-\item{...}{extra arguments transferred to plot including the following: \cr
-\code{add} logical, plotting is to be added on existing plot \cr
-\code{ci} logical, confidence intervals should be plotted \cr
-\code{cicol} color to plot the confidence polygon}
-
-\item{plot}{true if catch should be plotted}
+\item{...}{extra arguments transferred to plotit}
 }
 \description{
 CCAM catch plot
 }
 \details{
-Plot of estimated (and optionally observed) total catch in weight
+Plot of spawning stock biomass
 }

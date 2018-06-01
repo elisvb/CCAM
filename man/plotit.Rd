@@ -2,70 +2,38 @@
 % Please edit documentation in R/plot.R
 \name{plotit}
 \alias{plotit}
-\alias{plotit.ccam}
-\alias{plotit.ccamset}
-\alias{plotit.ccamforecast}
-\alias{plotit.forecastset}
+\alias{plotit.dfccam}
+\alias{plotit.dfccamset}
+\alias{plotit.dfccamforecast}
+\alias{plotit.dfforecastset}
 \title{Plot helper}
 \usage{
-plotit(fit, what, ...)
+plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE)
 
-\method{plotit}{ccam}(fit, what, x = fit$data$years, ylab = what,
-  xlab = "Years", ex = numeric(0), trans = function(x) x, add = FALSE,
-  ci = TRUE, cicol = gray(0, alpha = 0.5), addCI = NA, drop = 0,
-  unnamed.basename = "current", xlim = NULL, ylim = NULL, ...)
+\method{plotit}{dfccam}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
+  col = "black")
 
-\method{plotit}{ccamset}(fit, what, x = fit$data$years, ylab = what,
-  xlab = "Years", ex = numeric(0), trans = function(x) x, add = FALSE,
-  ci = TRUE, cicol = gray(0.5, alpha = 0.5), addCI = rep(FALSE,
-  length(fit)), drop = 0, unnamed.basename = "current", xlim = NULL,
-  leg = NULL, col = c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933",
-  "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"), ...)
+\method{plotit}{dfccamset}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
+  col = c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77",
+  "#661100", "#CC6677", "#882255", "#AA4499"))
 
-\method{plotit}{ccamforecast}(fit, what, x = fit$data$years, ylab = what,
-  xlab = "Years", ex = numeric(0), trans = function(x) x, add = FALSE,
-  ci = TRUE, cicol = gray(0.5, alpha = 0.5), addCI = NA, drop = 0,
-  unnamed.basename = "current", xlim = NULL, ...)
+\method{plotit}{dfccamforecast}(x, ylab = "Estimate", xlab = "Year",
+  ci = TRUE, col = "black")
 
-\method{plotit}{forecastset}(fit, what, x = fit$data$years, ylab = what,
-  xlab = "Years", ex = numeric(0), trans = function(x) x, ci = TRUE,
-  cicol = gray(0.5, alpha = 0.5), addCI = NA, drop = 0,
-  unnamed.basename = "current", xlim = NULL, ...)
+\method{plotit}{dfforecastset}(x, ylab = "Estimate", xlab = "Year",
+  ci = TRUE, col = c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933",
+  "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"))
 }
 \arguments{
-\item{fit}{the fitted object from ccam.fit of a set of such fits c(fit1,fit2)}
+\item{x}{dataframe from table()}
 
-\item{what}{quoted name of object to extract}
+\item{ylab}{y label}
 
-\item{...}{extra arguments transferred to plot}
-
-\item{x}{x-alues}
-
-\item{ylab}{label on y-axis}
-
-\item{xlab}{label on x-axis}
-
-\item{ex}{extra y's to make room for}
-
-\item{trans}{function to transform values by}
-
-\item{add}{logical, plotting is to be added on existing plot}
-
-\item{ci}{logical, confidence intervals should be plotted}
-
-\item{cicol}{color to plot the confidence polygon}
-
-\item{addCI}{A logical vector indicating if confidence intervals should be plotted for the added fits.}
-
-\item{drop}{number of years to be left unplotted at the end.}
-
-\item{unnamed.basename}{the name to assign an unnamed basefit}
-
-\item{xlim}{...}
+\item{xlab}{x label}
 }
 \description{
 Plot helper
 }
 \details{
-The basic plotting used bu many of the plotting functions (e.g. ssbplot, fbarplot ...)
+The basic plotting used by many of the plotting functions (e.g. ssbplot, fbarplot ...)
 }

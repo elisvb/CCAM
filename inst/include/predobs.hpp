@@ -29,54 +29,7 @@ array<Type> crltransform(array<Type> x){   // ADDED BY EVB (continuation ratio l
 }
 
 template <class Type>
-Type print(matrix<Type> m){
-  int rows=m.rows();
-  int cols=m.cols();
-
-    for(int x=0;x<rows;x++)
-    {
-        for(int y=0;y<cols;y++) 
-        {
-            std::cout<<m(x,y) << " ";
-        }
-    std::cout<<std::endl; 
-    }
-
-  return 0;
-}
-
-template <class Type>
-Type print(array<Type> m){
-  int rows=m.dim[0];
-  int cols=m.dim[1];
-
-    for(int x=0;x<rows;x++)
-    {
-        for(int y=0;y<cols;y++) 
-        {
-            std::cout<<m(x,y) << " ";
-        }
-    std::cout<<std::endl; 
-    }
-
-  return 0;
-}
-
-template <class Type>
-Type print(vector<Type> v){
-  int len=v.size();
-
-    for(int x=0;x<len;x++)
-    {
-      std::cout<< v(x) << " ";
-    }
-  std::cout<<std::endl; 
-  return 0;
-}
-
-template <class Type>
 vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &logN, array<Type> &logF, vector<Type> &logssb, vector<Type> &logfsb, vector<Type> &logCatch, array<Type> &catNr,vector<Type> &logLand){
-  //std::cout << "* Preparations "  << std::endl;
   vector<Type> pred(dat.nobs);
   pred.setZero();
 
@@ -92,10 +45,7 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
   }
  
   array<Type> cprop = crltransform(catNr);
-  //print(cprop);
 
-  //std::cout << "* predict "  << std::endl;
-  // Calculate predicted observations
   int f, ft, a, y, yy, scaleIdx;  // a is no longer just ages, but an attribute (e.g. age or length) 
   int minYear=dat.aux(0,0);
   Type zz=Type(0);
@@ -146,9 +96,9 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
         
       break;
   
-      case 3:// biomass or catch survey -> this one is annual!!!!!!
+      case 3:// annual index
         if(conf.keyBiomassTreat(f-1)==0){
-          pred(i) = logssb(y)+par.logFpar(conf.keyLogFpar(f-1,a)); // logssb is calculated for point in time based on propM and propZ
+          pred(i) = logssb(y)+par.logFpar(conf.keyLogFpar(f-1,a)); 
         }
         if(conf.keyBiomassTreat(f-1)==1){
           pred(i) = logCatch(y)+par.logFpar(conf.keyLogFpar(f-1,a));
@@ -156,7 +106,7 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
         if(conf.keyBiomassTreat(f-1)==2){
           pred(i) = logfsb(y)+par.logFpar(conf.keyLogFpar(f-1,a));
         }
-        if(conf.keyBiomassTreat(f-1)==3){ // total catches: case 3 keybiomasstreat 3
+        if(conf.keyBiomassTreat(f-1)==3){ 
           pred(i) = logCatch(y);
         }
         if(conf.keyBiomassTreat(f-1)==4){
