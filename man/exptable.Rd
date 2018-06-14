@@ -2,9 +2,12 @@
 % Please edit documentation in R/tables.R
 \name{exptable}
 \alias{exptable}
+\alias{exptable.default}
 \title{exploitation rate table}
 \usage{
 exptable(fit, ...)
+
+\method{exptable}{default}(fit, ...)
 }
 \arguments{
 \item{fit}{...}

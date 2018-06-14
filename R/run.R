@@ -97,7 +97,7 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
 
       tmball <- c(data, conf, simFlag=as.numeric(sim.condRE))
       if(is.null(tmball$resFlag)){tmball$resFlag <- 0}
-      obj <- MakeADFun(tmball, parameters, random=ran, DLL="CCAM")
+      obj <- MakeADFun(tmball, parameters, random=ran, DLL="CCAM",...)
 
           if(rm.unidentified){
               skel <- parameters[!names(parameters)%in%ran]

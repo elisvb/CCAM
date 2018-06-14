@@ -376,7 +376,7 @@ extract.ccamforecast <- function(x,what,add=FALSE){
         toadd <- c('OM','IE','MP')
         ret$OM <- attr(x,"OMlabel")
         ret$MP <- attr(x,"MPlabel")
-        ret$IE <- attr(x,'parameters')$IE
+        ret$IE <- c(NA,attr(x,'parameters')$IE)
         cadd <- toadd[which(!toadd %in%colnames(ret))]
         if(length(cadd)!=0) ret[cadd] <- NA
         ret[is.na(ret$IE),'IE'] <- 'IE0'
@@ -504,8 +504,8 @@ ypr.ccam <- function(fit, Flimit=2, Fdelta=0.01, aveYears=min(15,length(fit$data
 ##' @method ypr ccamset
 ##' @export
 ypr.ccamset <- function(fit,...){
-    ret <- lapply(fits,ypr,...)
-    class(ret) <- "ccanyprset"
+    ret <- lapply(fit,ypr,...)
+    class(ret) <- "ccamyprset"
     return(ret)
 }
 

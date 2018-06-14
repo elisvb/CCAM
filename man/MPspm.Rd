@@ -7,11 +7,11 @@
 MPspm(data, TAC.base, i)
 }
 \arguments{
+\item{data}{list with data objects}
+
 \item{TAC.base}{TAC of previous state}
 
-\item{fit}{output from ccam.fit}
-
-\item{sim}{simulations of states}
+\item{i}{year}
 }
 \description{
 MPspm

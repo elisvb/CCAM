@@ -223,7 +223,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
     int totalParKey = 0;
     for(int f=0;f<dat.noFleets;f++){
       if(isNAINT(dat.idx1(f,y))) continue;
-      //std::cout << "---------- "  << counter << std::endl;
+      std::cout << "---------- "  << counter << std::endl;
       counter+=1;
       int idxfrom=dat.idx1(f,y);
       int idxlength=dat.idx2(f,y)-dat.idx1(f,y)+1;
@@ -304,7 +304,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
               //std::cout << nll << std::endl;
              break;
             case 2:  // censored   
-                //std::cout << "pred "  <<  predObs(idxfrom) <<  " /obs1 "  <<  dat.logobs(idxfrom,0)  << " /obs2 "  <<  dat.logobs(idxfrom,1) << std::endl;
+              std::cout << "pred "  <<  predObs(idxfrom) <<  " /obs1 "  <<  dat.logobs(idxfrom,0)  << " /obs2 "  <<  dat.logobs(idxfrom,1) << std::endl;
            
                 ZU = (dat.logobs(idxfrom,1) - predObs(idxfrom))/0.01;
                 ZL = (dat.logobs(idxfrom,0) - predObs(idxfrom))/0.01;
@@ -315,7 +315,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
                   //SIMULATE_F(of){
                    // Not figured out yet
                   //}
-                //std::cout << nll << std::endl;
+                std::cout << nll << std::endl;
              break;
             default:
               error("obsLikelihoodFlag for fleetType 3 should be either LN or CE");

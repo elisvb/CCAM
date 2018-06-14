@@ -8,21 +8,23 @@
 \alias{plotit.dfforecastset}
 \title{Plot helper}
 \usage{
-plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE)
+plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
+  years = unique(x$year))
 
 \method{plotit}{dfccam}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  col = "black")
+  years = unique(x$year), col = "black")
 
 \method{plotit}{dfccamset}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  col = c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77",
-  "#661100", "#CC6677", "#882255", "#AA4499"))
+  years = unique(x$year), col = c("#332288", "#88CCEE", "#44AA99",
+  "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"))
 
 \method{plotit}{dfccamforecast}(x, ylab = "Estimate", xlab = "Year",
-  ci = TRUE, col = "black")
+  ci = TRUE, years = unique(x$year), col = "black")
 
 \method{plotit}{dfforecastset}(x, ylab = "Estimate", xlab = "Year",
-  ci = TRUE, col = c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933",
-  "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"))
+  ci = TRUE, years = unique(x$year), col = c("#332288", "#88CCEE",
+  "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255",
+  "#AA4499"))
 }
 \arguments{
 \item{x}{dataframe from table()}
@@ -30,6 +32,10 @@ plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE)
 \item{ylab}{y label}
 
 \item{xlab}{x label}
+
+\item{ci}{logical (plot confidence interval?)}
+
+\item{years}{years to plot}
 }
 \description{
 Plot helper

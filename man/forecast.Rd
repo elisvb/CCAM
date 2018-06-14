@@ -10,8 +10,8 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
   + (-9:0), rec.meth = 5, rec.scale = 1, MPlabel = NULL, OMlabel = NULL,
   overwriteSelYears = NULL, deterministic = FALSE, CZ = 0, HZ = 0,
   IE = NULL, capLower = NULL, capUpper = NULL,
-  UL.years = max(fit$data$years) + (-4:0), TAC.base = NULL,
-  bio.scale = NULL)
+  UL.years = max(fit$data$years) + (-4:0), TAC.base = 0, bio.scale = NULL,
+  verbose = TRUE)
 }
 \arguments{
 \item{fit}{an assessment object of type ccam, as returned from the function ccam.fit}

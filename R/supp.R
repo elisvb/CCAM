@@ -1,3 +1,12 @@
+##' onload function
+##' @details stuff that need's to be done when loading the package
+.onLoad <- function(libname=find.package("CCAM"), pkgname="CCAM") {
+    my_theme <- theme_bw()+theme(strip.background = element_blank())
+    theme_set(my_theme)
+    update_geom_defaults("line",   list(size = 2))
+    assign("ccamcol", c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"), globalenv())
+}
+
 ##' check availability of certain objects
 ##' @param x object (character)
 ##' @details x can be either MP (management procedure) or IE (implementation error)
@@ -15,11 +24,11 @@ avail <- function(x){
 ##' @details list names are name plus a number from 1 to n, OM/MP label is automatically adapted
 ##' @export
 copy <- function(x,n,name){
-    n <- sum(n)
-    l <- rep(list(x),n)
-    mynames <- paste0(rep(name,test),unlist(sapply(test,function(x) seq(1,x))))
+    nt <- sum(n)
+    l <- rep(list(x),nt)
+    mynames <- paste0(rep(name,n),unlist(sapply(n,function(x) seq(1,x))))
 
-    l <- lapply(1:n,function(y){myl <- x
+    l <- lapply(1:nt,function(y){myl <- x
                                 ix <- grep('label', names(myl), value=TRUE)
                                 myl[[ix]]<-mynames[y]
                                 return(myl)})
@@ -58,10 +67,11 @@ gmean = function(x, na.rm=TRUE){
 ##' @param wd working directory in which to plase image
 ##' @param name file name
 ##' @param dim dimensions of png in cm
+##' @param ... arguments passed to png
 ##' @importFrom gridExtra grid.arrange
 ##' @export
-savepng <- function(plot,wd, name,dim){
-    png(file=paste0(wdIMG,name,".png"),units="cm",res=300,width=dim[1],height=dim[2])
+savepng <- function(plot,wd, name,dim,...){
+    png(file=paste0(wd,name,".png"),units="cm",res=300,width=dim[1],height=dim[2],...)
     if("ggplot" %in% class(plot)) grid.arrange(plot) else plot
     dev.off()
 }

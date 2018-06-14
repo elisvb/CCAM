@@ -40,8 +40,6 @@ rmvnorm <- function(n = 1, mu, Sigma){
 ##' @param label optional label to appear in short table
 ##' @param overwriteSelYears if a vector of years is specified, then the average selectivity of those years is used (not recommended)
 ##' @param deterministic option to turn all process noise off (not recommended, as it will likely cause bias)
-##' @param CZ critical zone (to calculate probability ssb above)
-##' @param HZ Healty zone (to calculate probability ssb above)
 ##' @param IE implementation error (vector). See avail('IE')
 ##' @param capLower lower limit of TAC (before IE)
 ##' @param capUpper upper limit of TAC (before IE)
@@ -54,8 +52,8 @@ rmvnorm <- function(n = 1, mu, Sigma){
 ##' @export
 forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1000, year.base=max(fit$data$years),
                      ave.years=max(fit$data$years)+(-4:0), rec.years=max(fit$data$years)+(-9:0),rec.meth=5, rec.scale=1, MPlabel=NULL,
-                     OMlabel=NULL,overwriteSelYears=NULL, deterministic=FALSE,CZ=0,HZ=0,IE=NULL,
-                     capLower=NULL,capUpper=NULL,UL.years=max(fit$data$years)+(-4:0),TAC.base=NULL,bio.scale=NULL){
+                     OMlabel=NULL,overwriteSelYears=NULL, deterministic=FALSE,IE=NULL,
+                     capLower=NULL,capUpper=NULL,UL.years=max(fit$data$years)+(-4:0),TAC.base=0,bio.scale=NULL,verbose=TRUE){
   parameters <- as.list(match.call())
 
   args <- c('fval','fscale','catchval','MP')
@@ -74,7 +72,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   }
 
   if(!all(rowSums(!is.na(cbind(fscale, catchval, fval, MP)))==1)){
-      stop("For each forecast year exactly one of fscale, catchval, fval or MP must be specified (all others must be set to NA)")
+      stop("For each forecast year exactly one of fscale, catchval, fval or MP must be specified (all others must be set to NULL)")
   }
 
   ny <-length(fscale)
@@ -233,14 +231,12 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
       return(recs)
   }
 
-  step <- function(x, nm, scale, rec, inyear=FALSE){
+  step <- function(x, nm, scale, rec){
     F <- getF(x)
     N <- getN(x)
-    if(!inyear){
-      Z <- F+nm
-      n <- length(N)
-      N <- c(rec,N[-n]*exp(-Z[-n])+c(rep(0,n-2),N[n]*exp(-Z[n]))) # recruitment gets samples without replacement!!!
-    }
+    Z <- F+nm
+    n <- length(N)
+    N <- c(rec,N[-n]*exp(-Z[-n])+c(rep(0,n-2),N[n]*exp(-Z[n])))
     F <- F*scale
     xx <- getState(N,F)
     return(xx)
@@ -288,6 +284,12 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     return(sum(N*mo*sw))
   }
 
+  ssb0 <- function(x, nm, sw, mo){
+      F <- getF(x)
+      N <- getN(x)*exp(-nm-F)
+      return(sum(N*mo*sw))
+  }
+
   fsb <<- function(x, cw, nm){
       F <- getF(x)
       Z <- F+nm
@@ -328,6 +330,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   }
 
   # get parameter values (only used when MP)
+  set.seed(nosim) # to facilitate comparisons between forecasts
   simpara <- rmvnorm(nosim, mu=fit$sdrep$par.fixed, Sigma=fit$sdrep$cov.fixed)
   colnames(simpara) <- names(fit$sdrep$par.fixed)
 
@@ -347,7 +350,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   ULpool <- ULtab[rownames(ULtab)%in%UL.years,]
 
   # last year stats to compare subsequent years with
-  refs <- t(apply(simpara,1,function(x) unlist(ypr(fit,deterministic=FALSE,simpara=x)[c('f40','f40ssb','f40U')])))
+  refs <- t(apply(simpara,1,function(x) unlist(ypr(fit,deterministic=FALSE,simpara=x,rec.years = unique(fit$data$years)[-1])[c('f40','f40ssb','f40U')])))
 
   #helper functions
   getThis <- function(x,y){
@@ -370,6 +373,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
           })
       sim <- simtmp
       sim <- t(apply(sim,1,maxF))
+      rm(simtmp,envir=globalenv())
       return(sim)
   }
 
@@ -392,14 +396,15 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     ret
   }
   procVar<-getProcessVar(fit)
+  if(deterministic) procVar<-procVar*0
 
   TAC <- rep(TAC.base,nosim)
-  conv <- NULL
+  #conv <- NULL
   simlist <- list()
 
   for(i in 0:ny){
     y<-year.base+i                       # starts with final year
-    print(y)
+    if(verbose) print(y)
 
     sw<-getThisOrAve(fit$data$stockMeanWeight, y, ave.sw) #if final year: finalyear value, otherwise average
     cw<-getThisOrAve(fit$data$catchMeanWeight, y, ave.cw)
@@ -421,19 +426,17 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
         })
     }
 
-    # abundance at the beginning of the year
-    if(i!=0) { #i think all the i!=0 can actually be removed, the step function does not need inyear
+
+    if(i!=0) {
+        ## new abundance and F
+
         recs <- getRec(sim, recpool, rec.meth, deterministic, i, simpara)
         recs <- recs*rec.scale
-    }
-    sim <- t(sapply(1:nrow(sim), function(s) step(sim[s,], nm=nm, rec=recs[s], scale=1, inyear=(i==0)))) # simulations of next year
-    if(i!=0){
-      if(deterministic) procVar<-procVar*0
-      sim <- sim + rmvnorm(nosim, mu=rep(0,nrow(procVar)), Sigma=procVar) # simulations of next year with process variance
-    }
+        sim <- t(sapply(1:nrow(sim), function(s) step(sim[s,], nm=nm, rec=recs[s], scale=1)))
+        sim <- sim + rmvnorm(nosim, mu=rep(0,nrow(procVar)), Sigma=procVar)
 
-    # scale fishing pressure during the year
-    if(i!=0){
+        ## scale fishing pressure during the year
+        # F based
         if(!is.na(fscale[i])){
             sim<-t(apply(sim, 1, scaleF, scale=fscale[i]))
         }
@@ -443,77 +446,88 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
             adj<-fval[i]/curfbar
             sim<-t(apply(sim, 1, scaleF, scale=adj))
         }
-
+        # C based
         if(!is.na(catchval[i])){
-            sim <- Csim(catchval[i],sim)
+            TAC <- rep(catchval[i],nosim)
         }
 
         if(!is.na(MP[i])){
-            ## MPs
-            if(is.numeric(MP[i])){
-                TAC=MP[i]
-            }else{
-                TACfun <- match.fun(MP[i])
-                args <- names(as.list(TACfun))
-                args <- args[args != ""]
-                L <- list(data=dats,parameters=paras, TAC.base=TAC, fit=fit,i=i)
-                TAC <-do.call(TACfun, L[args])
-            }
-
-            ## caps
-            if(!is.null(capLower)) TAC[TAC<capLower]=capLower
-            if(!is.null(capUpper)) TAC[TAC>capUpper]=capUpper
+            TACfun <- match.fun(MP[i])
+            args <- names(as.list(TACfun))
+            args <- args[args != ""]
+            TAC <-do.call(TACfun, list(data=datasim,parameters=parasim, TAC.base=TAC, fit=fit,i=i)[args])
             TAC <- round(TAC,0)
+        }
 
-            ## IE  # still some work to do for the delayed.
-            Ctrue <- TAC
-            if(!is.na(IE[i])){
-                 IEfun <- match.fun(IE[i])
-                 Ctrue <- IEfun(TAC,i)
-            }
+        if(!is.null(capLower)) TAC[TAC<capLower] <- capLower
+        if(!is.null(capUpper)) TAC[TAC>capUpper] <- capUpper
+
+        Ctrue <- TAC
+        if(!is.na(IE[i])){
+            IEfun <- match.fun(IE[i])
+            Ctrue <- IEfun(TAC,i)
             Ctrue <- round(Ctrue,0)
+        }
 
-            sim <-Csim(Ctrue,sim) # N depends on F of last year, so only new F needs to be created as N is already correct after step function
+        if(!any(is.na(Ctrue))){
+            sim <- Csim(Ctrue,sim)
         }
     }
-    # generate data/parameters during the year if management procedure used (no matter which one)
-    if(any(!is.na(MP))){
+
+    # generate data/parameters during the year if management procedure used next year (no matter which one)
+    if(any(!is.na(MP)) & i!=ny){
         if(i==0){
-            paras <<- fit$pl
-            dats <<- list(fit$data)
+            parasim <- fit$pl
+            datasim <-  list(fit$data)
         }else{
-            paras <<- steppar(paras)
-            obs <- newobs(fit, sim, simpara, ULpool, deterministic, nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw)
-            dats <<- lapply(1:nrow(sim),function(x) stepdat(dats[[ifelse(i==1,1,x)]],ob=obs[,,x],aux=cbind(year=y,unique(fit$data$aux[,2:3])),
-                                                                   pr,sw,cw,nm,lf,dw,lw,pm,pf,en))
+            parasim <- steppar(parasim)
+            obs1 <- newobs(fit, sim, simpara, ULpool, deterministic, nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw)
+                if(attr(match.fun(MP[i+1]),'model')){ #if a model is used, simulate different observations in case some preclude convergence
+                obs2 <- newobs(fit, sim, simpara, ULpool, deterministic, nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw)
+                obs3 <- newobs(fit, sim, simpara, ULpool, deterministic, nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw)
+                }
+            datasim <- lapply(1:nrow(sim),function(x){l <- stepdat(datasim[[ifelse(i==1,1,x)]],ob=obs1[,,x],aux=cbind(year=y,unique(fit$data$aux[,2:3])),pr,sw,cw,nm,lf,dw,lw,pm,pf,en)
+                                                        if(attr(match.fun(MP[i+1]),'model')){
+                                                        attr(l,'alternative1') <- stepdat(datasim[[ifelse(i==1,1,x)]],ob=obs2[,,x],aux=cbind(year=y,unique(fit$data$aux[,2:3])),pr,sw,cw,nm,lf,dw,lw,pm,pf,en)
+                                                        attr(l,'alternative2') <- stepdat(datasim[[ifelse(i==1,1,x)]],ob=obs3[,,x],aux=cbind(year=y,unique(fit$data$aux[,2:3])),pr,sw,cw,nm,lf,dw,lw,pm,pf,en)
+                                                        }
+                                                    return(l)})
 
         }
     }
 
-    # get derived quantities
-    fbarsim <- apply(sim, 1, fbar)
-    catchsim <- apply(sim, 1, catch, nm=nm, cw=cw)
-    ssbsim <- apply(sim, 1, ssb, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf)
-    recsim <- exp(sim[,1])
-    exploitsim <- catchsim/ssbsim
-    ssbmsyratiosim <- ssbsim/refs[,'f40ssb']
-    fmsyratiosim <- fbarsim/refs[,'f40']
-    Umsyratiosim <- exploitsim/refs[,'f40U']
-    simlist[[i+1]] <- list(sim=sim, fbar=fbarsim, catch=catchsim, ssb=ssbsim, rec=recsim, TAC=TAC, exploit=exploitsim, ssbmsyratio=ssbmsyratiosim,
-                           fmsyratio=fmsyratiosim,Umsyratio=Umsyratiosim,year=y)
+    if(verbose) print(tail(data.frame(size=sort( sapply(ls(),function(x){object.size(get(x))}))*1e-9,unit='GB'),10))
+
+    # all results in list (directly so save memory)
+    simlist[[i+1]] <- list(sim=sim,
+                           fbar=apply(sim, 1, fbar),
+                           catch=apply(sim, 1, catch, nm=nm, cw=cw),
+                           ssb=apply(sim, 1, ssb, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf),
+                           rec=exp(sim[,1]),
+                           TAC=TAC,
+                           exploit=apply(sim, 1, catch, nm=nm, cw=cw)/apply(sim, 1, ssb0, nm=nm, sw=sw, mo=mo),
+                           ssbmsyratio=apply(sim, 1, ssb0, nm=nm, sw=sw, mo=mo)/refs[,'f40ssb'],
+                           fmsyratio=apply(sim, 1, fbar)/refs[,'f40'],
+                           Umsyratio=(apply(sim, 1, catch, nm=nm, cw=cw)/apply(sim, 1, ssb0, nm=nm, sw=sw, mo=mo))/refs[,'f40U'],
+                           CZ=refs[,'f40ssb']*0.4,
+                           HZ=refs[,'f40ssb']*0.8,
+                           year=y)
+
   }
 
-  attr(simlist, "fit")<-fit
+  attr(simlist, "fit")<- fit
   class(simlist) <- "ccamforecast"
-  attr(simlist, "conv")<-conv
+  #attr(simlist, "conv")<-conv
+  check <<- simlist
+
 
   collect <- function(x){
     quan <- quantile(x, c(.50,.025,.975))
     c(median=quan[1], low=quan[2], high=quan[3])
   }
   collectprob <- function(x){
-      probCZ <- signif(sum(simlist[[x]]$ssb>CZ)/nosim,2)
-      probHZ <- signif(sum(simlist[[x]]$ssb>HZ)/nosim,2)
+      probCZ <- signif(sum(simlist[[x]]$ssb>simlist[[x]]$CZ)/nosim,2)
+      probHZ <- signif(sum(simlist[[x]]$ssb>simlist[[x]]$HZ)/nosim,2)
       probLY <- signif(sum(simlist[[x]]$ssb>simlist[[1]]$ssb)/nosim,2)
       probGrowth <- signif(sum(simlist[[x]]$ssb>simlist[[max(x-1,1)]]$ssb)/nosim,2)
       probGrowth20 <- signif(sum(simlist[[x]]$ssb>(1.2*simlist[[max(x-1,1)]]$ssb))/nosim,2)
@@ -529,7 +543,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   fmsyratio <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$fmsyratio))),3)
   Umsyratio <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$Umsyratio))),3)
 
-  catchcumul <- round(t(apply(apply(do.call('rbind',lapply(simlist, function(x) x$catch)),2,cumsum),1,quantile,c(.50,.025,.975))))
+  catchcumul <- round(t(apply(apply(do.call('rbind',lapply(simlist, function(xx) xx$catch)),2,cumsum),1,quantile,c(.50,.025,.975))))
   names(catchcumul) <- names(catch)
 
   TACrel <- do.call('rbind',lapply(simlist, function(x) x$TAC))

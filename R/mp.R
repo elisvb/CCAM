@@ -13,6 +13,7 @@ MPeggsurvey<-function(data, TAC.base){ #nosim
     return(TAC)
 }
 class(MPeggsurvey) <- append(class(MPeggsurvey),"MP")
+attr(MPeggsurvey,'model')=FALSE
 
 ##' MPeggsurveytrail3interim
 ##' @param data list with data objects
@@ -34,6 +35,7 @@ MPeggsurveytrail3interim<-function(data,TAC.base,i){
     return(TAC)
 }
 class(MPeggsurveytrail3interim) <- append(class(MPeggsurveytrail3interim),"MP")
+attr(MPeggsurveytrail3interim,'model')=FALSE
 
 ##' MPeggsurveytrail3
 ##' @param data list with data objects
@@ -51,6 +53,7 @@ MPeggsurveytrail3<-function(data,TAC.base){
     return(TAC)
 }
 class(MPeggsurveytrail3) <- append(class(MPeggsurveytrail3),"MP")
+attr(MPeggsurveytrail3,'model')=FALSE
 
 ##' MPeggsurveytarget
 ##' @param data list with data objects
@@ -104,6 +107,7 @@ MPeggsurveytarget<-function(data,TAC.base){
     # abline(v=Irecent[1],col='darkgrey',lty=3,lwd=2)
 }
 class(MPeggsurveytarget) <- append(class(MPeggsurveytarget),"MP")
+attr(MPeggsurveytarget,'model')=FALSE
 
 ##' MPeggsurveytargetinterim
 ##' @param data list with data objects
@@ -141,84 +145,93 @@ MPeggsurveytargetinterim<-function(data,TAC.base,i){
     return(TAC)
 }
 class(MPeggsurveytargetinterim) <- append(class(MPeggsurveytargetinterim),"MP")
+attr(MPeggsurveytargetinterim,'model')=FALSE
 
-##' MPf40stages
+##' MPccam
 ##' @param fit output from ccam.fit
 ##' @param data list with data objects
 ##' @param parameters list of parameters objects
 ##' @param TAC.base TAC of previous year
 ##' @param i year in the future
-##' @details determine TAC by fiting censored model, determining F40% and health zones and applying F based on the latter.
+##' @rdname MPccam
+##' @details Determine TAC by fiting censored model, determining F40% and health zones and applying F based on the latter. Attributed alternative data  can be used in case simulated data does not lead to convergence.
 ##' @export
 ##' @import parallel
-MPf40base <- function(fit, data, parameters,TAC.base, i){
-    #if(!i %% 2 == 1){
-     #   TAC <- TAC.base
-    #}else{
+MPccam <- function(fit, data, parameters, TAC.base, i){
+    if(!i %% 2 == 1){
+        TAC <- TAC.base
+    }else{
+        conf <- fit$conf
         ncores <- detectCores()
-        cl <- makeCluster(ncores) #set up nodes
-        clusterExport(cl, varlist=c("fit","parameters"), envir=environment())
-        #obsfit <- lapply(data,function(x){
+        cl <- makeCluster(ncores-1) #set up nodes
+        clusterExport(cl, varlist=c("conf","parameters"), envir=environment())
         obsfit <- parLapply(cl,data,function(x){
-            #conf <- fit$conf
-            #conf$obsLikelihoodFlag[1] <- 'LN'
-                    y <- CCAM::ccam.fit(x,fit$conf,parameters,silent=TRUE,paracheck=FALSE)
-                    #obsfit <- ccam.fit(x,fit$conf,parameters,silent=FALSE,paracheck=TRUE)
-                    return(y)
+                    for(u in 1:3){
+                        fit <- tryCatch(CCAM::ccam.fit(data = if(u==1){x}else{attr(x,paste0('alternative',u-1))},
+                                                       conf,
+                                                       parameters,
+                                                       silent=TRUE,
+                                                       paracheck=FALSE),error=identity)
+                        if(!inherits(fit, "error")){  #if there is no error
+                            if(0 ==fit$opt$convergence){  # and the the model converged
+                                fit <- fit[c('data','pl','sdrep','conf','rep')] #reduce memory
+                                class(fit) <- 'ccam'
+                                break                      # stop loop. otherwise run an alternative dataset (only 4 in total are available)
+                            }
+                        }
+                    }
+                    return(fit)
                     })
         stopCluster(cl)
         class(obsfit) <- 'ccamset'
+        print(paste('models fitted'))
+        rm(data) #again, memory
+        print(tail(data.frame(size=sort( sapply(ls(),function(x){object.size(get(x))}))*1e-9,unit='GB'),5))
 
-        conv. <- do.call('rbind',lapply(obsfit,function(x) x$opt$message))
-        if(i==1){
-            conv <<- matrix(conv.,ncol=1,nrow=length(TAC.base))
-        }else{
-            conv <<- cbind(conv,conv.)
-        }
+        # simulated data that can provide results
+        assign("datasim", lapply(obsfit,function(x) x$data), envir = parent.frame())
 
         # determine reference point and health zones
-        catches <- catchtable(obsfit)
         ref <- ypr(obsfit,what=c('f40ssb','f40'))
-        ssbref <- unlist(ref[which(names(ref)=='f40ssb')])
-        fref <- unlist(ref[which(names(ref)=='f40')])
+        ssbref <- unlist(lapply(ref,function(x) x[which(names(x)=='f40ssb')]))
+        fref <- unlist(lapply(ref,function(x) x[which(names(x)=='f40')]))
         Bupper <- 0.8*ssbref
         Blim <- 0.4*ssbref
         ssbp <- ssbtable(obsfit)
-        ssbp <- ssbp[which(rownames(ssbp)==max(rownames(ssbp))),1]
-
+        ssbp <- aggregate(. ~ fit, ssbp, tail, n = 1)[,2]
         # determine TAC based on the latter
-        TAC=do.call('c',lapply(1:length(data), function(x){
-            # no fishing
-            if(ssbp[x]<Blim[x]){TAC=1}else{
-                # maximal fishing
-                if(ssbp[x]>Bupper[x]){
-                    fut <- forecast(obsfit[[x]],fval=fref[x],nosim = 300,ave.years = max(obsfit[[x]]$data$years)+(-9:0),rec.years = 1969:max(obsfit[[x]]$data$years), rec.meth = 4)
-                    Clim <- attr(fut,"tab")[,'catch:median']
-                }else{
-                    # in between fishing
-                    fref <- (fref[x]*(ssbp[x]-Blim[x]))/(Bupper[x]-Blim[x]) # catious zone
-                    fut <- forecast(obsfit[[x]],fval=fref[x],nosim = 300,ave.years = max(obsfit[[x]]$data$years)+(-9:0),rec.years = 1969:max(obsfit[[x]]$data$years), rec.meth = 4)
-                    Clim <- attr(fut,"tab")[,'catch:median']
-                }
-                declared <- exp(obsfit[[x]]$data$logobs[which(!is.na(obsfit[[x]]$data$logobs[,2])),1])
-                predicted <- exp(obsfit[[x]]$rep$predObs[which(!is.na(obsfit[[x]]$data$logobs[,2]))])
-                U <- predicted-declared
-                U <- max(c(0,mean(tail(U,3)))) # undeclared catch 3 last years estimated by model, never lower than 0
-                TAC <-  Clim-U
-            }
-            return(TAC)
-            }))
+        TAC <- do.call('c',lapply(1:length(obsfit), function(x){
+                                                # no fishing
+                                                    if(ssbp[x]<Blim[x]){
+                                                        TAC <- 1
+                                                    }else{
+                                                        newf <- fref[x]
+                                                        if(ssbp[x]<Bupper[x]){
+                                                            newf <- newf*((ssbp[x]-Blim[x])/(Bupper[x]-Blim[x])) #scale if in cautious zone
+                                                        }
+                                                        fut <- forecast(obsfit[[x]],fval=newf,nosim = 100,ave.years = max(obsfit[[x]]$data$years)+(-9:0),rec.years = 1969:max(obsfit[[x]]$data$years), rec.meth = 2,verbose=FALSE)
+                                                        Clim <- tail(attr(fut,"tab")[,'catch:median'],1)
+                                                        declared <- exp(obsfit[[x]]$data$logobs[which(!is.na(obsfit[[x]]$data$logobs[,2])),1])
+                                                        predicted <- exp(obsfit[[x]]$rep$predObs[which(!is.na(obsfit[[x]]$data$logobs[,2]))])
+                                                        U <- predicted-declared
+                                                        U <- max(c(0,mean(tail(U,3)))) # undeclared catch 3 last years estimated by model, never lower than 0
+                                                        TAC <-  Clim-U
+                                                    }
+                                                return(TAC)
+                                                }
+                               )
+                    )
 
-    #}
+    }
    return(TAC)
 }
-class(MPf40base) <- append(class(MPf40base),"MP")
-
+class(MPccam) <- append(class(MPccam),"MP")
+attr(MPccam,'model')=TRUE
 
 ##' MPspm
-##' @param fit output from ccam.fit
-##' @param sim simulations of states
+##' @param data list with data objects
 ##' @param TAC.base TAC of previous state
+##' @param i year
 ##' @rdname MPspm
 ##' @details determine TAC by fiting surplus production model from SPiCT package
 ##' @export
@@ -228,17 +241,26 @@ MPspm <- function(data,TAC.base,i){
         TAC <- TAC.base
     }else{
         ncores <- detectCores()
-        cl <- makeCluster(ncores) #set up nodes
-        clusterExport(cl, varlist=c("TAC.base"), envir=environment())
+        cl <- makeCluster(ncores-1) #set up nodes
+        clusterExport(cl, envir=environment())
         #obsfit <- lapply(data, function(x){
         obsfit <- parLapply(cl,data,function(x){
-            o <- x$logobs
-            aux <- x$aux
-            dl <- list(obsC = unname(exp(o[which(aux[,2]==1),1])),
-                       timeC = unname(aux[which(aux[,2]==1),1]),
-                       obsI = unname(exp(o[which(aux[,2]==3),1])),
-                       timeI = unname(aux[which(aux[,2]==3),1]))
-            res <- spict::fit.spict(dl)
+            for(u in 1:3){
+                if(u!=1){ x<- attr(x,paste0('alternative',u-1))}
+                o <- x$logobs
+                aux <- x$aux
+                res <- tryCatch(spict::fit.spict(list(obsC = unname(exp(o[which(aux[,2]==1),1])),
+                                                      timeC = unname(aux[which(aux[,2]==1),1]),
+                                                      obsI = unname(exp(o[which(aux[,2]==3),1])),
+                                                      timeI = unname(aux[which(aux[,2]==3),1]))),error=identity)
+                if(!inherits(res, "error")){  #if there is no error
+                    if(0 ==res$opt$convergence){  # and the the model converged
+                        break                      # stop loop. otherwise run an alternative dataset
+                    }
+                }
+            }
+            rm(x)
+
             Bmsy <- spict::get.par('Bmsys', res)[2]
             Blast <- spict::get.par('logBl', res, exp=TRUE)[2]
             Blim <- Bmsy*0.4
@@ -247,7 +269,6 @@ MPspm <- function(data,TAC.base,i){
                 # maximal fishing
                 if(Blast>Bupper){
                     res <- spict::manage(res, scenarios = 3) #fish at msy
-                    TAC <- spict::get.par("Cp", res)[2]
                 }else{
                     # in between fishing
                     Fmsy <- spict::get.par("logFmsy", res, exp = TRUE)[2]
@@ -255,8 +276,9 @@ MPspm <- function(data,TAC.base,i){
                     Flast <- spict::get.par("logF", res, exp = TRUE)[res$inp$indpred[1], 2]
                     Fchange <- Fref/Flast
                     res <- spict::prop.F(Fchange, res$inp, res, which(res$inp$time >= res$inp$manstart))
-                    TAC <- spict::get.par("Cp", res)[2]
+
                 }
+                TAC <- spict::get.par("Cp", res)[2]
             }
             return(TAC)
            })
@@ -267,3 +289,4 @@ MPspm <- function(data,TAC.base,i){
     return(TAC)
 }
 class(MPspm) <- append(class(MPspm),"MP")
+attr(MPspm,'model')=TRUE

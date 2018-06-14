@@ -2,19 +2,20 @@
 ##' @param x dataframe from table()
 ##' @param ylab y label
 ##' @param xlab x label
+##' @param ci logical (plot confidence interval?)
+##' @param years years to plot
 ##' @details The basic plotting used by many of the plotting functions (e.g. ssbplot, fbarplot ...)
-plotit <-function (x,ylab='Estimate',xlab='Year',ci=TRUE){
+plotit <-function (x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year)){
     UseMethod("plotit")
 }
 
 ##' @rdname plotit
-##' @method plotit dfccam
 ##' @export
-plotit.dfccam <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,col="black"){
- p <- ggplot(x,aes(x=year,y=Estimate))+geom_line(size=1.5,col=col)+
+plotit.dfccam <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year),col="black"){
+ p <- ggplot(x[x$year %in% years,],aes(x=year,y=Estimate))+geom_line(col=col)+
     scale_y_continuous(expand=c(0,0))+
     scale_x_continuous(expand=c(0,0))+
-    theme_bw()+ylab(ylab)+xlab(xlab)
+    ylab(ylab)+xlab(xlab)
  if(ci){
      p <- p+geom_ribbon(aes(ymax=High, ymin=Low), alpha=0.2,fill=col)
  }
@@ -24,17 +25,15 @@ plotit.dfccam <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,col="black"){
 ##' @rdname plotit
 ##' @method plotit dfccamset
 ##' @export
-plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")){
+plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,years=unique(x$year),col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")){
     coll <- c(rep(col,length(unique(x$fit)) %/% length(col)),col[1:length(unique(x$fit)) %% length(col)])
-    p <- ggplot(x,aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit),size=1.5)+
+    p <- ggplot(x[x$year %in% years,],aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit))+
         scale_y_continuous(expand=c(0,0))+
         scale_x_continuous(expand=c(0,0))+
         scale_fill_manual(values=coll)+
         scale_color_manual(values=coll)+
         labs(col='',fill='')+
-        theme_bw()+ylab(ylab)+xlab(xlab)+
-        theme(legend.position = c(0.8,0.8),
-              legend.background = element_blank())
+        ylab(ylab)+xlab(xlab)
     if(ci){
         p <- p+geom_ribbon(aes(ymax=High, ymin=Low, fill=fit), alpha=0.2)
     }
@@ -44,10 +43,10 @@ plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,col=c("#3322
 ##' @rdname plotit
 ##' @method plotit dfccamforecast
 ##' @export
-plotit.dfccamforecast <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,col='black'){
-    p <- ggplot(x,aes(x=year,y=Estimate))+geom_line(size=1.5,col=col)+
+plotit.dfccamforecast <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year),col='black'){
+    p <- ggplot(x[x$year %in% years,],aes(x=year,y=Estimate))+geom_line(col=col)+
         scale_x_continuous(expand=c(0,0))+
-        theme_bw()+ylab(ylab)+xlab(xlab)+
+        ylab(ylab)+xlab(xlab)+
         geom_errorbar(data=x[x$period=='Future',],aes(ymax=High, ymin=Low),col=col,alpha=0.2)+
         scale_y_continuous(expand=c(0,0),limits=c(0,max(df$High)*1.05))
     if(ci){
@@ -59,18 +58,16 @@ plotit.dfccamforecast <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,col='bla
 ##' @rdname plotit
 ##' @method plotit dfforecastset
 ##' @export
-plotit.dfforecastset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE, col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")){
+plotit.dfforecastset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE, years=unique(x$year),col=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")){
     coll <- c(rep(col,length(unique(x$fit)) %/% length(col)),col[1:length(unique(x$fit)) %% length(col)])
-    ggplot(x,aes(x=year,y=Estimate,group=fit))+geom_line(size=1.5,aes(col=fit))+
+    p <-ggplot(x[x$year %in% years,],aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit))+
         geom_errorbar(data=x[x$period=='Future',],aes(ymax=High, ymin=Low,col=fit))+
         scale_y_continuous(expand=c(0,0.5),limits=c(0,max(x$High)*1.1))+
         scale_x_continuous(expand=c(0,0))+
-        theme_bw()+ylab(ylab)+xlab(xlab)+
+        ylab(ylab)+xlab(xlab)+
         scale_fill_manual(values=coll)+
         scale_color_manual(values=coll)+
-        labs(col='',fill='')+
-        theme(legend.position = c(0.8,0.8),
-              legend.background = element_blank())
+        labs(col='',fill='')
     if(ci){
         p <- p+geom_ribbon(data=x[x$period=='Passed',],aes(ymax=High, ymin=Low,fill=fit), alpha=0.2)
     }
@@ -191,7 +188,7 @@ catchplot.default <- function(x,fleet=NULL,...){
     a$x <- df
     p <- do.call(plotit, a)
     if(!is.null(fleet)){
-        if(class(x) %in% c('ccam','ccamforecast')) p <- p+geom_line(aes(y=aux1))+geom_line(aes(y=aux2))
+        if(class(x) %in% c('ccam','ccamforecast')) p <- p+geom_line(aes(y=aux1),col='darkgrey',size=1)+geom_line(aes(y=aux2),col='darkgrey',size=1)
         if(class(x) %in% c('ccamset','forecastset')) p <- p+geom_line(aes(y=aux1,col=fit))+geom_line(aes(y=aux2,col=fit))
     }
     p
@@ -269,16 +266,13 @@ srplot.ccamset <- function(fit,textcol="red",linecol='black',curve=FALSE){
     p <- ggplot(df,aes(x=S,y=R))+geom_point()+
         geom_path()+
         ylab(Rnam)+xlab(Snam)+
-        theme_bw()+
         geom_text(aes(label=y),col=textcol,hjust=0,vjust=0)
 
     if(curve){
-        p <- p+geom_line(aes(y=SRenv),size=1.5)
+        p <- p+geom_line(aes(y=SRenv))
     }
     if(length(fit)>1){
-        p<- p+ facet_wrap(~fit)+
-            theme(strip.background = element_blank(),
-                  panel.border = element_rect(colour = "black"))
+        p<- p+ facet_wrap(~fit)
     }
     p
 }
@@ -353,7 +347,6 @@ resplot.ccam <- function(fit, trans=function(x) x,fleets=unique(fit$data$aux[,"f
     df <- data.frame(year=Year, p=p, o=o, res=res, age=aa)
 
     if(out!=0){
-        res <- res[!is.na(res)]
         e <- sort(abs(res),decreasing = T)[as.numeric(1:out)]
         e <- which(res %in% c(e,-e))
         if(all(is.na(aa[e]))) aprint='' else aprint=paste0(".",aa[e])
@@ -363,20 +356,19 @@ resplot.ccam <- function(fit, trans=function(x) x,fleets=unique(fit$data$aux[,"f
     if(all(is.na(aa))){  #not age structured
         switch (type,
                 'one' = {
-                    p <- ggplot(df,aes(x=year,y=res))+geom_point()+theme_bw()+ylab('Residuals')+xlab('Year')+
+                    p <- ggplot(df,aes(x=year,y=res))+geom_point()+ylab('Residuals')+xlab('Year')+
                         geom_hline(yintercept = 0,lty='dashed')
                 },
                 'two' = {
-                    p <- ggplot(df,aes(x=p,y=res))+geom_point()+theme_bw()+ylab('Residuals')+xlab('Predicted')+
+                    p <- ggplot(df,aes(x=p,y=res))+geom_point()+ylab('Residuals')+xlab('Predicted')+
                         geom_hline(yintercept = 0,lty='dashed')
                 },
                 'three' = {
-                    p <- ggplot(df,aes(x=o,y=p))+geom_point()+theme_bw()+ylab('Predicted')+xlab('Observed')+
+                    p <- ggplot(df,aes(x=o,y=p))+geom_point()+ylab('Predicted')+xlab('Observed')+
                         geom_abline(intercept=0, slope=1, lty='dashed')
                 },
                 'four' = {
                     p <- ggplot(df,aes(x=year))+geom_line(aes(y=p))+geom_point(aes(y=o))+
-                    theme_bw()+
                     ylab('Value')+xlab('Year')
                 },
                 {
@@ -388,24 +380,21 @@ resplot.ccam <- function(fit, trans=function(x) x,fleets=unique(fit$data$aux[,"f
                 'one' = {
                     m <- as.matrix(dcast(data.frame(x=Year,y=aa,value=res),x~y)[,-1])
                     rownames(m) <- unique(Year)
-                    p <- heat(m,posneg=TRUE)
+                    p <- heat(m,posneg=TRUE,...)
                 },
                 'two' = {
-                    p <- ggplot(df,aes(x=p,y=res,col=age))+geom_point()+theme_bw()+ylab('Residuals')+xlab('Predicted')+
+                    p <- ggplot(df,aes(x=p,y=res,col=age))+geom_point()+ylab('Residuals')+xlab('Predicted')+
                         geom_hline(yintercept = 0,lty='dashed')+
                         labs(col='Age')+scale_color_gradient(low='violetred',high='orange')
                 },
                 'three' = {
-                    p <- ggplot(df,aes(x=p,y=o,col=age))+geom_point()+theme_bw()+ylab('Residuals')+xlab('Observed')+
+                    p <- ggplot(df,aes(x=o,y=p,col=age))+geom_point()+ylab('Predicted')+xlab('Observed')+
                         geom_abline(intercept=0, slope=1, lty='dashed')+
                         labs(col='Age')+scale_color_gradient(low='violetred',high='orange')
                 },
                 'four' = {
                     p <- ggplot(df,aes(x=year))+geom_line(aes(y=p))+geom_point(aes(y=o))+
                         facet_wrap(~age,ncol=3)+
-                        theme_bw()+
-                        theme(panel.border = element_rect(colour = "black", fill=NA),
-                              strip.background = element_blank())+
                         ylab('Value')+xlab('Year')
                 },
                 'five' = {
@@ -413,13 +402,20 @@ resplot.ccam <- function(fit, trans=function(x) x,fleets=unique(fit$data$aux[,"f
                         facet_wrap(~age,ncol=3)+
                         geom_hline(yintercept = 0, lty='dashed')+
                         geom_smooth(method = "loess",col='black')+
-                        theme_bw()+
-                        theme(panel.border = element_rect(colour = "black", fill=NA),
-                              strip.background = element_blank())+
                         ylab('Residuals')+xlab('Year')
                 },
+                'six' = {
+                    p <- ggplot(df,aes(x=year,y=res))+geom_text(aes(label=age))+
+                        geom_hline(yintercept = 0, lty='dashed')+
+                        ylab('Residuals')+xlab('Year')
+                },
+                'seven' = {
+                    p <- ggplot(df,aes(x=age,y=res))+geom_point()+
+                        geom_hline(yintercept = 0, lty='dashed')+
+                        ylab('Residuals')+xlab('Age')
+                },
                 {
-                    stop('type should be between 1 and 5 (with age level)')
+                    stop('type should be between 1 and 7 (with age level)')
                 }
         )
     }
@@ -489,7 +485,7 @@ parplot.default <- function(fit, cor.report.limit=0.95, col=NULL){
         geom_point(position=position_dodge(width=0.5))+
         geom_errorbar(aes(ymin=low,ymax=high),position=position_dodge(width=0.5),width=0)+
         xlab('Estimate')+ylab('Parameter')+
-        theme_bw()+labs(col='')+
+        labs(col='')+
         coord_flip()+
         scale_color_manual(values=coll)
 
@@ -519,12 +515,9 @@ surveyplot <- function(x){
      })
      x2 <- do.call('rbind',x2)
      df <- melt(x2,id=c('year','survey'),variable.name = 'age')
-     p <- ggplot(df,aes(x=year,y=value,col=age))+geom_line(size=1.5)+
+     p <- ggplot(df,aes(x=year,y=value,col=age))+geom_line()+geom_point()+
         ylab('Value')+xlab('Year')+labs(col='Age')+
-        theme_bw()+
-        facet_wrap(~survey,scale='free')+
-         theme(strip.background = element_blank(),
-               panel.border = element_rect(colour = "black"))
+        facet_wrap(~survey,scale='free')
      if(length(unique(df$survey)==1) & length(unique(df$age))){
          p <- p+ theme(legend.position = 'none')+
              scale_color_manual(values='black')
@@ -544,16 +537,63 @@ IEplot <- function(IEmeans,IEsds, col=c("#000000", "#88CCEE", "#44AA99", "#11773
     myIE <-cbind(melt(do.call('rbind',IEmeans)),sd=melt(do.call('rbind',IEsds))[,3])
     p<- ggplot(myIE,aes(x=Var2-1,y=value))+
         geom_ribbon(aes(ymin=value-sd,ymax=value+sd,fill=Var1),alpha=0.2)+
-        geom_line(aes(col=Var1),size=1.5)+
+        geom_line(aes(col=Var1))+
         geom_point(aes(col=Var1))+
         theme(legend.position="none")+
         ylab('Undeclared catch (t)')+xlab('Year')+labs(col='',fill='')+
-        theme_bw()+
         scale_fill_manual(values=col[1:length(unique(myIE$Var1))])+
         scale_color_manual(values=col[1:length(unique(myIE$Var1))])
     return(p)
 }
 
+##' Observation plot
+##' @param x data object
+##' @param trans logical. transform data?
+##' @param years years to plot
+##' @param fleets fleets to plot
+##' @param type line, bar or area
+##' @import ggplot2
+##' @importFrom plyr ddply
+##' @details plot logobs content
+##' @rdname plotobs
+##' @export
+plotobs <- function(x,trans=TRUE,years=unique(x$aux[,1]),fleets=unique(x$aux[,2]),type='line'){
+    df <- as.data.frame(cbind(x$aux,x$logobs))
+    df <- df[df$year %in% years,]
+    df <- df[df$fleet %in% fleets,]
+    df[df$age<0,'age'] <- NA
+
+    nam <- attr(x,'fleetNames')
+    transcrl <- 'Catch-at-age proportions' %in% nam[fleets]
+
+    if(trans){
+        df[df$fleet != 2,c('aux1','aux2')] <- exp(df[df$fleet != 2,c('aux1','aux2')])
+        if(transcrl){
+            amin <- unname(x$minAgePerFleet[2])
+            amax <- unname(x$maxAgePerFleet[2])
+            new <- ddply(df[df$fleet == 2,],c('year','fleet','aux2'),summarise,aux1=crlInverse(aux1))
+            new$age <- rep(amin:(amax+1),length(unique(df$year)))
+            new <- new[,colnames(df)]
+            df[df$fleet == 2,] <- new[new$age %in% amin:amax,]
+            df <- rbind(df,new[new$age==c(amax+1),])
+        }
+    }
+    if(!all(is.na(df$age))) df$age <- factor(df$age, levels = rev(unique(df$age)))
+    df$fleet <- factor(df$fleet)
+    levels(df$fleet) <- nam[fleets]
+
+    if(type=='line'){
+        p <- ggplot(df,aes(x=year,y=aux1,col=age))+geom_line()+labs(col='')
+    }
+    if(type=='area'){
+        p <- ggplot(df,aes(x=year,y=aux1,fill=age))+geom_area()+labs(fill='')
+    }
+    if(type=='bar'){
+        p <- ggplot(df,aes(x=year,y=aux1,fill=age))+geom_bar(stat='identity')+labs(fill='')
+    }
+    p <- p+facet_wrap(~fleet,scale='free_y')+ylab('Value')+xlab('Year')+ geom_line(data=df,aes(x=year,y=aux2))
+    p
+}
 
 ##' Bubble plot
 ##' @param x matrix
@@ -580,16 +620,13 @@ bubble <- function(x,xlab='Year',ylab='Age',scale=15,col=c('black','darkgreen'),
     coll <- length(unique(xx$posneg))
     p <- ggplot(xx,aes(x=Var1,y=Var2,size=value,col=posneg))+geom_point(alpha=alpha)+
         scale_size(range = c(1,scale)) +
-        theme_bw()+ylab(ylab)+xlab(xlab)+
+        ylab(ylab)+xlab(xlab)+
         labs(size="")+
         scale_color_manual(values=col[1:coll])+
         guides(col=FALSE)
 
     if(length(unique(xx$id))>1){
-        p <- p+facet_wrap(~id)+
-            theme(strip.background = element_blank(),
-                  panel.border = element_rect(colour = "black"))
-
+        p <- p+facet_wrap(~id)
     }
     p
 }
@@ -618,7 +655,7 @@ heat <- function(x,high=c('grey','darkgreen'), low='darkred',xlab='Year',ylab='A
 
     xx$posneg <- ifelse(xx$value<0,'-','+')
     p <- ggplot(xx,aes(x=Var1,y=Var2,fill=value))+geom_tile()+
-        theme_bw()+ylab(ylab)+xlab(xlab)+
+        ylab(ylab)+xlab(xlab)+
         scale_x_continuous(expand=c(0,0))+
         scale_y_continuous(expand=c(0,0))+
         labs(fill='')+
@@ -627,11 +664,23 @@ heat <- function(x,high=c('grey','darkgreen'), low='darkred',xlab='Year',ylab='A
         p <- p+geom_text(aes(label=posneg))
     }
     if(length(unique(xx$id))>1){
-        p <- p+facet_wrap(~id)+
-            theme(strip.background = element_blank(),
-                  panel.border = element_rect(colour = "black"))
-
+        p <- p+facet_wrap(~id)
     }
+    p
+}
+
+##' matplot2 plot
+##' @param x matrix
+##' @param ylab y label
+##' @param xlab x label
+##' @importFrom reshape2 melt
+##' @import ggplot2
+##' @export
+matplot2 <- function(x,ylab='Value',xlab='Year',col=NULL,lwd=1){
+    xm <- melt(x)
+    p <- ggplot(xm,aes(x=Var1,y=value,col=Var2,group=Var2))+geom_line(lwd=lwd)+
+        labs(col='')+ylab(ylab)+xlab(xlab)
+    if(!is.null(col)) p <- p+scale_color_manual(values=col)
     p
 }
 
@@ -709,10 +758,8 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
     # basis
     p <- p+ geom_point()+
             geom_path()+
-            theme_bw()+ylab(ylab)+xlab(xlab)+
-            labs(col='')+
-            theme(strip.background = element_blank(),
-                  panel.border = element_rect(colour = "black"))
+            ylab(ylab)+xlab(xlab)+
+            labs(col='')
 
     # vline
     if(!is.null(vline)){
@@ -777,25 +824,24 @@ MSEplot.forecastset <- function(x){
     meltfacet <- function(x,n1,n2){
         z <- ggplotGrob(x)
         locations <- grep("strip-t", z$layout$name)
-        strip <- gtable_filter(z, "strip-t", trim = FALSE)
+        strip <- gtable::gtable_filter(z, "strip-t", trim = FALSE)
         ix <- 1:nrow(strip$layout)
         top <- strip$layout$t[1]
         l   <- strip$layout$l[seq(1,max(ix),by=n2) ]
         r   <- strip$layout$r[seq(n2,max(ix),by=n2) ]
         mat   <- matrix(vector("list", length = (n1*2-1)*2), nrow = 2)
         mat[] <- list(zeroGrob())
-        res <- gtable_matrix("toprow", mat, unit(c(rep(c(1,0),n1-1),1), "null"), unit(c(1, 1), "null"))
+        res <- gtable::gtable_matrix("toprow", mat, unit(c(rep(c(1,0),n1-1),1), "null"), unit(c(1, 1), "null"))
         se <- seq(1,length(locations),by=n2)
         for(i in se){
-            zz. <- gtable_add_grob(res,z$grobs[[locations[i]]]$grobs[[1]], 1, 1, 1, (n2)*2-1)
-            z <- gtable_add_grob(z, zz., t = top,  l = l[which(se==i)],  b = top,  r = r[which(se==i)], name = c("add-strip"))
+            zz. <- gtable::gtable_add_grob(res,z$grobs[[locations[i]]]$grobs[[1]], 1, 1, 1, (n1)*2-1)
+            z <- gtable::gtable_add_grob(z, zz., t = top,  l = l[which(se==i)],  b = top,  r = r[which(se==i)], name = c("add-strip"))
         }
-        grid.newpage()
-        print(grid.draw(z))
+        grid::grid.newpage()
+        print(grid::grid.draw(z))
     }
 
     # 1) by next 5 year 75 % probCZ
-    x=runlist
     df <- extract(x,'probCZ',add=TRUE)
     df <- df[df$year==(min(df$year)+5),]
     df$ylog <- ifelse(df$var>=0.75,TRUE,FALSE)
@@ -809,15 +855,15 @@ MSEplot.forecastset <- function(x){
     df$performance <- "in 10 year 75 % >HZ"
     df$ytext <- NA
     out <- rbind(out,df)
-    # 3) never below 50% chance of 20% growth when in the critical zone (95%)
-    df <- extract(x,'probgrowth20',add=TRUE)
+    # 3) never below 50% chance of 30% growth when in the critical zone (95%)
+    df <- extract(x,'probgrowth30',add=TRUE)
     df2 <- extract(x,'probCZ',add=TRUE)
     ys <- ddply(df2, c('id'),summarise,year=year[var<0.95])  ##ddply!!!
     sel <- merge(df,ys)
     ylog <- ddply(sel,c('id'),summarise,ylog=any(var<0.50))
     sel <- ddply(sel,c('id'),summarise,year=max(year))
     sel <- merge(merge(ylog,sel),df)
-    sel$performance <- "at least 20% growth (>50%) when in CZ (95%)"
+    sel$performance <- "at least 30% growth (>50%) when in CZ (95%)"
     sel$ytext=NA
     out <- rbind(out,sel)
     # 4) show number of years TAC at or above 8000t
@@ -854,6 +900,50 @@ MSEplot.forecastset <- function(x){
         scale_color_manual(values=c('red','green'))
 
     meltfacet(p,length(unique(out$MP)),length(unique(out$IE)))
+
+}
+
+##' @rdname saveallplots
+##' @param x ccam object
+##' @param wd working directory
+##' @param name name of the subdirectory
+##' @details saves all plots of a ccam fit object into the specified directory
+##' @export
+saveallplots <- function(x,wd=getwd(),name=Sys.Date(),retro=FALSE){
+    .wd <- paste0(wd,name)
+    dir.create(.wd)
+
+    refBase <- ypr(x,rec.years=1969:2016)
+
+    savepng(srplot(x,curve=TRUE),.wd,"/sr",c(17,10))
+    savepng(recplot(x,years=1969:2016),.wd,"/rec.1969-2016",c(17,10))
+    savepng(catchplot(x,fleet = 1,ci=FALSE)+scale_y_continuous(limits=c(0,80000),expand = c(0,0)),.wd,"/catch",c(17,10))
+    savepng(ssbplot(x)+scale_y_continuous(limits=c(0,5e5),expand = c(0,0)),.wd,"/ssb",c(17,10))
+    savepng(fbarplot(x)+scale_y_continuous(limits=c(0,5),expand = c(0,0)),.wd,"/F",c(17,10))
+    savepng(peplot(x),.wd,"/pe",c(17,10))
+    savepng(peplot(x),.wd,"/pe",c(17,10))
+    savepng(plot(refBase),.wd,"/RPs",c(14,14))
+
+    savepng(resplot(x,fleets = 3,type=1),.wd,"/res_index_1",c(17,10))
+    savepng(resplot(x,fleets = 3,type=2,out=1),.wd,"/res_index_2",c(17,10))
+    savepng(resplot(x,fleets = 3,type=3),.wd,"/res_index_3",c(17,10))
+    savepng(resplot(x,fleets = 3,type=4),.wd,"/res_index_4",c(17,10))
+    savepng(resplot(x,fleets = 3,type=4,trans = exp),.wd,"/res_index_5exp",c(17,10))
+
+    savepng(resplot(x,fleets = 2,type=1,low=c('red','orange'),high=c('grey','green','darkgreen')),.wd,"/res_caa_1",c(17,10))
+    savepng(resplot(x,fleets = 2,type=2,out=3),.wd,"/res_caa_2",c(17,10))
+    savepng(resplot(x,fleets = 2,type=3),.wd,"/res_caa_3",c(17,10))
+    savepng(resplot(x,fleets = 2,type=4),.wd,"/res_caa_4",c(25,20))
+    savepng(resplot(x,fleets = 2,type=5),.wd,"/res_caa_5",c(25,20))
+    savepng(resplot(x,fleets = 2,type=6),.wd,"/res_caa_6",c(17,10))
+    savepng(resplot(x,fleets = 2,type=7),.wd,"/res_caa_7",c(17,10))
+
+    if(retro){
+        r <- retro(x,year=7)  #maybe make plot with relative change
+        savepng(plot(r,ci=FALSE),.wd,"/retro",c(25,20))
+        m <- round(mohn(r),2)
+        write.table(m,paste0(.wd,"/mohn.txt"))
+    }
 
 }
 

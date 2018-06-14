@@ -3,12 +3,9 @@
 \name{tsbtable}
 \alias{tsbtable}
 \alias{tsbtable.default}
-\alias{exptable.default}
 \title{TSB table}
 \usage{
 tsbtable(fit, ...)
-
-\method{tsbtable}{default}(fit, ...)
 
 \method{tsbtable}{default}(fit, ...)
 }

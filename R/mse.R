@@ -16,7 +16,7 @@ fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL, nm=nm, sw=sw, mo=m
         obs <- obs*exp(q)
     }
 
-    obs <- cbind(log(obs),NA)
+    obs <- cbind(obs,NA)
     if(!deterministic){
         sdObs <- exp(simpara[,which(colnames(simpara)=="logSdLogObs")])
         aux <- cbind(year=tail(fit$data$years,1)+1,unique(fit$data$aux[,2:3]))
@@ -26,17 +26,19 @@ fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL, nm=nm, sw=sw, mo=m
             obs[,1] <- rnorm(length(sds),obs[,1],sds)
         }
         if(fit$conf$obsLikelihoodFlag[f]=='CE'){
-            obs1 <- log(sample(ULpool[,2],1)*exp(obs[,1]))
-            obs2 <- log(sample(ULpool[,1],1)*exp(obs[,1]))
+            obs1 <- sample(ULpool[,1],1)*obs[,1]
+            obs2 <- sample(ULpool[,2],1)*obs[,1]
             obs <- cbind(obs1,obs2)
         }
     }else{
         if(fit$conf$obsLikelihoodFlag[f]=='CE'){
-            obs1 <- log(mean(ULpool[,2],1)*exp(obs[,1]))
-            obs2 <- log(mean(ULpool[,1],1)*exp(obs[,1]))
+            obs1 <- mean(ULpool[,1],1)*obs[,1]
+            obs2 <- mean(ULpool[,2],1)*obs[,1]
             obs <- cbind(obs1,obs2)
         }
     }
+    obs[obs[,2]<3,2] <- 3
+    obs <- log(obs)
     return(t(obs))
 }
 

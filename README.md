@@ -27,7 +27,7 @@ Key differences with the SAM package are:
 
 - Van Beveren, E., Castonguay, M., Doniol-Valcroze, T., Cadigan, N., Plourde, S., Duplisea, D. (2017). How catch underreporting can bias stock assessment and advice in northwest Atlantic mackerel and a possible resolution using censored catch. Fish. Res. http://dx.doi.org/10.1016/j.fishres.2017.05.015 
 
-*Based on*
+*Based on (and gratefully acknowledged)*
 
 - https://github.com/fishfollower/SAM
 
