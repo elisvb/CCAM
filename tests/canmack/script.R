@@ -290,7 +290,7 @@ DateDir = paste0(wdRdata,Date,"/")
 dir.create(DateDir)
 
     #save(scen.list, file=paste0(wdRdata,'scen.list.2018.06.12.Rdata'))
-    #load(file=paste0(wdRdata,'scen.list.Rdata'))
+    #load(file=paste0(wdRdata,'scen.list.2018.06.12.Rdata'))
 
 x=names(scen.list)[49] #ccam
 x=names(scen.list)[1]
@@ -299,7 +299,7 @@ scen.list=scen.list[-grep('MP7',names(scen.list))]
 # 48 is missing
 x=names(scen.list)[grep('MP11',names(scen.list))][1]
 
-sublist <- names(scen.list)[-grep(c('MP11|MP10'),names(scen.list))]
+sublist <- names(scen.list)[grep(c('MP11|MP10'),names(scen.list))]
 runlist <- lapply(sublist,function(x){ #ccam
     y <- scen.list[[x]]
     RUN <- do.call(forecast, y)
@@ -341,7 +341,7 @@ foreplot(runlist,what.y='catchcumul',what.x='probCZ',by='OM',ci=FALSE)
 foreplot(runlist,what.y='Umsyratio',what.x='ssbmsyratio',by='OM',ci=FALSE,hline=1,vline=1)
 
 ### Objective 1: rebuild out of critical zone and into healthy zone with 75% prob
-foreplot(runlist,what.y='probCZ',ylab='Probability out of the CZ',by=c('OM','MP'),vline=c(5,10)+2016,rect=0.75)
+savepng(foreplot(runlist,what.y='probCZ',ylab='Probability out of the CZ',by=c('OM','MP'),vline=c(5,10)+2016,rect=0.75),wdIMG,'/MSE/CZ',c(40,25))
 
 ## Objective 2: maintain a positive growth trajectory
 foreplot(runlist,what.y='probgrowth30',by=c('OM','MP'))
@@ -357,6 +357,6 @@ foreplot(runlist,what='catch',by=c('OM','MP'))
 foreplot(runlist,what.y='TACrel',by=c('OM','MP'))
 
 ## all objectives
-MSEplot(runlist)
+savepng(MSEplot(runlist),wdIMG,'/MSE/allobjectives',c(40,25))
 
 
