@@ -34,10 +34,9 @@ vector<Type> predNFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, arr
     } 
     //std::cout << "* older ages"  << std::endl;  
     for(int j=1; j<stateDimN; ++j){
-      if(conf.keyLogFsta(0,j-1)>(-1)){
-        predN(j)=logN(j-1,i-1)-exp(logF(j-1,i-1))-dat.natMor(i-1,j-1); 
-      }else{
-        predN(j)=logN(j-1,i-1)-dat.natMor(i-1,j-1); 
+       predN(j)=logN(j-1,i-1)-dat.natMor(i-1,j-1); 
+      if(conf.keySel(i,j-1)>(-1)){
+        predN(j)-=exp(logF(j-1,i-1)); 
       }
     }  
     //std::cout << "* plus"  << std::endl;  

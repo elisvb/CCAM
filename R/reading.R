@@ -309,7 +309,8 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
        type<-c(type,6)
        name<-c(name,"Catch-at-age proportions")
     }else{
-       residual.fleet[residual.fleet<=0]=NA
+       residual.fleet[residual.fleet==0]=1
+       residual.fleet[residual.fleet<0]=NA
        rf=log(residual.fleet)
        type<-c(type,0)
        name<-c(name,"Residual catch")

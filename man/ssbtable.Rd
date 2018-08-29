@@ -5,12 +5,14 @@
 \alias{ssbtable.default}
 \title{SSB table}
 \usage{
-ssbtable(fit, ...)
+ssbtable(fit, trans = exp, ...)
 
-\method{ssbtable}{default}(fit, ...)
+\method{ssbtable}{default}(fit, trans = exp, ...)
 }
 \arguments{
 \item{fit}{...}
+
+\item{trans}{exp by default}
 
 \item{...}{extra arguments not currently used}
 }

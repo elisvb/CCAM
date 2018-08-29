@@ -1,9 +1,8 @@
 template <class Type>
-Type nllF(confSet &conf, paraSet<Type> &par, vector<Type> &logFy, vector<Type> &logitSel,data_indicator<vector<Type>,Type> &keep, objective_function<Type> *of){
+Type nllF(confSet &conf, paraSet<Type> &par, vector<Type> &logFy, data_indicator<vector<Type>,Type> &keep, objective_function<Type> *of){
   using CppAD::abs;
-
   Type nll=0; 
-  Type sd= exp(par.logSdLogFsta);
+  Type sd=exp(par.logSdLogFsta);
  
   for(int j = 1 ; j < logFy.size(); ++j){
    nll -= dnorm(logFy(j), logFy(j-1), sd, true);  // random walk for Fy

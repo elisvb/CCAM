@@ -108,7 +108,7 @@ struct confSet{
   int minAge;
   int maxAge;
   int maxAgePlusGroup;
-  array<int> keyLogFsta;
+  array<int> keySel;
   //int corFlag;
   array<int> keyLogFpar;
   array<int> keyQpow;
@@ -127,6 +127,7 @@ struct confSet{
   int resFlag; 
   vector<int> obsLikelihoodFlag;
   int fixVarToWeight;
+  int debug;
 
   confSet() {};
 
@@ -135,7 +136,7 @@ struct confSet{
     minAge = (int)*REAL(getListElement(x,"minAge"));
     maxAge = (int)*REAL(getListElement(x,"maxAge"));
     maxAgePlusGroup = (int)*REAL(getListElement(x,"maxAgePlusGroup"));
-    keyLogFsta = asArray<int>(getListElement(x,"keyLogFsta"));
+    keySel = asArray<int>(getListElement(x,"keySel"));
     //corFlag = (int)*REAL(getListElement(x,"corFlag"));
     keyLogFpar = asArray<int>(getListElement(x,"keyLogFpar"));
     keyQpow = asArray<int>(getListElement(x,"keyQpow"));
@@ -154,13 +155,14 @@ struct confSet{
     resFlag = (int)*REAL(getListElement(x,"resFlag"));
     obsLikelihoodFlag = asVector<int>(getListElement(x,"obsLikelihoodFlag"));
     fixVarToWeight = (int)*REAL(getListElement(x,"fixVarToWeight"));
+    debug = (int)*REAL(getListElement(x,"debug"));
   };
 
   confSet& operator=(const confSet& rhs) {
     minAge = rhs.minAge;
     maxAge = rhs.maxAge; 
     maxAgePlusGroup = rhs.maxAgePlusGroup;
-    keyLogFsta = rhs.keyLogFsta;
+    keySel = rhs.keySel;
     keyLogFpar = rhs.keyLogFpar;
     //corFlag = rhs.corFlag;
     keyQpow = rhs.keyQpow;
@@ -179,7 +181,7 @@ struct confSet{
     resFlag = rhs.resFlag;
     obsLikelihoodFlag = rhs.obsLikelihoodFlag;
     fixVarToWeight = rhs.fixVarToWeight;
-
+    debug = rhs.debug;
     return *this;
   };
 };
@@ -200,5 +202,6 @@ struct paraSet{
   //vector<Type> itrans_rho; 
   vector<Type> logScale;
   vector<Type> logitReleaseSurvival;   
-  vector<Type> logitRecapturePhi;   
+  vector<Type> logitRecapturePhi; 
+  vector<Type> logitSel;  
 };

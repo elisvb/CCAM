@@ -5,12 +5,14 @@
 \alias{fbartable.default}
 \title{Fbar table}
 \usage{
-fbartable(fit, ...)
+fbartable(fit, trans = exp, ...)
 
-\method{fbartable}{default}(fit, ...)
+\method{fbartable}{default}(fit, trans = exp, ...)
 }
 \arguments{
 \item{fit}{...}
+
+\item{trans}{exp by default}
 
 \item{...}{extra arguments not currently used}
 }

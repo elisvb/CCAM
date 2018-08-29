@@ -4,8 +4,7 @@
 \alias{IEplot}
 \title{Plot implementation error}
 \usage{
-IEplot(IEmeans, IEsds, col = c("#000000", "#88CCEE", "#44AA99", "#117733",
-  "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"))
+IEplot(IEmeans, IEsds, col = NULL)
 }
 \arguments{
 \item{IEmeans}{list of mean values}

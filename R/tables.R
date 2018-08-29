@@ -19,18 +19,29 @@ tableit.ccam <- function (fit, what, trans=function(x)x,fleet=NULL,...){
    ci<-y+fit$sdrep$sd[idx]%o%c(-2,2)
    ret<-trans(cbind(y,ci))
    colnames(ret)<-c("Estimate","Low","High")
-   if(length(rownames(ret))==length(fit$data$years)) {
+   if(length(rownames(ret))==length(fit$data$years)){
        rownames(ret)<-fit$data$years
        ret <- cbind(ret,year=fit$data$years)
-       }else{
-      rownames(ret)<-fit$conf$minAge:fit$conf$maxAge
-      ret <- cbind(ret,year=c(fit$conf$minAge:fit$conf$maxAge))
+    }else{
+        if(!is.null(fleet)){
+            y <- fit$data$aux
+            years <- unique(y[y[,2]==fleet,1])
+            if(length(years)==length(rownames(ret))){
+                rownames(ret)<-years
+                ret <- cbind(ret,year=years)
+            }
+        }else{
+      ages <- fit$conf$minAge:fit$conf$maxAge
+      if(nrow(ret)!=length(ages)) ret <- rbind(ret,matrix(c(1,NA,NA),ncol=3,nrow=length(ages)-nrow(ret),byrow=TRUE))
+      rownames(ret)<-ages
+      ret <- cbind(ret,year=ages)
+        }
    }
 
    ret <- data.frame(ret)
    if(!is.null(fleet)){
        obs <- trans(fit$data$logobs[which(fit$data$aux[,2]==fleet),])
-       ret <- cbind(ret,obs)
+       if(nrow(obs)==nrow(ret)) ret <- cbind(ret,obs)
    }
    attr(ret,'class') <- c('data.frame','dfccam')
    return(ret)
@@ -91,18 +102,36 @@ tableset <- function(fit, fun, what, ...){
 
 ##' SSB table
 ##' @param  fit ...
+##' @param trans exp by default
 ##' @param ... extra arguments not currently used
 ##' @details ...
 ##' @export
-ssbtable<-function(fit,...){
+ssbtable<-function(fit,trans=exp,...){
     UseMethod("ssbtable")
 }
 ##' @rdname ssbtable
 ##' @method ssbtable default
 ##' @export
-ssbtable.default <- function(fit,...){
-   ret<-tableit(fit, "logssb", trans=exp,...)
+ssbtable.default <- function(fit,trans=exp,...){
+   ret<-tableit(fit, "logssb", trans=trans,...)
    return(ret)
+}
+
+##' SSB0 table
+##' @param  fit ...
+##' @param trans exp by default
+##' @param ... extra arguments not currently used
+##' @details ...
+##' @export
+ssb0table<-function(fit,trans=exp,...){
+    UseMethod("ssb0table")
+}
+##' @rdname ssb0table
+##' @method ssb0table default
+##' @export
+ssb0table.default <- function(fit,trans=exp,...){
+    ret<-tableit(fit, "logssb0", trans=trans,...)
+    return(ret)
 }
 
 ##' TSB table
@@ -139,33 +168,35 @@ exptable.default <- function(fit,...){
 
 ##' Fbar table
 ##' @param  fit ...
+##' @param trans exp by default
 ##' @param ... extra arguments not currently used
 ##' @details ...
 ##' @export
-fbartable<-function(fit,...){
+fbartable<-function(fit,trans=exp,...){
     UseMethod("fbartable")
 }
 ##' @rdname fbartable
 ##' @method fbartable default
 ##' @export
-fbartable.default <- function(fit,...){
-   ret<-tableit(fit, "logfbar", trans=exp)
+fbartable.default <- function(fit,trans=exp,...){
+   ret<-tableit(fit, "logfbar", trans=trans)
    return(ret)
 }
 
 ##' Recruit table
-##' @param  fit ...
+##' @param fit ...
+##' @param trans exp by default
 ##' @param ... extra arguments not currently used
 ##' @details ...
 ##' @export
-rectable<-function(fit){
+rectable<-function(fit,trans=exp,...){
     UseMethod("rectable")
 }
 ##' @rdname rectable
 ##' @method rectable default
 ##' @export
-rectable.default <- function(fit,...){
-   ret<-tableit(fit, "logR", trans=exp)
+rectable.default <- function(fit, trans=exp,...){
+   ret<-tableit(fit, "logR", trans=trans)
    return(ret)
 }
 
@@ -198,7 +229,7 @@ seltable<-function(fit, fleet=NULL,...){
 ##' @method catchtable default
 ##' @export
 seltable.default <- function(fit, fleet=NULL,...){
-    ret <- tableit(fit, what="Sel")
+    ret <- tableit(fit, what="logitSel",trans = invlogit)
     return(ret)
 }
 
@@ -238,11 +269,12 @@ faytable <- function(fit,...){
 ##' @method faytable ccam
 ##' @export
 faytable.ccam <- function(fit,...){
-   sel = c(invlogit(fit$pl$logitSel),1)[fit$conf$keyLogFsta[1,]+1]
-   ret = outer(exp(fit$pl$logFy),sel)
-   # idx <- fit$conf$keyLogFsta[1,]+2
-   # ret <- cbind(NA,exp(t(fit$pl$logF)))[,idx]
-   # ret[,idx==0] <- 0
+   ret <- matrix(exp(fit$pl$logFy),nrow=fit$data$noYears,ncol=dim(fit$data$natMor)[2])
+   for(i in 1:nrow(ret)){
+       for(j in 1:ncol(ret)){
+           if(fit$conf$keySel[i,j]!=max(fit$conf$keySel)) ret[i,j] <- ret[i,j]*invlogit(fit$pl$logitSel)[fit$conf$keySel[i,j]+1]
+       }
+   }
    colnames(ret) <- fit$conf$minAge:fit$conf$maxAge
    rownames(ret) <- fit$data$years
    return(ret)
@@ -376,7 +408,7 @@ extract.ccamforecast <- function(x,what,add=FALSE){
         toadd <- c('OM','IE','MP')
         ret$OM <- attr(x,"OMlabel")
         ret$MP <- attr(x,"MPlabel")
-        ret$IE <- c(NA,attr(x,'parameters')$IE)
+        ret$IE <- paste0(as.character(attr(x,'parameters')$IE),collapse = '.')
         cadd <- toadd[which(!toadd %in%colnames(ret))]
         if(length(cadd)!=0) ret[cadd] <- NA
         ret[is.na(ret$IE),'IE'] <- 'IE0'
@@ -431,7 +463,7 @@ ypr.ccam <- function(fit, Flimit=2, Fdelta=0.01, aveYears=min(15,length(fit$data
       ave.sl <- simpara[which(names(simpara)=='logitSel')]
   }
 
-  ave.sl<-c(invlogit(ave.sl),1)[fit$conf$keyLogFsta[1,]+1]
+  ave.sl<-c(invlogit(ave.sl),1)[fit$conf$keySel[fit$data$noYears,]-min(fit$conf$keySel[fit$data$noYears,])+1]
 
   ave.sw<-colMeans(fit$data$stockMeanWeight[(idxno-aveYears+1):idxno,,drop=FALSE])
   ave.cw<-colMeans(fit$data$catchMeanWeight[(idxno-aveYears+1):(idxno-1),,drop=FALSE])
@@ -458,7 +490,7 @@ ypr.ccam <- function(fit, Flimit=2, Fdelta=0.01, aveYears=min(15,length(fit$data
     F<-extend(ave.sl*scale)
     Z<-M+F
     for(a in 2:length(N)){
-      N[a]<-N[a-1]*exp(-Z[a-1])  #there is no plus group in here and pe is ignored
+      N[a]<-N[a-1]*exp(-Z[a-1])
     }
     C<-F/Z*(1-exp(-Z))*N*lf
     Y<-sum(C*cw)
@@ -474,11 +506,11 @@ ypr.ccam <- function(fit, Flimit=2, Fdelta=0.01, aveYears=min(15,length(fit$data
   f01<-scales[f01idx]
 
   f30spridx<-which.min((ssbs-0.30*ssbs[1])^2)+1
-  f30<-scales[f30spridx]
+  f30<-scales[min(f30spridx,length(scales))]
   f35spridx<-which.min((ssbs-0.35*ssbs[1])^2)+1
-  f35<-scales[f35spridx]
+  f35<-scales[min(f35spridx,length(scales))]
   f40spridx<-which.min((ssbs-0.40*ssbs[1])^2)+1
-  f40<-scales[f40spridx]
+  f40<-scales[min(f40spridx,length(scales))]
 
   rec <- rectable(fit)
   meanrec <- mean(rec[which(rownames(rec) %in% rec.years),1])

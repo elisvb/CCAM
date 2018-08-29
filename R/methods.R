@@ -2,27 +2,23 @@
 ##' @method plot ccam
 ##' @param  x ...
 ##' @param  ... extra arguments (not possible to use add=TRUE --- please collect to a list of fits using e.g the c(...), and then plot that collected object)
-##' @importFrom gridExtra grid.arrange
-##' @importFrom grid unit.pmax
-##' @import ggplot2
+##' @importFrom gridExtra gtable_rbind
+##' @import ggplot2 grid
 ##' @details ...
 ##' @export
 plot.ccam<-function(x, ...){
-    p1 <- ggplot_gtable(ggplot_build(ssbplot(x,...)))
-    p2 <- ggplot_gtable(ggplot_build(fbarplot(x,...)))
-    p3 <- ggplot_gtable(ggplot_build(recplot(x,...)))
-    maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3])
-    p1$widths[2:3] <- maxWidth
-    p2$widths[2:3] <- maxWidth
-    p3$widths[2:3] <- maxWidth
-  grid.arrange(p1,p2,p3)
+    gA <- ggplotGrob(ssbplot(x,...))
+    gB <- ggplotGrob(fbarplot(x,...))
+    gC <- ggplotGrob(recplot(x,...))
+    grid.newpage()
+    grid.draw(gtable_rbind(gA, gB, gC))
 }
 
 ##' Plot ccam object
 ##' @method plot ccamset
 ##' @param  x ...
 ##' @param  ... extra arguments
-##' @importFrom gridExtra grid.arrange arrangeGrob
+##' @importFrom gridExtra grid.arrange arrangeGrob gtable_rbind
 ##' @importFrom grid unit.pmax
 ##' @import ggplot2
 ##' @details ...
@@ -33,36 +29,36 @@ plot.ccamset<-function(x, ...){
         leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
         legend <- tmp$grobs[[leg]]
         return(legend)
-     }
+    }
 
-    p1 <- ggplot_gtable(ggplot_build(ssbplot(x,...)+theme(legend.position='')))
-    p2 <- ggplot_gtable(ggplot_build(fbarplot(x,...)+theme(legend.position='')))
-    p3 <- ggplot_gtable(ggplot_build(recplot(x,...)+theme(legend.position='')))
-    maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3])
-    p1$widths[2:3] <- maxWidth
-    p2$widths[2:3] <- maxWidth
-    p3$widths[2:3] <- maxWidth
-    mylegend<-extractLegend(ssbplot(x)+theme(legend.position='right'))
-    grid.arrange(arrangeGrob(p1,p2,p3),mylegend,ncol=2,widths=c(0.8,0.2))
+    mylegend<-extractLegend(ssbplot(x,...)+theme(legend.position='right'))
+    lheight <- sum(mylegend$height)
+    lwidth <- sum(mylegend$width)
+
+    gA <- ggplotGrob(ssbplot(x,...)+ theme(legend.position="none"))
+    gB <- ggplotGrob(fbarplot(x,...)+ theme(legend.position="none"))
+    gC <- ggplotGrob(recplot(x,...)+ theme(legend.position="none"))
+
+    grid.arrange(gtable_rbind(gA, gB, gC),
+                 mylegend,
+                 ncol = 2,
+                 widths = unit.c(unit(1, "npc") - lwidth, lwidth))
 }
 
 ##' Plot ccamforecast object
 ##' @method plot ccamforecast
 ##' @param  x ...
 ##' @param  ... extra arguments
-##' @importFrom grid unit.pmax
-##' @import ggplot2
+##' @importFrom gridExtra gtable_rbind
+##' @import ggplot2 grid
 ##' @details ...
 ##' @export
 plot.ccamforecast<-function(x, ...){
-    p1 <- ggplot_gtable(ggplot_build(ssbplot(x,...)))
-    p2 <- ggplot_gtable(ggplot_build(fbarplot(x,...)))
-    p3 <- ggplot_gtable(ggplot_build(recplot(x,...)))
-    maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3])
-    p1$widths[2:3] <- maxWidth
-    p2$widths[2:3] <- maxWidth
-    p3$widths[2:3] <- maxWidth
-    grid.arrange(p1,p2,p3)
+    gA <- ggplotGrob(ssbplot(x,...))
+    gB <- ggplotGrob(fbarplot(x,...))
+    gC <- ggplotGrob(recplot(x,...))
+    grid.newpage()
+    grid.draw(gtable_rbind(gA, gB, gC))
 }
 
 ##' Plot ccamforecast object
@@ -81,15 +77,18 @@ plot.forecastset<-function(x, ...){
         return(legend)
     }
 
-    p1 <- ggplot_gtable(ggplot_build(ssbplot(x,...)+theme(legend.position='')))
-    p2 <- ggplot_gtable(ggplot_build(fbarplot(x,...)+theme(legend.position='')))
-    p3 <- ggplot_gtable(ggplot_build(recplot(x,...)+theme(legend.position='')))
-    maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3])
-    p1$widths[2:3] <- maxWidth
-    p2$widths[2:3] <- maxWidth
-    p3$widths[2:3] <- maxWidth
-    mylegend<-extractLegend(ssbplot(x)+theme(legend.position='right'))
-    grid.arrange(arrangeGrob(p1,p2,p3),mylegend,ncol=2,widths=c(0.8,0.2))
+    mylegend<-extractLegend(ssbplot(x,...)+theme(legend.position='right'))
+    lheight <- sum(mylegend$height)
+    lwidth <- sum(mylegend$width)
+
+    gA <- ggplotGrob(ssbplot(x,...)+ theme(legend.position="none"))
+    gB <- ggplotGrob(fbarplot(x,...)+ theme(legend.position="none"))
+    gC <- ggplotGrob(recplot(x,...)+ theme(legend.position="none"))
+
+    grid.arrange(gtable_rbind(gA, gB, gC),
+                 mylegend,
+                 ncol = 2,
+                 widths = unit.c(unit(1, "npc") - lwidth, lwidth))
 }
 
 ##' Collect ccam objects
@@ -129,7 +128,7 @@ procres <- function(fit, ...){
   fit.co$obj$retape()
   sdrep <- sdreport(fit.co$obj,fit$opt$par)
   ages <- as.integer(colnames(fit.co$data$natMor))
-  iF<-fit.co$conf$keyLogFsta[1,]
+  iF<-fit.co$conf$keySel[1,]
   if (exists(".Random.seed")){
     oldseed <- get(".Random.seed", .GlobalEnv)
     oldRNGkind <- RNGkind()
@@ -162,8 +161,10 @@ procres <- function(fit, ...){
 ##' Plot ccam residuals
 ##' @method plot ccamres
 ##' @param  x ...
-##' @param  ... extra arguments
 ##' @details ...
+##' @import ggplot2
+##' @importFrom plyr ddply
+##' @importFrom gridExtra grid.arrange
 ##' @export
 ##' @examples
 ##' \dontrun{
@@ -171,29 +172,40 @@ procres <- function(fit, ...){
 ##' data(canmackConf)
 ##' data(canmackParameters)
 ##' fit <- ccam.fit(canmackData, canmackConf, canmackParameters)
-##' par(ask=FALSE)
 ##' plot(residuals(fit))
 ##' }
-plot.ccamres<-function(x, ...){
-  add_legend <- function(x, ...) {
-    opar <- par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0),
-                mar=c(0, 0, 0, 0), new=TRUE)
-    on.exit(par(opar))
-    plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
-    zscale <- pretty(x$residual,min.n=5)
-    uu<-par("usr")
-    yy<-rep(uu[3]+.03*(uu[4]-uu[3]), length(zscale))
-    xx<-seq(uu[1]+.10*(uu[2]-uu[1]),uu[1]+.4*(uu[2]-uu[1]), length=length(zscale))
-    text(xx,yy,labels=zscale)
-    colb <- ifelse(zscale<0, rgb(1, 0, 0, alpha=.5), rgb(0, 0, 1, alpha=.5))
-    bs<-1
-    if("bubblescale"%in%names(list(...))) bs <- list(...)$bubblescale
-    points(xx,yy,cex=sqrt(abs(zscale))/max(sqrt(abs(zscale)), na.rm=TRUE)*5*bs, pch=19, col=colb)
-  }
+plot.ccamres<-function(x){
+
+  slope <- function(x){diff(quantile(x[!is.na(x)], c(0.25, 0.75)))/diff(qnorm(c(0.25, 0.75)))}
+  intercept <- function(x){quantile(x[!is.na(x)], c(0.25, 0.75))[1L] - diff(quantile(x[!is.na(x)], c(0.25, 0.75)))/diff(qnorm(c(0.25, 0.75))) * qnorm(c(0.25, 0.75))[1L]}
+
   neg.age <- (x$age < -1.0e-6)
   x$age[neg.age] <- mean(x$age[!neg.age],na.rm=TRUE)
-  plotby(x$year, x$age, x$residual, by=attr(x,"fleetNames")[x$fleet], xlab="Year", ylab="Age", ...)
-  add_legend(x, ...)
+
+  df <- data.frame(do.call('cbind',x))
+  df$by <- attr(x,"fleetNames")[x$fleet]
+  df[df$by=='Total catch','age'] <- rep(c(0,1),each=length(df[df$by=='Total catch','age'])/2)
+  df <- df[!is.na(df$observation),]
+
+  df$negpos <- ifelse(df$residual<0,'-','+')
+  df <- ddply(df,c('by'),transform,slope=slope(residual),int=intercept(residual) )
+
+  p1 <- ggplot(df,aes(x=year,y=age,size=abs(residual),col=negpos))+geom_point(alpha=0.6)+
+      scale_size(range = c(1, 9)) +ylab('Age') + xlab('Year')+
+      scale_color_manual(values=c('darkred','darkgreen'))+
+      facet_grid(by~.,scales = 'free_y')+
+      guides(col=FALSE)+
+      theme(legend.position='left',
+            strip.background = element_blank(),
+            strip.text.y = element_blank())
+
+  p2 <- ggplot(df, aes(sample = residual)) + stat_qq() +
+      facet_grid(by~.)+
+      geom_abline(aes(slope = slope, intercept = int))
+
+
+    grid.arrange(p1,p2,ncol=2,widths=c(4,1))
+
 }
 
 ##' Print ccam object

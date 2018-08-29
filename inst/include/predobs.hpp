@@ -43,7 +43,7 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
       }
     }
   }
- 
+
   array<Type> cprop = crltransform(catNr);
 
   int f, ft, a, y, yy, scaleIdx;  // a is no longer just ages, but an attribute (e.g. age or length) 
@@ -57,15 +57,15 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
     if(ft==3){a=0;}
     if(ft<3){ 
       zz = dat.natMor(y,a);
-      if(conf.keyLogFsta(0,a)>(-1)){
-        zz+=exp(logF(conf.keyLogFsta(0,a),y));
+      if(conf.keySel(y,a)>(-1)){
+        zz+=exp(logF(a,y));
       }
     }    
     switch(ft){
-      case 0: // CAA in numbers
+      case 0: // Catch-at-age in numbers
         pred(i)=logN(a,y)-log(zz)+log(1-exp(-zz));
-        if(conf.keyLogFsta(f-1,a)>(-1)){
-          pred(i)+=logF(conf.keyLogFsta(0,a),y);
+        if(conf.keySel(y,a)>(-1)){
+          pred(i)+=logF(a,y);
         }
         scaleIdx=-1;
         yy=dat.aux(i,0);
@@ -85,7 +85,7 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
         return(0);
       break;
   
-      case 2: // survey ABUNDANCE index (by age)
+      case 2: // Survey-at-age in numbers
         pred(i)=logN(a,y)-zz*dat.sampleTimes(f-1);
         if(conf.keyQpow(f-1,a)>(-1)){
           pred(i)*=exp(par.logQpow(conf.keyQpow(f-1,a))); 
@@ -96,7 +96,7 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
         
       break;
   
-      case 3:// annual index
+      case 3:// annual data (whether it be I, C, land, etc.)
         if(conf.keyBiomassTreat(f-1)==0){
           pred(i) = logssb(y)+par.logFpar(conf.keyLogFpar(f-1,a)); 
         }
@@ -119,12 +119,12 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
         return 0;
       break;
   
-      case 5:// tags  
+      case 5:// tag data  
         if((a+conf.minAge)>conf.maxAge){a=conf.maxAge-conf.minAge;} 
 	pred(i)=exp(log(dat.aux(i,6))+log(dat.aux(i,5))-logN(a,y)-log(1000))*releaseSurvivalVec(i);
       break;
   
-      case 6: //CAA
+      case 6: // Catch-at-age in proportions (crl transformed)
         pred(i) = cprop(y,a);
       break;
   

@@ -2,14 +2,10 @@
 % Please edit documentation in R/plot.R
 \name{bubble}
 \alias{bubble}
-\alias{heat}
 \title{Bubble plot}
 \usage{
 bubble(x, xlab = "Year", ylab = "Age", scale = 15, col = c("black",
   "darkgreen"), alpha = 0.8)
-
-heat(x, high = c("grey", "darkgreen"), low = "darkred", xlab = "Year",
-  ylab = "Age", posneg = FALSE)
 }
 \arguments{
 \item{x}{matrix}
@@ -23,19 +19,7 @@ heat(x, high = c("grey", "darkgreen"), low = "darkred", xlab = "Year",
 \item{col}{color for the bubbles. if 2 colors are given, they indicate positive and negative values}
 
 \item{alpha}{transparency of the bubbles}
-
-\item{x}{matrix}
-
-\item{col}{colors that indicate the color scale limit}
-
-\item{ncol}{number of colors to use in plot}
-
-\item{leg}{logical (plot legend?)}
-
-\item{leground}{number of digits to round legend}
 }
 \description{
 Bubble plot
-
-Heat plot
 }

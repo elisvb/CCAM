@@ -12,19 +12,18 @@ plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
   years = unique(x$year))
 
 \method{plotit}{dfccam}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  years = unique(x$year), col = "black")
+  years = unique(x$year), col = "black", linetype = 1, linesize = 2)
 
 \method{plotit}{dfccamset}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  years = unique(x$year), col = c("#332288", "#88CCEE", "#44AA99",
-  "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499"))
+  years = unique(x$year), col = NULL, linetype = 1, linesize = 2)
 
 \method{plotit}{dfccamforecast}(x, ylab = "Estimate", xlab = "Year",
-  ci = TRUE, years = unique(x$year), col = "black")
+  ci = TRUE, years = unique(x$year), col = "black", linetype = 1,
+  linesize = 2)
 
 \method{plotit}{dfforecastset}(x, ylab = "Estimate", xlab = "Year",
-  ci = TRUE, years = unique(x$year), col = c("#332288", "#88CCEE",
-  "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255",
-  "#AA4499"))
+  ci = TRUE, years = unique(x$year), col = NULL, linetype = 1,
+  linesize = 2)
 }
 \arguments{
 \item{x}{dataframe from table()}
@@ -36,6 +35,10 @@ plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
 \item{ci}{logical (plot confidence interval?)}
 
 \item{years}{years to plot}
+
+\item{linetype}{linetype}
+
+\item{linesize}{linesize}
 }
 \description{
 Plot helper

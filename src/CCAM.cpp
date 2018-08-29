@@ -78,7 +78,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(minAge); confset.minAge=minAge; 
   DATA_INTEGER(maxAge); confset.maxAge=maxAge; 
   DATA_INTEGER(maxAgePlusGroup); confset.maxAgePlusGroup=maxAgePlusGroup; 
-  DATA_IARRAY(keyLogFsta); confset.keyLogFsta=keyLogFsta; 
+  DATA_IARRAY(keySel); confset.keySel=keySel; 
   //DATA_INTEGER(corFlag); confset.corFlag=corFlag; 
   DATA_IARRAY(keyLogFpar); confset.keyLogFpar=keyLogFpar; 
   DATA_IARRAY(keyQpow); confset.keyQpow=keyQpow; 
@@ -98,6 +98,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(resFlag); confset.resFlag=resFlag;  
   DATA_FACTOR(obsLikelihoodFlag); confset.obsLikelihoodFlag=obsLikelihoodFlag; 
   DATA_INTEGER(fixVarToWeight); confset.fixVarToWeight=fixVarToWeight; 
+  DATA_INTEGER(debug); confset.debug=debug;
 
   paraSet<Type> paraset;
   PARAMETER_VECTOR(logFpar); paraset.logFpar=logFpar;  
@@ -115,15 +116,13 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logScale); paraset.logScale=logScale; 
   PARAMETER_VECTOR(logitReleaseSurvival); paraset.logitReleaseSurvival=logitReleaseSurvival;    
   PARAMETER_VECTOR(logitRecapturePhi); paraset.logitRecapturePhi=logitRecapturePhi; 
+  PARAMETER_VECTOR(logFy); //random effect
+  PARAMETER_VECTOR(logitSel);
+  PARAMETER_ARRAY(logN); // random effect
+  PARAMETER_VECTOR(missing); // random effect
 
 
-  PARAMETER_VECTOR(logFy); 
-  PARAMETER_VECTOR(logitSel); // Fishing mortality by age
-  PARAMETER_ARRAY(logN);
-  PARAMETER_VECTOR(missing);
-
-
-  //if(debug==1)  std::cout << "*** Start "  << std::endl; 
+  if(confset.debug==1)  std::cout << "*** Start "  << std::endl; 
 
   // patch missing 
   int idxmis=0; 
@@ -140,17 +139,17 @@ Type objective_function<Type>::operator() ()
     for (int i = 0; i < missing.size(); i++) ans -= dnorm(missing(i), Type(0), huge, true);  
   } 
 
-  //if(debug==1) std::cout << "*** F"  << std::endl;  
-  ans += nllF(confset, paraset, logFy, logitSel, keep, this);
-  //if(debug==1) std::cout << "ans1"  << ans <<std::endl; 
+  if(confset.debug==1) std::cout << "*** F"  << std::endl;  
+  ans += nllF(confset, paraset, logFy, keep, this);
+  if(confset.debug==1) std::cout << "ans1"  << ans <<std::endl; 
 
-  //if(debug==1) std::cout << "*** N"  << std::endl; 
+  if(confset.debug==1) std::cout << "*** N"  << std::endl; 
   ans += nllN(dataset, confset, paraset, logN, logFy, logitSel, keep, this);
-  //if(debug==1) std::cout << "ans2"  << ans <<std::endl; 
+  if(confset.debug==1) std::cout << "ans2"  << ans <<std::endl; 
 
-  //if(debug==1) std::cout << "*** Observations "  << std::endl; 
-  ans += nllObs(dataset, confset, paraset, logN, logFy, logitSel, keep,  this);
-  //if(debug==1) std::cout << "ans3"  << ans <<std::endl; 
+  if(confset.debug==1) std::cout << "*** Observations "  << std::endl; 
+  ans += nllObs(dataset, confset, paraset, logN, logFy, logitSel, keep, this);
+  if(confset.debug==1) std::cout << "ans3"  << ans <<std::endl; 
 
   return ans;
 }

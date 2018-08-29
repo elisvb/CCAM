@@ -9,6 +9,7 @@
 ##' @param upper named list with upper bounds for optimization (only met before extra newton steps)
 ##' @param sim.condRE logical with default \code{TRUE}. Simulated observations will be conditional on estimated values of F and N, rather than also simulating F and N forward from their initial values.
 ##' @param paracheck logical. Check if initial parameters are consistent?
+##' @param debug logical. print from cpp
 ##' @param ... extra arguments to MakeADFun
 ##' @return an object of class \code{ccam}
 ##' @details The model configuration object \code{conf} is a list of different objects defining different parts of the model. The different elements of the list are:
@@ -44,7 +45,7 @@
 ##' data(canmackConf)
 ##' data(canmackParameters)
 ##' fit <- ccam.fit(canmackData, canmacknscodConf, canmackParameters)
-ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALSE, run=TRUE, lower=getLowerBounds(parameters), upper=getUpperBounds(parameters), sim.condRE=TRUE, paracheck=TRUE,...){
+ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALSE, run=TRUE, lower=getLowerBounds(parameters), upper=getUpperBounds(parameters), sim.condRE=TRUE, paracheck=TRUE, debug=FALSE,...){
   definit <- defpar(data, conf)
   if(paracheck){
       if(!identical(parameters,relist(unlist(parameters), skeleton=definit))){
@@ -68,6 +69,7 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
   data <- clean.void.catches(data,conf)
   tmball <- c(data, conf, simFlag=as.numeric(sim.condRE))
   if(is.null(tmball$resFlag)){tmball$resFlag <- 0}
+  tmball$debug <- as.numeric(debug)
   nmissing <- sum(is.na(data$logobs[,1]))
   parameters$missing <- numeric(nmissing)
   ran <- c("logN", "logFy", "missing")
@@ -97,6 +99,7 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
 
       tmball <- c(data, conf, simFlag=as.numeric(sim.condRE))
       if(is.null(tmball$resFlag)){tmball$resFlag <- 0}
+      tmball$debug <- as.numeric(debug)
       obj <- MakeADFun(tmball, parameters, random=ran, DLL="CCAM",...)
 
           if(rm.unidentified){
@@ -121,11 +124,12 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
   sdrep <- sdreport(obj,opt$par)
 
   # Last two states
-  idx <- c(which(names(sdrep$value)=="lastLogN"),which(names(sdrep$value)=="lastLogF"))
+  parnames <- paste('par',unique(names(sdrep$par.fixed)),sep=".")
+  idx <- which(names(sdrep$value) %in% c("lastLogN","lastLogF","logitSel",parnames))
   sdrep$estY <- sdrep$value[idx]
   sdrep$covY <- sdrep$cov[idx,idx]
 
-  idx <- c(which(names(sdrep$value)=="beforeLastLogN"),which(names(sdrep$value)=="beforeLastLogF"))
+  idx <- which(names(sdrep$value) %in% c("beforeLastLogN","beforeLastLogF","logitSel",parnames))
   sdrep$estYm1 <- sdrep$value[idx]
   sdrep$covYm1 <- sdrep$cov[idx,idx]
 
@@ -178,7 +182,8 @@ clean.void.catches<-function(dat, conf){
 
 
 ##' Jitter runs
-##' @param fit a fitted model object as returned from ccam.fit
+##' @param data data to fit a model
+##' @param conf model configuration
 ##' @param nojit a list of vectors. Each element in the list specifies a run where the fleets mentioned are omitted
 ##' @param par initial values to jitter around. The defaule ones are returned from the defpar function
 ##' @param sd the standard deviation used to jitter the initial values (most parameters are on a log scale, so similar to cv)
@@ -188,15 +193,65 @@ clean.void.catches<-function(dat, conf){
 ##' @importFrom parallel detectCores makeCluster clusterEvalQ parLapply stopCluster
 ##' @importFrom stats rnorm
 ##' @export
-jit <- function(fit, nojit=10, par=defpar(fit$data, fit$conf), sd=.25, ncores=detectCores()){
+jit <- function(data, conf, par=defpar(data, conf), nojit=10,  sd=.25, ncores=detectCores(),parallell=TRUE,...){
   parv <- unlist(par)
   pars <- lapply(1:nojit, function(i)relist(parv+rnorm(length(parv),sd=sd), par))
-  cl <- makeCluster(ncores) #set up nodes
-  clusterEvalQ(cl, {library(ccam)}) #load the package to each node
-  fits <- parLapply(cl, pars, function(p)ccam.fit(fit$data, fit$conf, p, silent = TRUE))
-  stopCluster(cl) #shut it down
+
+  if(parallell){
+      cl <- makeCluster(ncores) #set up nodes
+      clusterEvalQ(cl, {library(ccam)}) #load the package to each node
+      fits <- parLapply(cl, pars, function(p) ccam.fit(data, conf, p, silent = TRUE,...))
+      stopCluster(cl) #shut it down
+  }else{
+      fits <- lapply(pars, function(p) ccam.fit(data, conf, p, silent = TRUE,paracheck=FALSE,...))
+  }
+
   attr(fits,"fit") <- fit
   attr(fits,"jitflag") <- 1
   class(fits) <- c("ccamset")
   fits
 }
+
+##' Force fit
+##' @param data data to fit a model
+##' @param conf model configuration
+##' @param parameters initial parameter values
+##' @param nojit maximum number of tries with different initial values
+##' @param silent logical
+##' @param ... agruments to ccam.fit
+##' @return ccam object
+##' @details Try fitting the model with different initial parameters untill it fits (or untill it is clear it most likely never will)
+##' @export
+force.fit <- function(data,conf, parameters,nojit,silent=TRUE,...){
+    # try to run the model
+    fit <- tryCatch(ccam.fit(data, #if(u==1){x}else{attr(x,paste0('alternative',u-1))},
+                             conf,
+                             parameters,
+                             silent=silent,
+                             paracheck=FALSE,...),error=identity)
+    # if it doesn't work, try with default parameters
+    if(inherits(fit, "error")){  #if there is an error
+        if(!identical(parameters,defpar(data,conf))){
+            fit <- tryCatch(ccam.fit(data, #if(u==1){x}else{attr(x,paste0('alternative',u-1))},
+                                     conf,
+                                     defpar(data,conf),
+                                     silent=silent,...),error=identity)
+        }
+        # and if it still doesn't work, try 10 times with different initial parameters
+        if(inherits(fit, "error")){
+            for(i in 1:nojit){
+                fit <- tryCatch(jit(data,conf,parameters,nojit=1,parallell = FALSE,...)[[1]],error=identity)
+                if(!inherits(fit, "error")){
+                    if(fit$opt$convergence==0) break
+                }else{
+                    if(i==nojit){
+                        fit <- paste0('CCAM model: error after about',nojit+1,' trials: ', fit)
+                    }
+                }
+            }
+
+        }
+    }
+    return(fit)
+}
+

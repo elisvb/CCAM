@@ -9,9 +9,9 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
   ave.years = max(fit$data$years) + (-4:0), rec.years = max(fit$data$years)
   + (-9:0), rec.meth = 5, rec.scale = 1, MPlabel = NULL, OMlabel = NULL,
   overwriteSelYears = NULL, deterministic = FALSE, CZ = 0, HZ = 0,
-  IE = NULL, capLower = NULL, capUpper = NULL,
+  IE = "IEnothing", capLower = NULL, capUpper = NULL,
   UL.years = max(fit$data$years) + (-4:0), TAC.base = 0, bio.scale = NULL,
-  verbose = TRUE)
+  verbose = TRUE, deadzone = 0, Flim = 3)
 }
 \arguments{
 \item{fit}{an assessment object of type ccam, as returned from the function ccam.fit}
@@ -32,7 +32,7 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
 
 \item{rec.years}{vector of years to use to resample recruitment from}
 
-\item{rec.meth}{methode to project recruitment}
+\item{rec.meth}{methode to project recruitment. Autocorrelation can be specified as attribute ('AC').}
 
 \item{rec.scale}{scale recruitment (default is 1)}
 
@@ -44,7 +44,7 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
 
 \item{HZ}{Healty zone (to calculate probability ssb above)}
 
-\item{IE}{implementation error (vector). See avail('IE')}
+\item{IE}{implementation error type. See avail('IE')}
 
 \item{capLower}{lower limit of TAC (before IE)}
 
@@ -56,6 +56,10 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
 
 \item{bio.scale}{names list with multipliers used to scale future bio values (nm, en, pr,sw,cw,lf,dw,lw,pm,pf)}
 
+\item{deadzone}{ssb value below which there is no recruitment anymore and the stock goes extinct. Avoids 'dead' stock popping back to live because of recruitment peak.}
+
+\item{Flim}{Upper limit of F value. defaults to 3.}
+
 \item{label}{optional label to appear in short table}
 }
 \value{
@@ -65,5 +69,19 @@ an object of type ccamforecast
 forecast function to do shortterm
 }
 \details{
-There are four ways to specify a scenario; fscale, catchval, fval and MP.
+There are four ways to specify a scenario; fscale, catchval, fval and MP. There are also multiple recruitment options;
+\enumerate{
+  \item parametric BH estimated within the model. If attribute 'AC' not NULL, use autocorrelation estimated outside the model.
+  \item mean value of rec.pool with sd. If attribute 'AC' not NULL, use autocorrelation estimated outside the model.
+  \item sample value from rec.pool
+  \item sample value backwards (for first year one of the two last estimted values)
+  \item idem as 3 but sample RPS
+  \item idem as 4 but sample RPS
+}
+Set.seed is used with the number of simulations to facilitate comparison between different runs (using e.g. different catchvalues/MPs) for;
+\enumerate{
+  \item last year state
+  \item observation residuals
+  \item future data (M, proportion mature, weight-at-age, etc.)
+}
 }

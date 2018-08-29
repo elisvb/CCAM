@@ -5,12 +5,14 @@
 \alias{rectable.default}
 \title{Recruit table}
 \usage{
-rectable(fit)
+rectable(fit, trans = exp, ...)
 
-\method{rectable}{default}(fit, ...)
+\method{rectable}{default}(fit, trans = exp, ...)
 }
 \arguments{
 \item{fit}{...}
+
+\item{trans}{exp by default}
 
 \item{...}{extra arguments not currently used}
 }

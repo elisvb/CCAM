@@ -1,4 +1,5 @@
 ##' onload function
+##' @rdname onLoad
 ##' @details stuff that need's to be done when loading the package
 .onLoad <- function(libname=find.package("CCAM"), pkgname="CCAM") {
     my_theme <- theme_bw()+theme(strip.background = element_blank())

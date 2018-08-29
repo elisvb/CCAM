@@ -5,12 +5,14 @@
 \alias{recplot.default}
 \title{CCAM recruitment plot}
 \usage{
-recplot(x, ...)
+recplot(x, trans = exp, ...)
 
-\method{recplot}{default}(x, ...)
+\method{recplot}{default}(x, trans = exp, ...)
 }
 \arguments{
 \item{x}{the object(s) returned from ccam.fit or forecast}
+
+\item{trans}{exp by default}
 
 \item{...}{extra arguments transferred to plotit}
 }

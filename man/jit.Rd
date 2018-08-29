@@ -4,15 +4,17 @@
 \alias{jit}
 \title{Jitter runs}
 \usage{
-jit(fit, nojit = 10, par = defpar(fit$data, fit$conf), sd = 0.25,
-  ncores = detectCores())
+jit(data, conf, par = defpar(data, conf), nojit = 10, sd = 0.25,
+  ncores = detectCores(), parallell = TRUE, ...)
 }
 \arguments{
-\item{fit}{a fitted model object as returned from ccam.fit}
+\item{data}{data to fit a model}
 
-\item{nojit}{a list of vectors. Each element in the list specifies a run where the fleets mentioned are omitted}
+\item{conf}{model configuration}
 
 \item{par}{initial values to jitter around. The defaule ones are returned from the defpar function}
+
+\item{nojit}{a list of vectors. Each element in the list specifies a run where the fleets mentioned are omitted}
 
 \item{sd}{the standard deviation used to jitter the initial values (most parameters are on a log scale, so similar to cv)}
 

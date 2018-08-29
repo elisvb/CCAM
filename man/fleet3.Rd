@@ -17,7 +17,7 @@ fleet3(x, fit, f, simpara, deterministic, ULpool = NULL, nm = nm, sw = sw,
 \item{deterministic}{logistic}
 }
 \value{
-returns a matrix of dim nrow(sim)x2 (second column is upper limit)
+returns an array of dim (na-1) x 2 (observation columns) x number of simulations
 }
 \description{
 fleet 3

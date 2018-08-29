@@ -4,12 +4,14 @@
 \alias{IEnothing}
 \title{IEnothing}
 \usage{
-IEnothing(TAC, i)
+IEnothing(x, y, seed = NULL)
 }
 \arguments{
-\item{TAC}{TAC based on MP}
+\item{x}{number of simulations}
 
-\item{i}{numeric between 0 and time series length-1 indicating the timestep}
+\item{y}{number of timestep}
+
+\item{seed}{set.seed}
 }
 \description{
 IEnothing

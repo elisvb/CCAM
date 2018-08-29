@@ -1,5 +1,6 @@
 template <class Type>
-Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &logN, vector<Type> &logFy, vector<Type> &logitSel,data_indicator<vector<Type>,Type> &keep, objective_function<Type> *of){ 
+Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &logN, vector<Type> &logFy, vector<Type> &logitSel, data_indicator<vector<Type>,Type> &keep, objective_function<Type> *of){ 
+  if(conf.debug==1) std::cout << "-- N check1"  << std::endl; 
   Type nll=0;
   int stateDimN=logN.dim[0];
   int timeSteps=logN.dim[1];
@@ -16,7 +17,8 @@ Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &lo
   matrix<Type> LN = lltCovN.matrixL(); // retrieve factor L  in the decomposition
   matrix<Type> LinvN = LN.inverse();
 
-  array<Type> logF = FFun(conf, logFy,logitSel, 1);
+  if(conf.debug==1) std::cout << "-- N check2"  << std::endl; 
+  array<Type> logF = FFun(conf, logFy, logitSel, 1);
 
   for(int i = 1; i < timeSteps; ++i){ 
     vector<Type> predN = predNFun(dat,conf,par,logN,logF,i); 
@@ -30,7 +32,13 @@ Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &lo
     }
   }
 
+  if(conf.debug==1) std::cout << "-- N check3"  << std::endl; 
+
   REPORT_F(resN,of);
+
+  if(conf.resFlag==1){
+    ADREPORT_F(resN,of);
+  }
   
   if(CppAD::Variable(keep.sum())){ // add wide prior for first state, but _only_ when computing ooa residuals
     Type huge = 10;

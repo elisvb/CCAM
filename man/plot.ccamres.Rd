@@ -4,12 +4,10 @@
 \alias{plot.ccamres}
 \title{Plot ccam residuals}
 \usage{
-\method{plot}{ccamres}(x, ...)
+\method{plot}{ccamres}(x)
 }
 \arguments{
 \item{x}{...}
-
-\item{...}{extra arguments}
 }
 \description{
 Plot ccam residuals
@@ -23,7 +21,6 @@ data(canmackData)
 data(canmackConf)
 data(canmackParameters)
 fit <- ccam.fit(canmackData, canmackConf, canmackParameters)
-par(ask=FALSE)
 plot(residuals(fit))
 }
 }

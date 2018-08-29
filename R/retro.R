@@ -52,7 +52,7 @@ reduce<-function(data, year=NULL, fleet=NULL, age=NULL, conf=NULL){
       };
       x
     }
-    conf$keyLogFsta <- .reidx(conf$keyLogFsta[suf,,drop=FALSE])
+    conf$keySel <- conf$keySel[-c((nrow(conf$keySel)-length(unique(year))+1):nrow(conf$keySel)),]
     conf$keyLogFpar <- .reidx(conf$keyLogFpar[suf,,drop=FALSE])
     conf$keyQpow <- .reidx(conf$keyQpow[suf,,drop=FALSE])
     conf$keyVarF <- .reidx(conf$keyVarF[suf,,drop=FALSE])
@@ -83,28 +83,22 @@ reduce<-function(data, year=NULL, fleet=NULL, age=NULL, conf=NULL){
 runwithout <- function(fit, year=NULL, fleet=NULL, ...){
   data <- reduce(fit$data, year=year, fleet=fleet, conf=fit$conf)
   conf <- attr(data, "conf")
+  attr(data, "conf") <- NULL
   par <- defpar(data,conf)
-
-  cen <- 'CE' %in% fit$conf$obsLikelihoodFlag
-  if(isTRUE(cen)) phase <- 1 else phase <-NULL
-  ret <- ccam.fit(data, conf, par, rm.unidentified=TRUE, silent=FALSE, phase=phase)
-
-  if(cen){
-      ret <- ccam.fit(data, conf, ret$pl, rm.unidentified=TRUE, silent=FALSE, phase=2)
-  }
-
+  ret <- force.fit(data, conf, par, rm.unidentified=TRUE, ...)
   return(ret)
 }
 
 ##' retro run
 ##' @param fit a fitted model object as returned from ccam.fit
 ##' @param year either 1) a single integer n in which case runs where all fleets are reduced by 1, 2, ..., n are returned, 2) a vector of years in which case runs where years from and later are excluded for all fleets, and 3 a matrix of years were each column is a fleet and each column corresponds to a run where the years and later are excluded.
+##' @param parallell logical
 ##' @param ncores the number of cores to attemp to use
 ##' @param ... extra arguments to \code{\link{ccam.fit}}
-##' @details ...
+##' @details run a retrospective plot. If run in parallell, success might depend on the available RAM.
 ##' @import parallel
 ##' @export
-retro <- function(fit, year=NULL, ncores=detectCores(), ...){
+retro <- function(fit, year=NULL, parallell=TRUE, ncores=detectCores(), ...){
   data <- fit$data
   y <- fit$data$aux[,"year"]
   f <- fit$data$aux[,"fleet"]
@@ -124,11 +118,15 @@ retro <- function(fit, year=NULL, ncores=detectCores(), ...){
   if(ncol(mat)!=length(suf))stop("Number of retro fleets does not match")
 
   setup <- lapply(1:nrow(mat),function(i)do.call(rbind,lapply(suf,function(ff)cbind(mat[i,ff]:maxy[ff], ff))))
-  cl <- makeCluster(ncores) #set up nodes
-  clusterExport(cl, varlist="fit", envir=environment())
-  #runs <- lapply(setup,function(s) runwithout(fit, year=s[,1], fleet=s[,2]))
-  runs <- parLapply(cl, setup, function(s) CCAM::runwithout(fit, year=s[,1], fleet=s[,2]))
-  stopCluster(cl) #shut it down
+
+  if(parallell){
+      cl <- makeCluster(ncores) #set up nodes
+      clusterExport(cl, varlist="fit", envir=environment())
+      runs <- parLapply(cl, setup, function(s) CCAM::runwithout(fit, year=s[,1], fleet=s[,2]))
+      stopCluster(cl) #shut it down
+  }else{
+      runs <- lapply(setup,function(s) runwithout(fit, year=s[,1], fleet=s[,2]))
+  }
   attr(runs, "fit") <- fit
   class(runs)<-"ccamset"
   runs

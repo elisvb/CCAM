@@ -4,23 +4,19 @@
 \alias{fleet6}
 \title{fleet 6}
 \usage{
-fleet6(x, fit, f, simpara, deterministic, nm)
+fleet6(x, nm)
 }
 \arguments{
 \item{x}{simulations of states}
 
-\item{fit}{object from ccam.fit}
-
-\item{f}{fleet (numeric)}
-
-\item{deterministic}{logistic}
+\item{nm}{simulation of natural mortality}
 }
 \value{
-returns an array of dim (na-1)x2*nrow(sim)
+returns an array of dim (na-1) x 2 (observation columns) x number of simulations
 }
 \description{
 fleet 6
 }
 \details{
-generates observations of fleet 6
+generates observations of fleet 6 (deterministic)
 }

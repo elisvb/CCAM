@@ -4,7 +4,7 @@
 \alias{savepng}
 \title{save pngs in one line}
 \usage{
-savepng(plot, wd, name, dim)
+savepng(plot, wd, name, dim, ...)
 }
 \arguments{
 \item{plot}{plot}
@@ -14,6 +14,8 @@ savepng(plot, wd, name, dim)
 \item{name}{file name}
 
 \item{dim}{dimensions of png in cm}
+
+\item{...}{arguments passed to png}
 }
 \description{
 save pngs in one line

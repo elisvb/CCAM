@@ -4,14 +4,14 @@
 \alias{MPccam}
 \title{MPccam}
 \usage{
-MPccam(fit, data, parameters, TAC.base, i)
+MPccam(data, parameters, conf, TAC.base, i)
 }
 \arguments{
-\item{fit}{output from ccam.fit}
+\item{data}{lists with data lists}
 
-\item{data}{list with data objects}
+\item{parameters}{one list of parameters}
 
-\item{parameters}{list of parameters objects}
+\item{conf}{one list with configurations}
 
 \item{TAC.base}{TAC of previous year}
 

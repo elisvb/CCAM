@@ -4,7 +4,7 @@
 \alias{rmvnorm}
 \title{rmvnorm helper function to draw multivariate normal samples}
 \usage{
-rmvnorm(n = 1, mu, Sigma)
+rmvnorm(n = 1, mu, Sigma, seed)
 }
 \arguments{
 \item{n}{the number of samples.}
@@ -12,6 +12,8 @@ rmvnorm(n = 1, mu, Sigma)
 \item{mu}{the mean vector.}
 
 \item{Sigma}{a positive-definite symmetric matrix specifying the covariance matrix.}
+
+\item{seed}{optional seed}
 }
 \value{
 If n = 1 a vector of the same length as mu, otherwise an n by length(mu) matrix with one sample in each row.

@@ -4,7 +4,7 @@
 \alias{stepdat}
 \title{add one year to data}
 \usage{
-stepdat(x, ob, aux, pr, sw, cw, nm, lf, dw, lw, pm, pf, en)
+stepdat(x, obs, aux, mo, sw, cw, nm, lf, dw, lw, pm, pf, en)
 }
 \arguments{
 \item{x}{fit returned from ccam.fit}

@@ -17,5 +17,5 @@ MPspm(data, TAC.base, i)
 MPspm
 }
 \details{
-determine TAC by fiting surplus production model from SPiCT package
+determine TAC by fiting surplus production model from SPiCT package.
 }

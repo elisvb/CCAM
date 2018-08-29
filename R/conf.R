@@ -38,7 +38,7 @@ setS<-function(x){
 ##' \item{keyScaledYears}{a scalar set to zero as a placeholder here.}
 ##' \item{keyParScaledYA}{an array set to zero as a placeholder here.}
 ##' \item{fbarRange}{}
-##' \item{obsLikelihoodFlag}{A vector with an element for each fleet. "LN" means, and "ALN" means}
+##' \item{obsLikelihoodFlag}{A vector with an element for each fleet. "LN","ALN" or for fleetType 3 "CE" or "RO"}
 ##' @details ...
 ##' @export
 defcon<-function(dat){
@@ -55,17 +55,8 @@ defcon<-function(dat){
   ret$maxAge <- maxAge
   ret$maxAgePlusGroup <- 1
   Csep <- "Catch-at-age proportions" %in% attributes(dat)$fleetNames
-  x <- matrix(0, nrow=nFleets, ncol=nAges)
-  lastMax <- 0
-  for(i in 1:nrow(x)){
-    if(fleetTypes[i]==0 | (fleetTypes[i]==3 & attributes(dat)$fleetNames[min(i+1,length(fleetTypes))]=="Catch-at-age proportions")){
-      if(Csep) aa <- ages[i,1]:maxAge else aa <- ages[i,1]:ages[i,2]
-      aa<-aa[tapply(dat$logobs[dat$aux[,2]==i,1], INDEX=dat$aux[,3][dat$aux[,2]==i], function(x)!all(is.na(x)))] #changed
-      x[i,aa-minAge+1] <- setS(aa)+lastMax
-      lastMax <- max(x)
-    }
-  }
-  ret$keyLogFsta <- x - 1
+  x <- matrix(0:(maxAge-minAge), nrow=dat$noYears, ncol=nAges,byrow = T)
+  ret$keySel <- x
   #ret$corFlag <- 2
   x <- matrix(0, nrow=nFleets, ncol=nAges)
   lastMax <- 0
@@ -128,7 +119,7 @@ defcon<-function(dat){
   ret$fbarRange <- c(min(which(cumsum(pp)>=0.25)), length(pp)-min(which(cumsum(rev(pp))>=0.25))+1)+(minAge-1)
   ret$keyBiomassTreat <- ifelse(dat$fleetTypes==3, 0, -1)
   if(Csep)  ret$keyBiomassTreat[1]=3
-  ret$obsLikelihoodFlag <- factor(rep("LN",nFleets),levels=c("LN","ALN","CE"))
+  ret$obsLikelihoodFlag <- factor(rep("LN",nFleets),levels=c("LN","ALN","CE","RO"))
   ret$fixVarToWeight <- 0
   return(ret)
 }

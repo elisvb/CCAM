@@ -4,12 +4,14 @@
 \alias{retro}
 \title{retro run}
 \usage{
-retro(fit, year = NULL, ncores = detectCores(), ...)
+retro(fit, year = NULL, parallell = TRUE, ncores = detectCores(), ...)
 }
 \arguments{
 \item{fit}{a fitted model object as returned from ccam.fit}
 
 \item{year}{either 1) a single integer n in which case runs where all fleets are reduced by 1, 2, ..., n are returned, 2) a vector of years in which case runs where years from and later are excluded for all fleets, and 3 a matrix of years were each column is a fleet and each column corresponds to a run where the years and later are excluded.}
+
+\item{parallell}{logical}
 
 \item{ncores}{the number of cores to attemp to use}
 
@@ -19,5 +21,5 @@ retro(fit, year = NULL, ncores = detectCores(), ...)
 retro run
 }
 \details{
-...
+run a retrospective plot. If run in parallell, success might depend on the available RAM.
 }

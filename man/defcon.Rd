@@ -28,7 +28,7 @@ a list containing
 \item{keyScaledYears}{a scalar set to zero as a placeholder here.}
 \item{keyParScaledYA}{an array set to zero as a placeholder here.}
 \item{fbarRange}{}
-\item{obsLikelihoodFlag}{A vector with an element for each fleet. "LN" means, and "ALN" means}
+\item{obsLikelihoodFlag}{A vector with an element for each fleet. "LN","ALN" or for fleetType 3 "CE" or "RO"}
 }
 \description{
 Setup basic minimal configuration for ccam assessment

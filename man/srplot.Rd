@@ -10,7 +10,7 @@ srplot(fit, textcol = "red", linecol = "black", curve = FALSE)
 
 \method{srplot}{ccam}(fit, ...)
 
-\method{srplot}{ccamset}(fit, textcol = "red", linecol = "black",
+\method{srplot}{ccamset}(fit, text = TRUE, linecol = "black",
   curve = FALSE)
 }
 \arguments{

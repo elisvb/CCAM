@@ -5,12 +5,14 @@
 \alias{fbarplot.default}
 \title{CCAM fbar plot}
 \usage{
-fbarplot(x, ...)
+fbarplot(x, trans = exp, ...)
 
-\method{fbarplot}{default}(x, ...)
+\method{fbarplot}{default}(x, trans = exp, ...)
 }
 \arguments{
 \item{x}{the object(s) returned from ccam.fit or forecast}
+
+\item{trans}{exp by default}
 
 \item{...}{extra arguments transferred to plotit}
 }

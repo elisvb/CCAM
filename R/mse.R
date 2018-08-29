@@ -4,12 +4,12 @@
 ##' @param f fleet (numeric)
 ##' @param deterministic logistic
 ##' @details generates observations of fleet 3 (keybiomasstreat 4 not yet implemented, 3 needs to be verified)
-##' @return returns a matrix of dim nrow(sim)x2 (second column is upper limit)
+##' @return returns an array of dim (na-1) x 2 (observation columns) x number of simulations
 ##' @export
 fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw){
-    if(fit$conf$keyBiomassTreat[f]==0) obs <- apply(x, 1, ssb, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf)
-    if(fit$conf$keyBiomassTreat[f] %in% c(1,3)) obs <- apply(x, 1, catch, nm=nm, cw=cw)
-    if(fit$conf$keyBiomassTreat[f]==2) obs <- apply(x, 1, fsb, cw, nm)
+    if(fit$conf$keyBiomassTreat[f]==0) obs <- ssb(x, nm, sw, mo, pm, pf)
+    if(fit$conf$keyBiomassTreat[f] %in% c(1,3)) obs <- catch(x,nm, cw)
+    if(fit$conf$keyBiomassTreat[f]==2) obs <- fsb(x, cw, nm)
     if(fit$conf$keyBiomassTreat[f]<3){
         q <- simpara[,which(colnames(simpara)=="logFpar"),drop=FALSE]
         q <- q[,fit$conf$keyLogFpar[f,1]+1]
@@ -17,51 +17,30 @@ fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL, nm=nm, sw=sw, mo=m
     }
 
     obs <- cbind(obs,NA)
-    if(!deterministic){
-        sdObs <- exp(simpara[,which(colnames(simpara)=="logSdLogObs")])
-        aux <- cbind(year=tail(fit$data$years,1)+1,unique(fit$data$aux[,2:3]))
-        sds <- sdObs[,fit$conf$keyVarObs[f,1:length(which(aux[,2]==f))]+1,drop=FALSE]
-        if(fit$conf$obsLikelihoodFlag[f]=='LN'){
-            if(ncol(sds)==0) sds <- rep(0.0001,nrow(simpara))
-            obs[,1] <- rnorm(length(sds),obs[,1],sds)
-        }
-        if(fit$conf$obsLikelihoodFlag[f]=='CE'){
-            obs1 <- sample(ULpool[,1],1)*obs[,1]
-            obs2 <- sample(ULpool[,2],1)*obs[,1]
-            obs <- cbind(obs1,obs2)
-        }
-    }else{
-        if(fit$conf$obsLikelihoodFlag[f]=='CE'){
-            obs1 <- mean(ULpool[,1],1)*obs[,1]
-            obs2 <- mean(ULpool[,2],1)*obs[,1]
-            obs <- cbind(obs1,obs2)
+    if(fit$conf$obsLikelihoodFlag[f]=='CE'){
+        if(deterministic){
+            obs[,2] <- obs[,1]
+        }else{
+            obs[,1] <- mean(ULpool[,1],1)*obs[,1]
+            obs[,2] <- mean(ULpool[,2],1)*obs[,1]
         }
     }
-    obs[obs[,2]<3,2] <- 3
+    obs[obs[,2]<3,2] <- 5 #at least 5 fish (so lower limit does not get to zero)
     obs <- log(obs)
     return(t(obs))
 }
 
 ##' fleet 6
 ##' @param x simulations of states
-##' @param fit object from ccam.fit
-##' @param f fleet (numeric)
-##' @param deterministic logistic
-##' @details generates observations of fleet 6
-##' @return returns an array of dim (na-1)x2*nrow(sim)
+##' @param nm simulation of natural mortality
+##' @details generates observations of fleet 6 (deterministic)
+##' @return returns an array of dim (na-1) x 2 (observation columns) x number of simulations
 ##' @export
-fleet6 <- function(x,fit,f,simpara,deterministic,nm){
-    caasim <- apply(x,1,caa,nm=nm)
-    obs <- crlTransform(caasim)
-
-    if (!deterministic) {
-        sdObs <- exp(simpara[,which(colnames(simpara)=="logSdLogObs")])
-        aux <- cbind(year=tail(fit$data$years,1)+1,unique(fit$data$aux[,2:3]))
-        sds <- t(sdObs[,fit$conf$keyVarObs[f,1:length(which(aux[,2]==f))]+1])
-        obs[] <- rnorm(length(obs), mean=obs, sd=sds)
-     }
-    obs <- lapply(split(t(obs),1:ncol(obs)),cbind,NA)
-    obs <- sapply(1:length(obs), function(y) obs[[y]], simplify = 'array')
+fleet6 <- function(x,nm){
+    caasim <- caa(x, nm)
+    obs <- crlTransform(t(caasim))
+    obs <- lapply(split(t(obs),1:ncol(obs)),cbind,NA) #results to list with second column for upper limit (NA)
+    obs <- sapply(1:length(obs), function(y) obs[[y]], simplify = 'array') #list to array
     return(obs)
 }
 
@@ -89,7 +68,7 @@ newobs <- function(fit, sim, simpara, ULpool,deterministic, nm, sw=sw, mo=mo, pm
             fleetsim[which(aux[,1]==f),,] <- mysim
         }
         if(ft==6) {
-            mysim <- fleet6(x=sim,fit,f,simpara,deterministic,nm)
+            mysim <- fleet6(x=sim,nm)
             fleetsim[which(aux[,1]==f),,] <- mysim
         }
     }
@@ -105,16 +84,24 @@ steppar <- function(x){
     return(x)
 }
 
+##' add one year to configuration
+##' @param x fit returned from ccam.fit
+##' @export
+stepconf <- function(x){
+    x$keySel <- rbind(x$keySel,tail(x$keySel,1))
+    return(x)
+}
+
 ##' add one year to data
 ##' @param x fit returned from ccam.fit
 ##' @param ... next year data objects
 ##' @export
-stepdat <- function(x,ob,aux,pr,sw,cw,nm,lf,dw,lw,pm,pf,en){
+stepdat <- function(x,obs,aux,mo,sw,cw,nm,lf,dw,lw,pm,pf,en){
     newY <- tail(x$years,1)+1
     x$noYears <- x$noYears+1
     x$years <- c(x$years,newY)
     x$aux <- rbind(x$aux,aux)
-    x$logobs <- rbind(x$logobs,ob)
+    x$logobs <- rbind(x$logobs,obs)
     x$nobs <- nrow(x$logobs)
     newyear <- min(as.numeric(x$aux[,1])):max(as.numeric(x$aux[,1]))
     newfleet <- min(as.numeric(x$aux[,2])):max(as.numeric(x$aux[,2]))
@@ -122,7 +109,7 @@ stepdat <- function(x,ob,aux,pr,sw,cw,nm,lf,dw,lw,pm,pf,en){
     x$idx1 <- outer(newfleet, newyear, Vectorize(mmfun,c("f","y")), ff=min)
     x$idx2 <- outer(newfleet, newyear, Vectorize(mmfun,c("f","y")), ff=max)
     x$weight <- c(x$weight, tail(x$weight, nrow(aux)))
-    x$propMat <- rbind(x$propMat,pr)
+    x$propMat <- rbind(x$propMat,mo)
     rownames(x$propMat)[length(rownames(x$propMat))] <- newY
     x$stockMeanWeight <- rbind(x$stockMeanWeight ,sw)
     rownames(x$stockMeanWeight)[length(rownames(x$stockMeanWeight))] <- newY

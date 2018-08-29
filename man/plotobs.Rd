@@ -5,7 +5,7 @@
 \title{Observation plot}
 \usage{
 plotobs(x, trans = TRUE, years = unique(x$aux[, 1]),
-  fleets = unique(x$aux[, 2]), type = "line")
+  fleets = unique(x$aux[, 2]), type = "line", size = 2)
 }
 \arguments{
 \item{x}{data object}
@@ -22,5 +22,5 @@ plotobs(x, trans = TRUE, years = unique(x$aux[, 1]),
 Observation plot
 }
 \details{
-plot logobs content
+plot observations (logobs) by fleet
 }

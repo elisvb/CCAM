@@ -44,7 +44,9 @@ defpar <- function(dat,conf){
   ret$logitRecapturePhi=if(any(dat$fleetTypes==5)){numeric(length(ret$logitReleaseSurvival))
                         }else{numeric(0)}
   ret$logFy=rep(0, dat$noYears)
-  ret$logitSel=logit(seq(0.1,0.9,length.out = max(conf$keyLogFsta[1,])))
+  maxs <- unique(apply(conf$keySel,1,function(x) length(unique(x))))
+  Sel <- unlist(c(sapply(maxs,function(x) seq(0.1,0.9,length.out = x))))
+  ret$logitSel=logit(Sel)[-length(Sel)]
   ret$logN=matrix(10, nrow=conf$maxAge-conf$minAge+1, ncol=dat$noYears)
   return(ret)
 }
