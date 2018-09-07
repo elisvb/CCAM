@@ -627,7 +627,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   ssbmsyratio <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$ssbmsyratio))),3)
   fmsyratio <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$fmsyratio))),3)
   Umsyratio <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$Umsyratio))),3)
-  extinctions <- round(do.call(rbind, lapply(simlist, function(xx) xx$extinctions/nosim*100)),3)
+  extinctions <- round(do.call(rbind, lapply(simlist, function(xx) xx$extinctions/nosim)),3)
 
   catchcumul <- round(t(apply(apply(do.call('rbind',lapply(simlist, function(xx) xx$catch)),2,cumsum),1,quantile,c(.50,.025,.975))))
   names(catchcumul) <- names(catch)

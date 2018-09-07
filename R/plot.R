@@ -895,11 +895,13 @@ prettymatplot <- function(x,ylab='Value',xlab='Year',col=NULL,lwd=1){
 ##' @param text logical. plot year labels
 ##' @param IE numeric. which IE to use for naming if vector of IEs is used.
 ##' @param legend names vector of new legend names
+##' @param data logical data returned?
+##' @param ratio logical. devide by LRP (0.4*SSBf40%)?
 ##' @details Plot of probability of what over time
 ##' @importFrom graphics points
 ##' @import ggplot2 viridis
 ##' @export
-foreplot <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',rect=NULL,ci=TRUE,vline=NULL,hline=NULL,by=NULL,text=FALSE,IE=NULL,year=NULL,legendnames=NULL){
+foreplot <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',rect=NULL,ci=TRUE,vline=NULL,hline=NULL,by=NULL,text=FALSE,IE=NULL,year=NULL,legendnames=NULL,data=FALSE,ratio=FALSE){
     UseMethod("foreplot")
 }
 ##' @rdname foreplot
@@ -913,7 +915,7 @@ foreplot.ccamforecast <- function(x,...){
 ##' @rdname foreplot
 ##' @method foreplot forecastset
 ##' @export
-foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',rect=NULL,ci=TRUE,vline=NULL,hline=NULL,by=NULL,text=FALSE,IE=NULL,year=NULL,legendnames=NULL){
+foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',rect=NULL,ci=TRUE,vline=NULL,hline=NULL,by=NULL,text=FALSE,IE=NULL,year=NULL,legendnames=NULL,data=FALSE,ratio=FALSE){
 
     byopt <- c('OM','IE','MP')
     if(!is.null(by) & !all(by %in% byopt)){stop('"by" may only include OM, IE or MP')}
@@ -924,7 +926,11 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
     if(!is.null(IE)){
         df$IE <- unlist(lapply(strsplit(df$IE,'[.]'),'[[',IE))
     }
-    if(!is.null(df$year)){
+    if(ratio){
+        LRP=unlist(lapply(x,function(y) ypr(attr(y,'fit'))$f40ssb*0.4))
+        df$y=df$y/LRP
+    }
+    if(!is.null(year)){
         df <- df[df$year %in% year,]
     }
 
@@ -939,6 +945,8 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
     }else{
        colnames(df)[which(colnames(df)=='year')]='x'
     }
+
+    if(data) return(df)
 
     # aestethics
     if(length(by)==0){
@@ -1018,10 +1026,12 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
 ##' @param IE numeric. Which IE to plot (if vector)? Defaults to collapsed IE.
 ##' @param IEnames character string containing alternative names for the IEs
 ##' @param threshold if year=TRUE than a threshold can be specified and the year at which it is reached becomes the y value for 'what'
+##' @param data logical. return data instead of plot.
+##' @param ratio logical. devide by LRP (0.40*SSBf40%)?
 ##' @details performance (what) by management procedure, IE and OM type. OM type is defined by the OM name (numbers and 'OM' are removed).
 ##' @importFrom plyr ddply
 ##' @export
-diamondplot <- function(x, what, ylab=what, xlab='Management Procedure',hline=NULL, area=NULL,year, IE=NULL,IEnames=NULL,threshold=NULL){
+diamondplot <- function(x, what, ylab=what, xlab='Management Procedure',hline=NULL, area=NULL,year, IE=NULL,IEnames=NULL,threshold=NULL,data=FALSE,ratio=FALSE){
     UseMethod("diamondplot")
 }
 ##' @rdname diamondplot
@@ -1035,13 +1045,17 @@ diamondplot.ccamforecast <- function(x,...){
 ##' @rdname diamondplot
 ##' @method diamondplot forecastset
 ##' @export
-diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedure',hline=NULL, area=NULL,year=NULL,IE=NULL,IEnames=NULL,threshold=NULL){
+diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedure',hline=NULL, area=NULL,year='all',IE=NULL,IEnames=NULL,threshold=NULL,data=FALSE,ratio=FALSE){
 
     # create data frame
     df <- extract(x,what,add=TRUE)
     colnames(df)[1]='y'
     if(!is.null(IE)){
         df$IE <- unlist(lapply(strsplit(df$IE,'[.]'),'[[',IE))
+    }
+    if(ratio){
+        LRP=unlist(lapply(x,function(y) ypr(attr(y,'fit'))$f40ssb*0.4))
+        df$y=df$y/LRP
     }
 
     #clean up
@@ -1056,26 +1070,29 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
         colnames(df)[2:3]=c('ylow','yhigh')
     }
 
-    if(year=='zone'){
-        cz <-  extract(x,'probCZ',add=TRUE)
-        hz <- extract(x,'probHZ',add=TRUE)
-        df$zones <- ifelse(cz[,1]<0.75,'Critical Zone',ifelse(hz[,1]>0.75,'Healthy Zone','Cautious Zone'))
-        perc <- table(df$zones)/sum(table(df$zones))
-        df <- df[!df$zones %in% names(perc)[which(perc<0.1)],] #remove zones if it doesn't get there
-    }
-
     df$type <- gsub('[0-9]+', '', gsub("OM","",df$OM))
     colnames(df)[which(colnames(df)=='year')]='x'
     df <- df[df$x!=min(df$x),] #remove the first year because not part of the future
 
-    if(is.null(year)){ # take average all years
+
+    if(year=='all'){ # take average all years
         yearlab <- paste(range(df$x),collapse = '-')
         df <- ddply(df,c('OM','MP','IE','id','type'),summarise,y=median(y))
         message('Taking the average value')
     }
+    if(year=='zone'){
+        cz <-  extract(x,'probCZ',add=TRUE)
+        cz <- cz[cz$year!=min(cz$year),]
+        hz <- extract(x,'probHZ',add=TRUE)
+        hz <- hz[hz$yeqr!=min(hz$year),]
+        df$zones <- ifelse(cz[,1]<0.75,'Critical Zone',ifelse(hz[,1]>0.75,'Healthy Zone','Cautious Zone'))
+        perc <- table(df$zones)/sum(table(df$zones))
+        df <- df[!df$zones %in% names(perc)[which(perc<0.1)],] #remove zones if it doesn't get there
+    }
     if(is.numeric(year)){ #take average specified years
         df <- df[df$x %in% year,]
-        yearlab <- paste(range(df$x),collapse = '-')
+        yearlab <- range(df$x)
+        if(yearlab[1]==yearlab[2]){yearlab=as.character(yearlab[1])}else{yearlab <- paste(yearlab,collapse = '-')}
         df <- ddply(df,c('OM','MP','IE','id','type'),summarise,y=median(y))
     }
     if(year=='threshold'){ # if TRUE take year that meets threshold
@@ -1095,6 +1112,9 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
         df <- ddply(df,c('OM','MP','IE','id','type','zones'),summarise,y=median(y))
         yearlab <-''
     }
+
+
+    if(data) return(df)
 
     p <- ggplot(df,aes(x=MP,y=y,col=type,shape=type))
 

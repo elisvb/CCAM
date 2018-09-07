@@ -827,7 +827,7 @@ MPspm <- function(data,TAC.base,i){
         rep <- NULL
         for (i in 1:inp$nphases) {
             if (inp$nphases > 1) cat(paste("Estimating - phase", i, "\n"))
-            for(b in 1:60){
+            for(b in 1:20){
                 mysd <- ifelse(b==1,0,sd)
                 parv <- unlist(pl)
                 pl2 <- relist(parv+rnorm(length(parv),sd=mysd), pl)
@@ -839,7 +839,7 @@ MPspm <- function(data,TAC.base,i){
                 }
                 if(opt$convergence==0){
                     msy <- try(obj$report()$Bmsy)
-                    if(msy>0) break
+                    if(is.numeric(msy)) if(msy>0) break
                 }
               }
         }
@@ -909,6 +909,7 @@ MPspm <- function(data,TAC.base,i){
     }
 
     myds <<- data
+    counter <<- 0
     counter <- 0
 
     penv <- dynGet('myenv',inherits = TRUE)
@@ -938,7 +939,7 @@ MPspm <- function(data,TAC.base,i){
                return(TAC.base[counter])
             }
             msy <- get.par('Bmsy', res)[2]
-            if(is.na(msy))  msy <- -1
+            if(!is.numeric(msy))  msy <- -1
             if(0 !=res$opt$convergence | msy<0){
                 nfail <<- nfail+1
               return(TAC.base[counter])
