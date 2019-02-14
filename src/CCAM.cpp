@@ -64,7 +64,8 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(weight); dataset.weight=weight; 
   DATA_VECTOR_INDICATOR(keep, logobs.matrix().col(0)); //dataset.keep=keep; CHANGED BY EVB
   DATA_ARRAY(propMat); dataset.propMat=propMat; 
-  DATA_ARRAY(stockMeanWeight); dataset.stockMeanWeight=stockMeanWeight;  
+  DATA_ARRAY(stockMeanWeight); dataset.stockMeanWeight=stockMeanWeight; 
+  DATA_ARRAY(stockStartWeight); dataset.stockStartWeight=stockStartWeight; // ADDED BY EVB (SSB0 for exploitation rate)  
   DATA_ARRAY(catchMeanWeight); dataset.catchMeanWeight=catchMeanWeight; 
   DATA_ARRAY(natMor); dataset.natMor=natMor; 
   DATA_ARRAY(landFrac); dataset.landFrac=landFrac; 

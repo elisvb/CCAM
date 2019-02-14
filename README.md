@@ -9,9 +9,6 @@ devtools::install_github("elisvb/CCAM")
 
 The package requires installation of Rtools and TMB.
 
-Management procedures can be based on a Surplus Production Model, so the package spict needs to be installed as well:
-devtools::install_github("mawp/spict/spict")
-
 # Information
 
 Key differences with the SAM package are:

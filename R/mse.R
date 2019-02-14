@@ -38,7 +38,7 @@ fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL, nm=nm, sw=sw, mo=m
 ##' @export
 fleet6 <- function(x,nm){
     caasim <- caa(x, nm)
-    obs <- crlTransform(t(caasim))
+    obs <- crl(t(caasim))
     obs <- lapply(split(t(obs),1:ncol(obs)),cbind,NA) #results to list with second column for upper limit (NA)
     obs <- sapply(1:length(obs), function(y) obs[[y]], simplify = 'array') #list to array
     return(obs)
@@ -96,7 +96,7 @@ stepconf <- function(x){
 ##' @param x fit returned from ccam.fit
 ##' @param ... next year data objects
 ##' @export
-stepdat <- function(x,obs,aux,mo,sw,cw,nm,lf,dw,lw,pm,pf,en){
+stepdat <- function(x,obs,aux,mo,sw,sw0,cw,nm,lf,dw,lw,pm,pf,en){
     newY <- tail(x$years,1)+1
     x$noYears <- x$noYears+1
     x$years <- c(x$years,newY)
@@ -113,6 +113,8 @@ stepdat <- function(x,obs,aux,mo,sw,cw,nm,lf,dw,lw,pm,pf,en){
     rownames(x$propMat)[length(rownames(x$propMat))] <- newY
     x$stockMeanWeight <- rbind(x$stockMeanWeight ,sw)
     rownames(x$stockMeanWeight)[length(rownames(x$stockMeanWeight))] <- newY
+    x$stockStartWeight <- rbind(x$stockStartWeight ,sw0)
+    rownames(x$stockStartWeight)[length(rownames(x$stockStartWeight))] <- newY
     x$catchMeanWeight <- rbind(x$catchMeanWeight ,cw)
     rownames(x$catchMeanWeight )[length(rownames(x$catchMeanWeight ))] <- newY
     x$natMor <- rbind(x$natMor ,nm)

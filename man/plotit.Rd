@@ -9,13 +9,14 @@
 \title{Plot helper}
 \usage{
 plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  years = unique(x$year))
+  years = unique(x$year), linetype = 1, linesize = 2, ...)
 
 \method{plotit}{dfccam}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
   years = unique(x$year), col = "black", linetype = 1, linesize = 2)
 
 \method{plotit}{dfccamset}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  years = unique(x$year), col = NULL, linetype = 1, linesize = 2)
+  years = unique(x$year), col = NULL, linetype = 1, linesize = 2,
+  legendnames = NULL)
 
 \method{plotit}{dfccamforecast}(x, ylab = "Estimate", xlab = "Year",
   ci = TRUE, years = unique(x$year), col = "black", linetype = 1,
@@ -23,7 +24,7 @@ plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
 
 \method{plotit}{dfforecastset}(x, ylab = "Estimate", xlab = "Year",
   ci = TRUE, years = unique(x$year), col = NULL, linetype = 1,
-  linesize = 2)
+  linesize = 2, legendnames = NULL)
 }
 \arguments{
 \item{x}{dataframe from table()}

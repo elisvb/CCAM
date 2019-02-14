@@ -4,7 +4,7 @@
 \alias{spay}
 \title{Standardized proportions at year}
 \usage{
-spay(tdat)
+spay(x)
 }
 \arguments{
 \item{x}{matrix to be standardized (years in columns, ages in rows)}

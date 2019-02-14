@@ -4,17 +4,19 @@
 \alias{foreplot}
 \alias{foreplot.ccamforecast}
 \alias{foreplot.forecastset}
-\title{Plots fit to data}
+\title{Plots forecasting results}
 \usage{
 foreplot(x, what.y, what.x = NULL, ylab = what.y, xlab = "Year",
   rect = NULL, ci = TRUE, vline = NULL, hline = NULL, by = NULL,
-  text = FALSE)
+  text = FALSE, IE = NULL, year = NULL, legendnames = NULL,
+  data = FALSE, ratio = FALSE)
 
 \method{foreplot}{ccamforecast}(x, ...)
 
 \method{foreplot}{forecastset}(x, what.y, what.x = NULL, ylab = what.y,
   xlab = "Year", rect = NULL, ci = TRUE, vline = NULL, hline = NULL,
-  by = NULL, text = FALSE)
+  by = NULL, text = FALSE, IE = NULL, year = NULL, legendnames = NULL,
+  data = FALSE, ratio = FALSE)
 }
 \arguments{
 \item{x}{the object(s) returned from ccam.forecast}
@@ -39,10 +41,16 @@ foreplot(x, what.y, what.x = NULL, ylab = what.y, xlab = "Year",
 
 \item{text}{logical. plot year labels}
 
-\item{...}{extra arguments to plot}
+\item{IE}{numeric. which IE to use for naming if vector of IEs is used.}
+
+\item{data}{logical data returned?}
+
+\item{ratio}{logical. devide by LRP (0.4*SSBf40%)?}
+
+\item{legend}{names vector of new legend names}
 }
 \description{
-Plots fit to data
+Plots forecasting results
 }
 \details{
 Plot of probability of what over time

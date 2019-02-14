@@ -29,8 +29,12 @@ plotit.dfccam <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$y
 ##' @rdname plotit
 ##' @method plotit dfccamset
 ##' @export
-plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,years=unique(x$year),col=NULL,linetype=1,linesize=2){
+plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,years=unique(x$year),col=NULL,linetype=1,linesize=2,legendnames=NULL){
     x <- x[x$year %in% years,]
+    if(!is.null(legendnames)){
+        x$fit <- as.factor(x$fit)
+        levels(x$fit) <- legendnames
+    }
     p <- ggplot(x,aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit),linetype=linetype,size=linesize)+
         scale_y_continuous(expand=c(0,0))+
         scale_x_continuous(expand=c(0,0))+
@@ -93,7 +97,8 @@ plotit.dfforecastset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE, years=u
             scale_y_continuous(expand=c(0,0.5),limits=c(0,max(x$High)*1.1))+
             scale_x_continuous(expand=c(0,0))
     }else{
-        p <- p+scale_y_continuous(expand=c(0,0.5),limits=c(0,max(x$Estimate)*1.1))+
+        ymax <- max(x$Estimate)
+        p <- p+scale_y_continuous(expand=c(0,0.5),limits=c(0,ymax*1.1))+
             scale_x_continuous(expand=c(0,0))
     }
     return(p)
@@ -213,7 +218,7 @@ catchplot.default <- function(x,fleet=NULL,...){
     df <- catchtable(x,fleet=fleet)
     a <- list(...)
     a$x <- df
-    p <- do.call(plotit, a)
+    p <- do.call(plotit, c(a, ylab='Catch'))
     if(!is.null(fleet)){
         if(class(x) %in% c('ccam','ccamforecast')) p <- p+geom_line(aes(y=aux1),col='darkgrey',size=1)+geom_line(aes(y=aux2),col='darkgrey',size=1)
         if(class(x) %in% c('ccamset','forecastset')) p <- p+geom_line(aes(y=aux1,col=fit))+geom_line(aes(y=aux2,col=fit))
@@ -406,7 +411,7 @@ resplot.ccam <- function(fit, trans=function(x) x,fleets=unique(fit$data$aux[,"f
     df <- data.frame(year=Year, p=p,o=o,res=res, age=aa)
     if(type %in% c(2,3,4) & !identical(trans,function(x) x)){
         if(type==2) stop('Residuals are on original scale, predicted values should also be')
-        if(identical(trans,crlInverse)){
+        if(identical(trans,invcrl)){
             ix <- which(aa == fit$data$minAgePerFleet[fleets])
             ix <- rep(ix,each=length(unique(aa)))
             df <- data.frame(year=rep(unique(Year),each=length(unique(aa))+1),
@@ -677,18 +682,20 @@ kobeplot.ccam <- function(x,textsize=2,limit=NULL,legend=FALSE){
 ##' @param IEmeans list of mean values
 ##' @param IEsds list of sd values
 ##' @param col colors
+##' @param ylab y label
+##' @param linesize linesize
 ##' @rdname IEplot
 ##' @import ggplot2
 ##' @importFrom reshape2 melt
 ##' @export
-IEplot <- function(IEmeans,IEsds, col=NULL){
+IEplot <- function(IEmeans,IEsds, col=NULL,ylab='Undeclared catch (t)',linesize=2){
     myIE <-cbind(melt(do.call('rbind',IEmeans)),sd=melt(do.call('rbind',IEsds))[,3])
     p<- ggplot(myIE,aes(x=Var2-1,y=value))+
         geom_ribbon(aes(ymin=value-sd,ymax=value+sd,fill=Var1),alpha=0.2)+
-        geom_line(aes(col=Var1))+
-        geom_point(aes(col=Var1))+
+        geom_line(aes(col=Var1),size=linesize)+
+        #geom_point(aes(col=Var1))+
         theme(legend.position="none")+
-        ylab('Undeclared catch (t)')+xlab('Year')+labs(col='',fill='')
+        ylab(ylab)+xlab('Year')+labs(col='',fill='')
 
     if(is.null(col)){
         p<- p+scale_color_viridis(discrete = TRUE)+
@@ -725,7 +732,7 @@ plotobs <- function(x,trans=TRUE,years=unique(x$aux[,1]),fleets=unique(x$aux[,2]
         if(transcrl){
             amin <- unname(x$minAgePerFleet[2])
             amax <- unname(x$maxAgePerFleet[2])
-            new <- ddply(df[df$fleet == 2,],c('year','fleet','aux2'),summarise,aux1=crlInverse(aux1))
+            new <- ddply(df[df$fleet == 2,],c('year','fleet','aux2'),summarise,aux1=invcrl(aux1))
             ny <- nrow(df[df$fleet == 2,])/length(amin:amax)
             new$age <- rep(amin:(amax+1),ny)
             new <- new[,colnames(df)]
@@ -881,7 +888,7 @@ prettymatplot <- function(x,ylab='Value',xlab='Year',col=NULL,lwd=1){
     p
 }
 
-##' Plots fit to data
+##' Plots forecasting results
 ##' @param x the object(s) returned from ccam.forecast
 ##' @param what.y statistic returned from ccam.forecast
 ##' @param what.x statistic returned from ccam.forecast
@@ -1001,14 +1008,14 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
     if(length(unique(df$id))==1){
         p <- p+scale_color_manual(values ='black')+theme(legend.position = '')
     }else{
-        if(length(by)<3) p <- p+scale_color_viridis(discrete = TRUE,labels=legendnames)
+        if(length(by)<3) p <- p+scale_color_viridis(discrete = TRUE,labels=names(x))
     }
 
 
     return(p)
 }
 
-##' Plots fit to data
+##' Diamond plots of MSE output
 ##' @param x the object(s) returned from ccam.forecast
 ##' @param what statistic returned from ccam.forecast
 ##' @param ylab y label
@@ -1016,22 +1023,25 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
 ##' @param hline plot horizontal line(s)
 ##' @param area color plot underneath this yintercept
 ##' @param year year for which the statistics needs to be plotted
-#' \enumerate{
-#'   \item NULL  Takes median allyears
-#'   \item numeric vector  Takes median of specified years
-#'   \item 'threshold' Takes year at which threshold is reached (see threshold param)
-#'   \item 'percyear' percentage of years where threshold is reached (see threshold param)
-#'   \item 'zone' a facet grid in which the statistic is grouped by zone (critical, healthy or cautious)
-#' }
-##' @param IE numeric. Which IE to plot (if vector)? Defaults to collapsed IE.
+##' \itemize{
+##'   \item{NULL}{ Takes median all years}
+##'   \item{'numeric vector'}{ Takes median of specified years}
+##'   \item{'threshold'}{ Takes year at which threshold is reached (see threshold param)}
+##'   \item{'percyear'}{ Takes percentage of years where threshold is reached (see threshold param)}
+##'   \item{'zone'}{ Makes a facet grid in which the statistic is grouped by zone (critical, healthy or cautious)}
+##' }
+##' @param IE Which IE to plot (if vector)? Defaults to collapsed IE. Can be numeric or string (grep).
 ##' @param IEnames character string containing alternative names for the IEs
+##' @param legnames character string containing alternative names for the legend (OM types)
 ##' @param threshold if year=TRUE than a threshold can be specified and the year at which it is reached becomes the y value for 'what'
 ##' @param data logical. return data instead of plot.
 ##' @param ratio logical. devide by LRP (0.40*SSBf40%)?
+##' @param OMtype logical. OMbase/core/whatever present?
 ##' @details performance (what) by management procedure, IE and OM type. OM type is defined by the OM name (numbers and 'OM' are removed).
 ##' @importFrom plyr ddply
+##' @import ggplot2 viridis
 ##' @export
-diamondplot <- function(x, what, ylab=what, xlab='Management Procedure',hline=NULL, area=NULL,year, IE=NULL,IEnames=NULL,threshold=NULL,data=FALSE,ratio=FALSE){
+diamondplot <- function(x, what, ylab=what, xlab='Management Procedure',hline=NULL, area=NULL,year, IE=NULL,IEnames=NULL,legnames=NULL,threshold=NULL,data=FALSE,ratio=FALSE,OMtype=FALSE){
     UseMethod("diamondplot")
 }
 ##' @rdname diamondplot
@@ -1045,13 +1055,18 @@ diamondplot.ccamforecast <- function(x,...){
 ##' @rdname diamondplot
 ##' @method diamondplot forecastset
 ##' @export
-diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedure',hline=NULL, area=NULL,year='all',IE=NULL,IEnames=NULL,threshold=NULL,data=FALSE,ratio=FALSE){
+diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedure',hline=NULL, area=NULL,year='all',IE=NULL,IEnames=NULL,legnames=NULL,threshold=NULL,data=FALSE,ratio=FALSE,OMtype=FALSE){
 
     # create data frame
     df <- extract(x,what,add=TRUE)
     colnames(df)[1]='y'
     if(!is.null(IE)){
-        df$IE <- unlist(lapply(strsplit(df$IE,'[.]'),'[[',IE))
+        if(is.numeric(IE)) df$IE <- unlist(lapply(strsplit(df$IE,'[.]'),'[[',IE))
+        if(is.character(IE)) df$IE <-  unlist(lapply(strsplit(df$IE,'[.]'),function(o) {
+                                                    n <- o[grepl(IE,o)]
+                                                     if(length(n)==0) n <- 'IE0'
+                                                     return(n)
+                                                     }))
     }
     if(ratio){
         LRP=unlist(lapply(x,function(y) ypr(attr(y,'fit'))$f40ssb*0.4))
@@ -1062,7 +1077,7 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
     MPnum <- as.numeric(unlist(lapply(strsplit(df$MP, "\\D+"),'[[',2)))
     if(length(MPnum)>0) df$MP <- MPnum
     df$IE <- as.factor(df$IE)
-    if(!is.null(IEnames))levels(df$IE) <- IEnames
+    if(!is.null(IEnames)) levels(df$IE) <- IEnames
 
 
     inter <- ifelse(ncol(df)==6,FALSE,TRUE)
@@ -1070,7 +1085,12 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
         colnames(df)[2:3]=c('ylow','yhigh')
     }
 
-    df$type <- gsub('[0-9]+', '', gsub("OM","",df$OM))
+    df$type <- gsub("OM","",df$OM)
+    if(OMtype) df$type <- gsub('[0-9]+', '', df$type)
+    df$type <- as.factor(df$type)
+    if(!is.null(legnames)) levels(df$type) <- legnames
+
+
     colnames(df)[which(colnames(df)=='year')]='x'
     df <- df[df$x!=min(df$x),] #remove the first year because not part of the future
 
@@ -1118,10 +1138,10 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
 
     p <- ggplot(df,aes(x=MP,y=y,col=type,shape=type))
 
-    if(!is.null(hline)) p <- p+ geom_hline(yintercept=hline,linetype='dashed',col='darkgrey')
+    if(!is.null(hline)) p <- p+ geom_hline(yintercept=hline,linetype='dashed',col='darkgreen')
     if(!is.null(area)) p <- p+ geom_area(aes(y=area),fill='darkgreen',alpha=0.5,col='darkgreen')
 
-    p <- p+geom_point(size=3)+labs(col='OM',shape='OM')+
+    p <- p+geom_point(size=1.5)+labs(col='OM',shape='OM')+
         ylab(ylab)+xlab(xlab)+
         ggtitle(yearlab)+
         scale_x_continuous(labels = as.character(unique(df$MP)), breaks = unique(df$MP))

@@ -88,15 +88,17 @@ Type ssbi(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &log
   int stateDimN=logN.dim[0];
   Type ssb=0;
   Type Zprop;
+  Type sw;
   for(int j=0; j<stateDimN; ++j){
     if(s==1){
       Zprop=0; // if s(tart) = 0 ssb is calcuted at another time of year then the beginning
+      sw=dat.stockStartWeight(i,j);
     }else{
       Zprop=dat.natMor(i,j)*dat.propM(i,j);
         if(conf.keySel(i,j)<0) Zprop+=exp(logF(j,i))*dat.propF(i,j);
+      sw=dat.stockMeanWeight(i,j);
     }
-    Zprop = exp(-Zprop);
-    ssb += exp(logN(j,i))*Zprop*dat.propMat(i,j)*dat.stockMeanWeight(i,j);
+    ssb += exp(logN(j,i))*exp(-Zprop)*dat.propMat(i,j)*sw;
   }
   return ssb;
 }

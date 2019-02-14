@@ -37,6 +37,7 @@ struct dataSet{
   // data_indicator<vector<Type>,Type> keep;
   array<Type> propMat;
   array<Type> stockMeanWeight; 
+  array<Type> stockStartWeight; 
   array<Type> catchMeanWeight;
   array<Type> natMor;
   array<Type> landFrac;
@@ -65,6 +66,7 @@ dataSet(SEXP x) {
     weight = asVector<Type>(getListElement(x,"weight"));
     propMat = asArray<Type>(getListElement(x,"propMat"));
     stockMeanWeight = asArray<Type>(getListElement(x,"stockMeanWeight"));
+    stockStartWeight = asArray<Type>(getListElement(x,"stockStartWeight"));
     catchMeanWeight = asArray<Type>(getListElement(x,"catchMeanWeight"));
     natMor = asArray<Type>(getListElement(x,"natMor"));
     landFrac = asArray<Type>(getListElement(x,"landFrac"));

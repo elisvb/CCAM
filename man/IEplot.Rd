@@ -4,7 +4,8 @@
 \alias{IEplot}
 \title{Plot implementation error}
 \usage{
-IEplot(IEmeans, IEsds, col = NULL)
+IEplot(IEmeans, IEsds, col = NULL, ylab = "Undeclared catch (t)",
+  linesize = 2)
 }
 \arguments{
 \item{IEmeans}{list of mean values}
@@ -12,6 +13,10 @@ IEplot(IEmeans, IEsds, col = NULL)
 \item{IEsds}{list of sd values}
 
 \item{col}{colors}
+
+\item{ylab}{y label}
+
+\item{linesize}{linesize}
 }
 \description{
 Plot implementation error

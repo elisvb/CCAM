@@ -105,6 +105,43 @@ class(IEindep4800) <- append(class(IEindep4800),"IE")
 
 ############################## dependent IEs ############################################################
 
+##' IEdep0025
+##' @param x number of simulations
+##' @param y number of timestep
+##' @param seed set.seed
+##' @param ssb vector of ssb values
+##' @param i future year index
+##' @rdname IEdep0025
+##' @details generates matrix of size nosim x i
+##' @export
+IEdep0025<- function(x,y,seed=NULL,ssb,i){
+    if(!is.null(seed)) set.seed(seed)
+    IErw <- t(mapply(function(x){cumsum.bounded(c(runif(1,0,0.25),rnorm(y-1,0,0.08)),0,0.20)},x=1:x)) #matplot(t(IErw),type='l')
+
+    if(!exists('smat')){
+        if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
+            s <- get("ctUSA", envir = .GlobalEnv)[,1]
+        } else {
+            print('To use IEdep a ctUSA objects need to be available in the global environment')
+        }
+        smat <<- matrix(s,x,length(s),byrow = T)
+    }
+
+    cnew <-  apply(smat,1,function(x){
+        pr <- predict(ar(x,order.max=1))
+        ne <- rnorm(1,pr$pred,pr$se)
+    })
+    cnew <- mapply(function(x,y){min(max(x,y*0.05),y*0.3)},cnew,ssb) # bound values to 0.5 % - 30% true biomass
+    cnew <- mapply(function(x,y){min(max(x,y*0),y*2)},cnew,smat[,ncol(smat)]*2) # also bound them so can at most double
+    cnew[cnew>20000] <- 20000
+
+    smat <<- cbind(smat,cnew)
+    ret <- smat[,(length(s)+1):ncol(smat),drop=FALSE]*IErw[,1:i,drop=FALSE]
+    if(i==y) {attr(ret, "ctUSA") <- smat;rm(smat,envir=.GlobalEnv)}
+    return(ret)
+}
+class(IEdep0025) <- append(class(IEdep0025),"IE")
+
 ##' IEdep2550
 ##' @param x number of simulations
 ##' @param y number of timestep
@@ -115,40 +152,18 @@ class(IEindep4800) <- append(class(IEindep4800),"IE")
 ##' @details generates matrix of size nosim x i
 ##' @export
 IEdep2550<- function(x,y,seed=NULL,ssb,i){
-    # USA.base <- 7316.08 # tail(ctUSA,1)
-    # USA.sigma <- 7815.438 #sd(diff(ctUSA))
-    # USA.AC <- 0.826 #acf(ctUSA)$acf[2,1,1]
-    # if(!is.null(seed)) set.seed(seed)
-    # IErw <- t(mapply(function(x){cumsum.bounded(c(rnorm(1,0.375,0.08),rnorm(y-1,0,0.08)),0.25,0.50)},x=1:x)) #matplot(t(IErw),type='l')
-    # IEdev <- mapply(function(mu,sigma){rnorm(mu,sigma,n=x)},mu=rep(0,y),sigma=rep(USA.sigma,y))
-    #
-    # if(!exists('USA.catch')) USA.catch <<- as.matrix(rep(USA.base,x))
-    #
-    # cnew <- USA.AC*USA.catch[,i]+(USA.catch[,i]+IEdev[,i])*sqrt(1-USA.AC^2)
-    # cnew[cnew<0] <-0
-    # print(cnew)
-    # cnew <- sapply(cnew, function(y) min(max(y,ssb*0.15),ssb*0.35)) # bound values to 15 % - 35% true biomass
-    # print(cnew)
-    # USA.catch <<- cbind(USA.catch,cnew)
-    # ret <- USA.catch[,2:ncol(USA.catch),drop=FALSE]*IErw[,1:i,drop=FALSE]
-    # if(i==y) {attr(ret, "ctUSA") <- USA.catch
-    # rm(USA.catch)
-    # }
-    # return(ret)
 
     if(!is.null(seed)) set.seed(seed)
     IErw <- t(mapply(function(x){cumsum.bounded(c(runif(1,0.25,0.5),rnorm(y-1,0,0.08)),0.25,0.50)},x=1:x)) #matplot(t(IErw),type='l')
 
-    s <- c(1396, 1361, 938, 1320, 1644, 1998, 2724, 3891, 3929,
-      4364, 4049, 2406, 2006, 1336, 1042, 1974, 2712, 1377, 1605, 1990,
-      2683, 6150.98, 4520.68, 6806.87, 8273.29, 9345.23, 13860.37,
-      16341.85, 15573.79, 16503.07, 33955.3, 30625.25, 14198.05, 9216.26,
-      16141.38, 10109.36, 19297.08, 17613.46, 15436.33, 14302.86, 7481.7,
-      14890.45, 28115.28, 35399.09, 57647.13, 44320.53, 58465.28, 26338.47,
-      23337.45, 23443.41, 10911.59, 1612.87, 6132.86, 5343.28, 7099.19,
-      7013.45, 7316.08)
-
-    if(!exists('smat')) smat <<- matrix(s,x,length(s),byrow = T)
+    if(!exists('smat')){
+        if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
+            s <- get("ctUSA", envir = .GlobalEnv)[,1]
+        } else {
+            print('To use IEdep a ctUSA objects need to be available in the global environment')
+        }
+        smat <<- matrix(s,x,length(s),byrow = T)
+    }
 
     cnew <-  apply(smat,1,function(x){
            pr <-  predict(ar(x,order.max=1))
@@ -178,17 +193,14 @@ IEdep5075<- function(x,y,seed=NULL,ssb,i){
     if(!is.null(seed)) set.seed(seed)
     IErw <- t(mapply(function(x){cumsum.bounded(c(runif(1,0.50,0.75),rnorm(y-1,0,0.08)),0.50,0.75)},x=1:x)) #matplot(t(IErw),type='l')
 
-    s <- c(1396, 1361, 938, 1320, 1644, 1998, 2724, 3891, 3929,
-           4364, 4049, 2406, 2006, 1336, 1042, 1974, 2712, 1377, 1605, 1990,
-           2683, 6150.98, 4520.68, 6806.87, 8273.29, 9345.23, 13860.37,
-           16341.85, 15573.79, 16503.07, 33955.3, 30625.25, 14198.05, 9216.26,
-           16141.38, 10109.36, 19297.08, 17613.46, 15436.33, 14302.86, 7481.7,
-           14890.45, 28115.28, 35399.09, 57647.13, 44320.53, 58465.28, 26338.47,
-           23337.45, 23443.41, 10911.59, 1612.87, 6132.86, 5343.28, 7099.19,
-           7013.45, 7316.08)
-
-    if(!exists('smat')) smat <<- matrix(s,x,length(s),byrow = T)
-
+    if(!exists('smat')){
+        if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
+            s <- get("ctUSA", envir = .GlobalEnv)[,1]
+        } else {
+            print('To use IEdep a ctUSA objects need to be available in the global environment')
+        }
+        smat <<- matrix(s,x,length(s),byrow = T)
+    }
     cnew <-  apply(smat,1,function(x){
         pr <-  predict(ar(x,order.max=1))
         ne <-rnorm(1,pr$pred,pr$se)
@@ -204,16 +216,52 @@ IEdep5075<- function(x,y,seed=NULL,ssb,i){
 }
 class(IEdep5075) <- append(class(IEdep5075),"IE")
 
-############################## NO IE ############################################################
-
-##' IEnothing
+##' IEdep75100
 ##' @param x number of simulations
 ##' @param y number of timestep
 ##' @param seed set.seed
-##' @rdname IEnothing
+##' @param ssb vector of ssb values
+##' @param i future year index
+##' @rdname IEdep75100
+##' @details generates matrix of size nosim x i
+##' @export
+IEdep75100<- function(x,y,seed=NULL,ssb,i){
+    if(!is.null(seed)) set.seed(seed)
+    IErw <- t(mapply(function(x){cumsum.bounded(c(runif(1,0.75,1),rnorm(y-1,0,0.08)),0.75,1)},x=1:x)) #matplot(t(IErw),type='l')
+
+    if(!exists('smat')){
+        if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
+            s <- get("ctUSA", envir = .GlobalEnv)[,1]
+        } else {
+            print('To use IEdep a ctUSA objects need to be available in the global environment')
+        }
+        smat <<- matrix(s,x,length(s),byrow = T)
+    }
+    cnew <-  apply(smat,1,function(x){
+        pr <-  predict(ar(x,order.max=1))
+        ne <-rnorm(1,pr$pred,pr$se)
+    })
+    cnew <- mapply(function(x,y){min(max(x,y*0.05),y*0.3)},cnew,ssb) # bound values to 0.5 % - 30% true biomass
+    cnew <- mapply(function(x,y){min(max(x,y*0),y*2)},cnew,smat[,ncol(smat)]*2) # also bound them so can at most double
+    cnew[cnew>20000] <- 20000
+
+    smat <<- cbind(smat,cnew)
+    ret <- smat[,(length(s)+1):ncol(smat),drop=FALSE]*IErw[,1:i,drop=FALSE]
+    if(i==y) {attr(ret, "ctUSA") <- smat;rm(smat,envir=.GlobalEnv)}
+    return(ret)
+}
+class(IEdep75100) <- append(class(IEdep75100),"IE")
+
+############################## NO IE or constant IE ############################################################
+
+##' IEconstant
+##' @param x number of simulations
+##' @param y number of timestep
+##' @param value value of IE (same unit as catch)
+##' @rdname IEconstant
 ##' @details keeps TAC as it is
 ##' @export
-IEnothing <- function(x,y,seed=NULL){
-    return(matrix(0,nrow=x,ncol=y))
+IEconstant <- function(x,y,value=0){
+    return(matrix(value,nrow=x,ncol=y))
 }
-class(IEnothing) <- append(class(IEnothing),"IE")
+class(IEconstant) <- append(class(IEconstant),"IE")

@@ -4,7 +4,7 @@
 \alias{spya}
 \title{Standardized proportions at age}
 \usage{
-spya(tdat)
+spya(x)
 }
 \arguments{
 \item{x}{matrix to be standardized (years in columns, ages in rows)}

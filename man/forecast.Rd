@@ -7,9 +7,9 @@
 forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
   nosim = 1000, year.base = max(fit$data$years),
   ave.years = max(fit$data$years) + (-4:0), rec.years = max(fit$data$years)
-  + (-9:0), rec.meth = 5, rec.scale = 1, MPlabel = NULL, OMlabel = NULL,
+  + (-9:0), rec.meth = 4, rec.scale = 1, MPlabel = NULL, OMlabel = NULL,
   overwriteSelYears = NULL, deterministic = FALSE, CZ = 0, HZ = 0,
-  IE = "IEnothing", capLower = NULL, capUpper = NULL,
+  IE = 0, capLower = NULL, capUpper = NULL,
   UL.years = max(fit$data$years) + (-4:0), TAC.base = 0, bio.scale = NULL,
   verbose = TRUE, deadzone = 0, Flim = 3)
 }

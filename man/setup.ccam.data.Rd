@@ -6,9 +6,10 @@
 \usage{
 setup.ccam.data(fleets = NULL, surveys = NULL, residual.fleet = NULL,
   total.catch = NULL, prop.mature = NULL, stock.mean.weight = NULL,
-  catch.mean.weight = NULL, dis.mean.weight = NULL,
-  land.mean.weight = NULL, natural.mortality = NULL, prop.f = NULL,
-  prop.m = NULL, land.frac = NULL, recapture = NULL, env = NULL)
+  stock.start.weight = NULL, catch.mean.weight = NULL,
+  dis.mean.weight = NULL, land.mean.weight = NULL,
+  natural.mortality = NULL, prop.f = NULL, prop.m = NULL,
+  land.frac = NULL, recapture = NULL, env = NULL)
 }
 \arguments{
 \item{fleets}{comm fleets vith effort (currently unimplemented)}
@@ -20,6 +21,8 @@ setup.ccam.data(fleets = NULL, surveys = NULL, residual.fleet = NULL,
 \item{prop.mature}{pm}
 
 \item{stock.mean.weight}{sw}
+
+\item{stock.start.weight}{sw0}
 
 \item{catch.mean.weight}{cw}
 

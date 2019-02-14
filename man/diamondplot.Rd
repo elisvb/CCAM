@@ -4,15 +4,19 @@
 \alias{diamondplot}
 \alias{diamondplot.ccamforecast}
 \alias{diamondplot.forecastset}
-\title{Plots fit to data}
+\title{Diamond plots of MSE output}
 \usage{
 diamondplot(x, what, ylab = what, xlab = "Management Procedure",
-  hline = NULL, year)
+  hline = NULL, area = NULL, year, IE = NULL, IEnames = NULL,
+  legnames = NULL, threshold = NULL, data = FALSE, ratio = FALSE,
+  OMtype = FALSE)
 
 \method{diamondplot}{ccamforecast}(x, ...)
 
 \method{diamondplot}{forecastset}(x, what, ylab = what,
-  xlab = "Management Procedure", hline = NULL, year = NULL)
+  xlab = "Management Procedure", hline = NULL, area = NULL,
+  year = "all", IE = NULL, IEnames = NULL, legnames = NULL,
+  threshold = NULL, data = FALSE, ratio = FALSE, OMtype = FALSE)
 }
 \arguments{
 \item{x}{the object(s) returned from ccam.forecast}
@@ -25,10 +29,33 @@ diamondplot(x, what, ylab = what, xlab = "Management Procedure",
 
 \item{hline}{plot horizontal line(s)}
 
-\item{year}{year for which the statistics needs to be plotted}
+\item{area}{color plot underneath this yintercept}
+
+\item{year}{year for which the statistics needs to be plotted
+\itemize{
+  \item{NULL}{ Takes median all years}
+  \item{'numeric vector'}{ Takes median of specified years}
+  \item{'threshold'}{ Takes year at which threshold is reached (see threshold param)}
+  \item{'percyear'}{ Takes percentage of years where threshold is reached (see threshold param)}
+  \item{'zone'}{ Makes a facet grid in which the statistic is grouped by zone (critical, healthy or cautious)}
+}}
+
+\item{IE}{Which IE to plot (if vector)? Defaults to collapsed IE. Can be numeric or string (grep).}
+
+\item{IEnames}{character string containing alternative names for the IEs}
+
+\item{legnames}{character string containing alternative names for the legend (OM types)}
+
+\item{threshold}{if year=TRUE than a threshold can be specified and the year at which it is reached becomes the y value for 'what'}
+
+\item{data}{logical. return data instead of plot.}
+
+\item{ratio}{logical. devide by LRP (0.40*SSBf40%)?}
+
+\item{OMtype}{logical. OMbase/core/whatever present?}
 }
 \description{
-Plots fit to data
+Diamond plots of MSE output
 }
 \details{
 performance (what) by management procedure, IE and OM type. OM type is defined by the OM name (numbers and 'OM' are removed).

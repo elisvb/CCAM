@@ -725,261 +725,261 @@ MPeggcomplex15000<-function(data,TAC.base){
 class(MPeggcomplex15000) <- append(class(MPeggcomplex15000),"MP")
 attr(MPeggcomplex15000,'model')=FALSE
 
-##' MPccam
-##' @param data lists with data lists
-##' @param parameters one list of parameters
-##' @param conf one list with configurations
-##' @param TAC.base TAC of previous year
-##' @param i year in the future
-##' @rdname MPccam
-##' @details Determine TAC by fiting censored model, determining F40% and health zones and applying F based on the latter. Attributed alternative data  can be used in case simulated data does not lead to convergence.
-##' @export
-##' @import parallel
-MPccam <- function(data, parameters, conf, TAC.base, i){
-    if(!i %% 2 == 1){return(TAC.base)} # first future year there is an evaluation, than there's not
-    #ncores <- detectCores()
-    #cl <- makeCluster(ncores-1) #set up nodes, outfile="debug_MPccam.txt"
-    #clusterExport(cl, varlist=c("conf","parameters"), envir=environment())
-    #clusterCall(cl, function() library(CCAM))
-    #TAC <- parLapply(cl,data,function(x){
-    counter <-0 # both for debugging and later on if superassigment
-
-    penv <- dynGet('myenv',inherits = TRUE)
-    nfit <- dynGet('nfit',inherits = TRUE)
-    nfail <- dynGet('nfail',inherits = TRUE)
-
-    #myds <<- data #just for debugging
-    TAC <- lapply(data,function(x){
-        counter <<- counter+1
-        nfit <<- nfit+1
-
-        #make sure fleet 2 (caa) goes not extremely low because of observation error (mackerel specific...)
-        for(i in x$noYears:ncol(x$idx1)){
-            n <- x$logobs[(x$idx1[2,i]+1):(x$idx2[2,i]+1),1]
-            n <- crlInverse(n)
-            n[n<0.0001] <- 0.0001
-            x$logobs[(x$idx1[2,i]+1):(x$idx2[2,i]+1),1] <- crlTransform(n)
-        }
-
-        fit <- force.fit(x,conf, parameters,20,silent = TRUE)
-        if(class(fit)!='ccam'){  #if there is an error or no model convergence
-                nfail <<- nfail+1
-                return(TAC.base[counter])
-        }
-
-        ssbp <- tail(ssbtable(fit),1)[,1]
-        ref <- ypr(fit,what=c('f40ssb','f40'))
-        ssbref <- ref$f40ssb
-        fref <- ref$f40
-        Bupper <- 0.8*ssbref
-        Blim <- 0.4*ssbref
-
-            if(ssbp<Blim){
-                TAC <- 1
-            }else{
-                if(ssbp<Bupper){
-                    fref <- fref*((ssbp-Blim)/(Bupper-Blim)) #scale if in cautious zone
-                }
-                fut <- tryCatch(forecast(fit,fval=fref,nosim = 300,
-                                         ave.years = max(fit$data$years)+(-9:0),
-                                         rec.years = 1969:max(fit$data$years),
-                                         rec.meth = 2,
-                                         verbose=FALSE,
-                                         Flim=2.5,
-                                         deadzone=1000,
-                                         determini=TRUE), error = identity)
-                if (inherits(fut, "error")) {nfail <<- nfail+1;return(TAC.base[counter])}
-                Clim <- tail(attr(fut,"tab")[,'catch:median'],1)
-                declared <- exp(fit$data$logobs[which(!is.na(fit$data$logobs[,2])),1])
-                predicted <- exp(fit$rep$predObs[which(!is.na(fit$data$logobs[,2]))])
-                U <- predicted-declared
-                U <- max(c(0,mean(tail(U,3)))) # undeclared catch 3 last years estimated by model, never lower than 0
-                TAC <-  max(Clim-U,0) #still gives catches that include US catch...
-                TAC <- TAC*0.8 # presuming 20% is for the US #plot(ct[,1]/(0.25*ctUSA[-c(1:8),1]+ct[,1]))
-            }
-        return(TAC)
-    })
-    TAC <- unlist(TAC)
-    if(length(TAC)==1) TAC <- rep(TAC, length(TAC.base))
-    #stopCluster(cl)
-    assign('nfit',nfit,envir = penv)
-    assign('nfail',nfail,envir = penv)
-    return(TAC)
-}
-class(MPccam) <- append(class(MPccam),"MP")
-attr(MPccam,'model')=TRUE
-
-##' MPspm
-##' @param data list with data objects
-##' @param TAC.base TAC of previous state
-##' @param i year
-##' @rdname MPspm
-##' @details determine TAC by fiting surplus production model from SPiCT package.
-##' @export
-##' @importFrom  spict fit.spict get.par manage prop.F check.inp make.datin
-MPspm <- function(data,TAC.base,i){
-    if(!i %% 2 == 1){return(TAC.base)}
-    #ncores <- detectCores()
-    #cl <- makeCluster(ncores-1) #set up nodes
-    #clusterCall(cl, function() library(spict))
-    #obsfit <- parLapply(cl,data,function(x){
-    fit.spict.rob <- function (inp, datin, pl, dbg = 0, sd=0.25){
-        rep <- NULL
-        for (i in 1:inp$nphases) {
-            if (inp$nphases > 1) cat(paste("Estimating - phase", i, "\n"))
-            for(b in 1:20){
-                mysd <- ifelse(b==1,0,sd)
-                parv <- unlist(pl)
-                pl2 <- relist(parv+rnorm(length(parv),sd=mysd), pl)
-                obj <- make.obj(datin, pl2, inp, phase = i)
-                opt <- try(nlminb(obj$par, obj$fn, obj$gr, control = inp$optimiser.control))
-
-                if (class(opt) != "try-error") {
-                    pl <- obj$env$parList(opt$par)
-                }
-                if(opt$convergence==0){
-                    msy <- try(obj$report()$Bmsy)
-                    if(is.numeric(msy)) if(msy>0) break
-                }
-              }
-        }
-        if (dbg < 1) {
-            optfailflag <- class(opt) == "try-error"
-            sdfailflag <- FALSE
-            if (optfailflag) {
-                cat("obj$par:\n")
-                print(obj$par)
-                cat("obj$fn:\n")
-                print(obj$fn())
-                cat("obj$gr:\n")
-                print(obj$gr())
-                stop("Could not fit model. Error msg:", opt)
-            }
-            else {
-                if (inp$do.sd.report) {
-                    verflag <- as.numeric(gsub("[.]", "", as.character(packageVersion("TMB")))) >=
-                        171
-                    if (verflag) {
-                        rep <- try(TMB::sdreport(obj, getJointPrecision = inp$getJointPrecision,
-                                                 bias.correct = inp$bias.correct, bias.correct.control = inp$bias.correct.control,
-                                                 getReportCovariance = inp$getReportCovariance))
-                    }
-                    else {
-                        rep <- try(TMB::sdreport(obj, getJointPrecision = inp$getJointPrecision,
-                                                 bias.correct = inp$bias.correct, bias.correct.control = inp$bias.correct.control))
-                    }
-                    sdfailflag <- class(rep) == "try-error"
-                    if (sdfailflag) {
-                        warning("Could not calculate sdreport.\n")
-                        rep <- NULL
-                    }
-                }
-                if (is.null(rep)) {
-                    rep <- list()
-                    if (sdfailflag) {
-                        rep <- list()
-                        rep$sderr <- 1
-                        rep$par.fixed <- opt$par
-                        rep$cov.fixed <- matrix(NA, length(opt$par),
-                                                length(opt$par))
-                    }
-                }
-                rep$inp <- inp
-                rep$obj <- obj
-                rep$opt <- opt
-                rep$opt$gr <- rep$obj$gr(rep$opt$par)
-                rep$pl <- obj$env$parList(opt$par)
-                obj$fn()
-                rep$Cp <- obj$report()$Cp
-                rep$report <- obj$report()
-                if (!sdfailflag & inp$reportall) {
-                    if (!inp$osar.method == "none") {
-                        reposar <- try(calc.osa.resid(rep))
-                        if (class(reposar) != "try-error") {
-                            rep <- reposar
-                        }
-                    }
-                }
-            }
-        }
-        if (!is.null(rep)) {
-            class(rep) <- "spictcls"
-        }
-        return(rep)
-    }
-
-    myds <<- data
-    counter <<- 0
-    counter <- 0
-
-    penv <- dynGet('myenv',inherits = TRUE)
-    nfit <- dynGet('nfit',inherits = TRUE)
-    nfail <- dynGet('nfail',inherits = TRUE)
-
-    obsfit <- lapply(data,function(x){
-        counter <<- counter+1
-        nfit <<- nfit+1
-            o <- x$logobs
-            aux <- x$aux
-            d <- list(obsC = unname(exp(o[which(aux[,2]==1),1])), #simulated catch is simulated Can+ 0.25% US catch
-                      timeC = unname(aux[which(aux[,2]==1),1]),
-                      obsI = unname(exp(o[which(aux[,2]==3),1])),
-                      timeI = unname(aux[which(aux[,2]==3),1]))
-            d$obsC[d$obsC<1] <- 1
-            d$obsI[d$obsI<1] <- 1
-
-            inp <- check.inp(d)
-            datin <- make.datin(inp, 0)
-            pl <- inp$parlist
-            if(i!=1) pl[c(1:19,26:27)] <- mypl[c(1:19,26:27)] #improve initial values
-            res <- tryCatch(fit.spict.rob(inp,datin,pl),error=identity)
-            myres <<- res
-            if('error' %in% class(res)){
-                nfail <<- nfail+1
-               return(TAC.base[counter])
-            }
-            msy <- get.par('Bmsy', res)[2]
-            if(!is.numeric(msy))  msy <- -1
-            if(0 !=res$opt$convergence | msy<0){
-                nfail <<- nfail+1
-              return(TAC.base[counter])
-            }
-        Bmsy <- get.par('Bmsy', res)[2]
-        Blast <- get.par('logBl', res, exp=TRUE)[2]
-        Blim <- Bmsy*0.4
-        Bupper <- Bmsy*0.8
-        if(Blast<Blim){TAC=1}else{
-            # maximal fishing
-            if(Blast>Bupper){
-                res <- tryCatch(manage(res, scenarios = 3),error=function(e)print(e)) #fish at msy
-                if('error' %in% class(res)){
-                    nfail <<- nfail+1
-                    return(TAC.base[counter])
-                }
-            }else{
-                # in between fishing
-                Fmsy <- get.par("logFmsyd", res, exp = TRUE)[2]
-                Fref <- (Fmsy*(Blast-Blim))/(Bupper-Blim) # catious zone
-                Flast <- get.par("logF", res, exp = TRUE)[res$inp$indpred[1], 2]
-                Fchange <- Fref/Flast
-                res <- tryCatch(prop.F(Fchange, res$inp, res, which(res$inp$time >= res$inp$manstart)),error=function(e)print(e))
-                if('error' %in% class(res)){
-                    nfail <<- nfail+1
-                    return(TAC.base[counter])
-                }
-            }
-            TAC <- get.par("Cp", res)[2]
-            TAC <- TAC*0.8 #Because the observed catches are Canadian declared catches + 0.25 US landings
-        }
-        if(i==1) mypl <<- res$pl
-        return(TAC)
-       })
-    #stopCluster(cl)
-    TAC <- do.call('c',obsfit)
-    if(length(TAC)==1) TAC <- rep(TAC, length(TAC.base))
-    assign('nfit',nfit,envir = penv)
-    assign('nfail',nfail,envir = penv)
-    return(TAC)
-}
-class(MPspm) <- append(class(MPspm),"MP")
-attr(MPspm,'model')=TRUE
+# ##' MPccam
+# ##' @param data lists with data lists
+# ##' @param parameters one list of parameters
+# ##' @param conf one list with configurations
+# ##' @param TAC.base TAC of previous year
+# ##' @param i year in the future
+# ##' @rdname MPccam
+# ##' @details Determine TAC by fiting censored model, determining F40% and health zones and applying F based on the latter. Attributed alternative data  can be used in case simulated data does not lead to convergence.
+# ##' @export
+# ##' @import parallel
+# MPccam <- function(data, parameters, conf, TAC.base, i){
+#     if(!i %% 2 == 1){return(TAC.base)} # first future year there is an evaluation, than there's not
+#     #ncores <- detectCores()
+#     #cl <- makeCluster(ncores-1) #set up nodes, outfile="debug_MPccam.txt"
+#     #clusterExport(cl, varlist=c("conf","parameters"), envir=environment())
+#     #clusterCall(cl, function() library(CCAM))
+#     #TAC <- parLapply(cl,data,function(x){
+#     counter <-0 # both for debugging and later on if superassigment
+#
+#     penv <- dynGet('myenv',inherits = TRUE)
+#     nfit <- dynGet('nfit',inherits = TRUE)
+#     nfail <- dynGet('nfail',inherits = TRUE)
+#
+#     #myds <<- data #just for debugging
+#     TAC <- lapply(data,function(x){
+#         counter <<- counter+1
+#         nfit <<- nfit+1
+#
+#         #make sure fleet 2 (caa) goes not extremely low because of observation error (mackerel specific...)
+#         for(i in x$noYears:ncol(x$idx1)){
+#             n <- x$logobs[(x$idx1[2,i]+1):(x$idx2[2,i]+1),1]
+#             n <- invcrl(n)
+#             n[n<0.0001] <- 0.0001
+#             x$logobs[(x$idx1[2,i]+1):(x$idx2[2,i]+1),1] <- crl(n)
+#         }
+#
+#         fit <- force.fit(x,conf, parameters,20,silent = TRUE)
+#         if(class(fit)!='ccam'){  #if there is an error or no model convergence
+#                 nfail <<- nfail+1
+#                 return(TAC.base[counter])
+#         }
+#
+#         ssbp <- tail(ssbtable(fit),1)[,1]
+#         ref <- ypr(fit,what=c('f40ssb','f40'))
+#         ssbref <- ref$f40ssb
+#         fref <- ref$f40
+#         Bupper <- 0.8*ssbref
+#         Blim <- 0.4*ssbref
+#
+#             if(ssbp<Blim){
+#                 TAC <- 1
+#             }else{
+#                 if(ssbp<Bupper){
+#                     fref <- fref*((ssbp-Blim)/(Bupper-Blim)) #scale if in cautious zone
+#                 }
+#                 fut <- tryCatch(forecast(fit,fval=fref,nosim = 300,
+#                                          ave.years = max(fit$data$years)+(-9:0),
+#                                          rec.years = 1969:max(fit$data$years),
+#                                          rec.meth = 2,
+#                                          verbose=FALSE,
+#                                          Flim=2.5,
+#                                          deadzone=1000,
+#                                          determini=TRUE), error = identity)
+#                 if (inherits(fut, "error")) {nfail <<- nfail+1;return(TAC.base[counter])}
+#                 Clim <- tail(attr(fut,"tab")[,'catch:median'],1)
+#                 declared <- exp(fit$data$logobs[which(!is.na(fit$data$logobs[,2])),1])
+#                 predicted <- exp(fit$rep$predObs[which(!is.na(fit$data$logobs[,2]))])
+#                 U <- predicted-declared
+#                 U <- max(c(0,mean(tail(U,3)))) # undeclared catch 3 last years estimated by model, never lower than 0
+#                 TAC <-  max(Clim-U,0) #still gives catches that include US catch...
+#                 TAC <- TAC*0.8 # presuming 20% is for the US #plot(ct[,1]/(0.25*ctUSA[-c(1:8),1]+ct[,1]))
+#             }
+#         return(TAC)
+#     })
+#     TAC <- unlist(TAC)
+#     if(length(TAC)==1) TAC <- rep(TAC, length(TAC.base))
+#     #stopCluster(cl)
+#     assign('nfit',nfit,envir = penv)
+#     assign('nfail',nfail,envir = penv)
+#     return(TAC)
+# }
+# class(MPccam) <- append(class(MPccam),"MP")
+# attr(MPccam,'model')=TRUE
+#
+# ##' MPspm
+# ##' @param data list with data objects
+# ##' @param TAC.base TAC of previous state
+# ##' @param i year
+# ##' @rdname MPspm
+# ##' @details determine TAC by fiting surplus production model from SPiCT package.
+# ##' @export
+# ##' @importFrom  spict fit.spict get.par manage prop.F check.inp make.datin
+# MPspm <- function(data,TAC.base,i){
+#     if(!i %% 2 == 1){return(TAC.base)}
+#     #ncores <- detectCores()
+#     #cl <- makeCluster(ncores-1) #set up nodes
+#     #clusterCall(cl, function() library(spict))
+#     #obsfit <- parLapply(cl,data,function(x){
+#     fit.spict.rob <- function (inp, datin, pl, dbg = 0, sd=0.25){
+#         rep <- NULL
+#         for (i in 1:inp$nphases) {
+#             if (inp$nphases > 1) cat(paste("Estimating - phase", i, "\n"))
+#             for(b in 1:20){
+#                 mysd <- ifelse(b==1,0,sd)
+#                 parv <- unlist(pl)
+#                 pl2 <- relist(parv+rnorm(length(parv),sd=mysd), pl)
+#                 obj <- make.obj(datin, pl2, inp, phase = i)
+#                 opt <- try(nlminb(obj$par, obj$fn, obj$gr, control = inp$optimiser.control))
+#
+#                 if (class(opt) != "try-error") {
+#                     pl <- obj$env$parList(opt$par)
+#                 }
+#                 if(opt$convergence==0){
+#                     msy <- try(obj$report()$Bmsy)
+#                     if(is.numeric(msy)) if(msy>0) break
+#                 }
+#               }
+#         }
+#         if (dbg < 1) {
+#             optfailflag <- class(opt) == "try-error"
+#             sdfailflag <- FALSE
+#             if (optfailflag) {
+#                 cat("obj$par:\n")
+#                 print(obj$par)
+#                 cat("obj$fn:\n")
+#                 print(obj$fn())
+#                 cat("obj$gr:\n")
+#                 print(obj$gr())
+#                 stop("Could not fit model. Error msg:", opt)
+#             }
+#             else {
+#                 if (inp$do.sd.report) {
+#                     verflag <- as.numeric(gsub("[.]", "", as.character(packageVersion("TMB")))) >=
+#                         171
+#                     if (verflag) {
+#                         rep <- try(TMB::sdreport(obj, getJointPrecision = inp$getJointPrecision,
+#                                                  bias.correct = inp$bias.correct, bias.correct.control = inp$bias.correct.control,
+#                                                  getReportCovariance = inp$getReportCovariance))
+#                     }
+#                     else {
+#                         rep <- try(TMB::sdreport(obj, getJointPrecision = inp$getJointPrecision,
+#                                                  bias.correct = inp$bias.correct, bias.correct.control = inp$bias.correct.control))
+#                     }
+#                     sdfailflag <- class(rep) == "try-error"
+#                     if (sdfailflag) {
+#                         warning("Could not calculate sdreport.\n")
+#                         rep <- NULL
+#                     }
+#                 }
+#                 if (is.null(rep)) {
+#                     rep <- list()
+#                     if (sdfailflag) {
+#                         rep <- list()
+#                         rep$sderr <- 1
+#                         rep$par.fixed <- opt$par
+#                         rep$cov.fixed <- matrix(NA, length(opt$par),
+#                                                 length(opt$par))
+#                     }
+#                 }
+#                 rep$inp <- inp
+#                 rep$obj <- obj
+#                 rep$opt <- opt
+#                 rep$opt$gr <- rep$obj$gr(rep$opt$par)
+#                 rep$pl <- obj$env$parList(opt$par)
+#                 obj$fn()
+#                 rep$Cp <- obj$report()$Cp
+#                 rep$report <- obj$report()
+#                 if (!sdfailflag & inp$reportall) {
+#                     if (!inp$osar.method == "none") {
+#                         reposar <- try(calc.osa.resid(rep))
+#                         if (class(reposar) != "try-error") {
+#                             rep <- reposar
+#                         }
+#                     }
+#                 }
+#             }
+#         }
+#         if (!is.null(rep)) {
+#             class(rep) <- "spictcls"
+#         }
+#         return(rep)
+#     }
+#
+#     myds <<- data
+#     counter <<- 0
+#     counter <- 0
+#
+#     penv <- dynGet('myenv',inherits = TRUE)
+#     nfit <- dynGet('nfit',inherits = TRUE)
+#     nfail <- dynGet('nfail',inherits = TRUE)
+#
+#     obsfit <- lapply(data,function(x){
+#         counter <<- counter+1
+#         nfit <<- nfit+1
+#             o <- x$logobs
+#             aux <- x$aux
+#             d <- list(obsC = unname(exp(o[which(aux[,2]==1),1])), #simulated catch is simulated Can+ 0.25% US catch
+#                       timeC = unname(aux[which(aux[,2]==1),1]),
+#                       obsI = unname(exp(o[which(aux[,2]==3),1])),
+#                       timeI = unname(aux[which(aux[,2]==3),1]))
+#             d$obsC[d$obsC<1] <- 1
+#             d$obsI[d$obsI<1] <- 1
+#
+#             inp <- check.inp(d)
+#             datin <- make.datin(inp, 0)
+#             pl <- inp$parlist
+#             if(i!=1) pl[c(1:19,26:27)] <- mypl[c(1:19,26:27)] #improve initial values
+#             res <- tryCatch(fit.spict.rob(inp,datin,pl),error=identity)
+#             myres <<- res
+#             if('error' %in% class(res)){
+#                 nfail <<- nfail+1
+#                return(TAC.base[counter])
+#             }
+#             msy <- get.par('Bmsy', res)[2]
+#             if(!is.numeric(msy))  msy <- -1
+#             if(0 !=res$opt$convergence | msy<0){
+#                 nfail <<- nfail+1
+#               return(TAC.base[counter])
+#             }
+#         Bmsy <- get.par('Bmsy', res)[2]
+#         Blast <- get.par('logBl', res, exp=TRUE)[2]
+#         Blim <- Bmsy*0.4
+#         Bupper <- Bmsy*0.8
+#         if(Blast<Blim){TAC=1}else{
+#             # maximal fishing
+#             if(Blast>Bupper){
+#                 res <- tryCatch(manage(res, scenarios = 3),error=function(e)print(e)) #fish at msy
+#                 if('error' %in% class(res)){
+#                     nfail <<- nfail+1
+#                     return(TAC.base[counter])
+#                 }
+#             }else{
+#                 # in between fishing
+#                 Fmsy <- get.par("logFmsyd", res, exp = TRUE)[2]
+#                 Fref <- (Fmsy*(Blast-Blim))/(Bupper-Blim) # catious zone
+#                 Flast <- get.par("logF", res, exp = TRUE)[res$inp$indpred[1], 2]
+#                 Fchange <- Fref/Flast
+#                 res <- tryCatch(prop.F(Fchange, res$inp, res, which(res$inp$time >= res$inp$manstart)),error=function(e)print(e))
+#                 if('error' %in% class(res)){
+#                     nfail <<- nfail+1
+#                     return(TAC.base[counter])
+#                 }
+#             }
+#             TAC <- get.par("Cp", res)[2]
+#             TAC <- TAC*0.8 #Because the observed catches are Canadian declared catches + 0.25 US landings
+#         }
+#         if(i==1) mypl <<- res$pl
+#         return(TAC)
+#        })
+#     #stopCluster(cl)
+#     TAC <- do.call('c',obsfit)
+#     if(length(TAC)==1) TAC <- rep(TAC, length(TAC.base))
+#     assign('nfit',nfit,envir = penv)
+#     assign('nfail',nfail,envir = penv)
+#     return(TAC)
+# }
+# class(MPspm) <- append(class(MPspm),"MP")
+# attr(MPspm,'model')=TRUE

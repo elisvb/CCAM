@@ -35,6 +35,7 @@ reduce<-function(data, year=NULL, fleet=NULL, age=NULL, conf=NULL){
   ages <- amin[amin>-1]:max(amax)
   data$propMat <- data$propMat[rownames(data$propMat)%in%data$years, colnames(data$propMat)%in%ages]
   data$stockMeanWeight <- data$stockMeanWeight[rownames(data$stockMeanWeight)%in%data$years, colnames(data$stockMeanWeight)%in%ages]
+  data$stockStartWeight <- data$stockStartWeight[rownames(data$stockStartWeight)%in%data$years, colnames(data$stockStartWeight)%in%ages]
   data$natMor <- data$natMor[rownames(data$natMor)%in%data$years, colnames(data$natMor)%in%ages]
   data$propF <- data$propF[rownames(data$propF)%in%data$years, colnames(data$propF)%in%ages]
   data$propM <- data$propM[rownames(data$propM)%in%data$years, colnames(data$propM)%in%ages]

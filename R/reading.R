@@ -248,6 +248,7 @@ read.ices<-function(filen){
 ##' @param residual.fleet total catch minus commercial
 ##' @param prop.mature pm
 ##' @param stock.mean.weight sw
+##' @param stock.start.weight sw0
 ##' @param catch.mean.weight cw
 ##' @param dis.mean.weight dw
 ##' @param land.mean.weight lw
@@ -260,7 +261,7 @@ read.ices<-function(filen){
 ##' @details ...
 ##' @export
 setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
-                            total.catch=NULL,prop.mature=NULL, stock.mean.weight=NULL, catch.mean.weight=NULL,
+                            total.catch=NULL,prop.mature=NULL, stock.mean.weight=NULL, stock.start.weight=NULL,catch.mean.weight=NULL,
                            dis.mean.weight=NULL, land.mean.weight=NULL,
                            natural.mortality=NULL, prop.f=NULL, prop.m=NULL, land.frac=NULL, recapture=NULL,env=NULL){
   # Function to write records in state-space assessment format and create
@@ -305,7 +306,7 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
   }
   if(!is.null(residual.fleet)){
     if(!is.null(total.catch)){
-       rf=t(crlTransform(t(residual.fleet)))
+       rf=t(crl(t(residual.fleet)))
        type<-c(type,6)
        name<-c(name,"Catch-at-age proportions")
     }else{
@@ -347,6 +348,9 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
   }
   if(is.null(land.frac)){
     land.frac<-matrix(1,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet)) # should be pure 1
+  }
+  if(is.null(stock.start.weight)){
+    stock.start.weight<-stock.mean.weight
   }
   if(is.null(dis.mean.weight)){
     dis.mean.weight<-catch.mean.weight
@@ -405,6 +409,7 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
   cutY<-function(x)x[rownames(x)%in%newyear,,drop=FALSE]
   attr(dat,'prop.mature')<-cutY(prop.mature)
   attr(dat,'stock.mean.weight')<-cutY(stock.mean.weight)
+  attr(dat,'stock.start.weight')<-cutY(stock.start.weight)
   attr(dat,'catch.mean.weight')<-cutY(catch.mean.weight)
   attr(dat,'dis.mean.weight')<-cutY(dis.mean.weight)
   attr(dat,'land.mean.weight')<-cutY(land.mean.weight)
@@ -429,6 +434,7 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
     weight=as.numeric(weight),
     propMat=attr(dat,'prop.mature'),
     stockMeanWeight=attr(dat,'stock.mean.weight'),
+    stockStartWeight=attr(dat,'stock.start.weight'),
     catchMeanWeight=attr(dat,'catch.mean.weight'),
     natMor=attr(dat,'natural.mortality'),
     landFrac=attr(dat,'land.frac'),

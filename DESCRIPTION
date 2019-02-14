@@ -1,7 +1,7 @@
 Package: CCAM
 Title: Censored Catch Assessment Model
 Version: 0.1.0
-Date: 2018-05-17
+Date: 2019-02-14
 Authors@R: c(person("Elisabeth","Van Beveren",role=c("aut","cre"), email="Elisabeth.VanBeveren@adfo-mpo.gc.ca"))
 Description: Fitting CCAM, adapted from the stockassessment package using SAM (https://github.com/fishfollower/SAM)
 License: GPL-2

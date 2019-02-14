@@ -112,7 +112,7 @@ defcon<-function(dat){
   }else{
   cs <- colSums(dat$catchMeanWeight)
   ii <- which(attributes(dat)$fleetNames=="Catch-at-age proportions")
-  tc <- rowSums(crlInverse(t(matrix(dat$logobs[dat$aux[,2]==ii,1],ncol=nAges-1,byrow = TRUE))))
+  tc <- rowSums(invcrl(t(matrix(dat$logobs[dat$aux[,2]==ii,1],ncol=nAges-1,byrow = TRUE))))
   tc <- tc*cs
   pp <- tc/sum(tc)
   }
