@@ -5,14 +5,16 @@
 \alias{fitplot.default}
 \title{fitplot}
 \usage{
-fitplot(x, type = "AIC")
+fitplot(x, type = "AIC", n = TRUE)
 
-\method{fitplot}{default}(x, type = c("AIC", "nll"))
+\method{fitplot}{default}(x, type = c("AIC", "nll"), n = TRUE)
 }
 \arguments{
 \item{x}{fit from ccam}
 
 \item{type}{'AIC' (default) or 'nll'}
+
+\item{n}{logical. Add the number of parameters.}
 }
 \description{
 fitplot

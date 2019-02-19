@@ -19,8 +19,7 @@ plot.ccam<-function(x, ...){
 ##' @param  x ...
 ##' @param  ... extra arguments
 ##' @importFrom gridExtra grid.arrange arrangeGrob gtable_rbind
-##' @importFrom grid unit.pmax
-##' @import ggplot2
+##' @import ggplot2 grid
 ##' @details ...
 ##' @export
 plot.ccamset<-function(x, ...){
@@ -117,7 +116,7 @@ c.ccamforecast<-function(...){
 ##' @param ... extra arguments (not currently used)
 ##' @return an object of class \code{ccamres}
 ##' @details ...
-##' @importFrom TMB sdreport
+##' @import TMB
 ##' @export
 procres <- function(fit, ...){
   pp<-fit$pl
@@ -141,15 +140,8 @@ procres <- function(fit, ...){
                      fleet=1,
                      age=ages[as.vector(row(resN))],
                      residual=as.vector(resN))
-  idx <- which(names(sdrep$value)=="resF")
-  resF <- rmvnorm(1,mu=sdrep$value[idx], Sigma=sdrep$cov[idx,idx])
-  resF <- matrix(resF, nrow=nrow(fit.co$pl$logF))
-  resF <- data.frame(year=fit.co$data$years[as.vector(col(resF))],
-                     fleet=2,
-                     age=ages[iF[iF>=0]+1][as.vector(row(resF))],
-                     residual=as.vector(resF))
-  ret <- rbind(resN, resF)
-  attr(ret, "fleetNames") <- c("Joint sample residuals log(N)", "Joint sample residuals log(F)")
+  ret <- resN
+  attr(ret, "fleetNames") <- "Joint sample residuals log(N)"
   class(ret) <- "ccamres"
   if (exists("oldseed")){
     do.call("RNGkind",as.list(oldRNGkind))
@@ -174,7 +166,7 @@ procres <- function(fit, ...){
 ##' fit <- ccam.fit(canmackData, canmackConf, canmackParameters)
 ##' plot(residuals(fit))
 ##' }
-plot.ccamres<-function(x){
+plot.ccamres<-function(x,qq=TRUE,fleet=NULL){
 
   slope <- function(x){diff(quantile(x[!is.na(x)], c(0.25, 0.75)))/diff(qnorm(c(0.25, 0.75)))}
   intercept <- function(x){quantile(x[!is.na(x)], c(0.25, 0.75))[1L] - diff(quantile(x[!is.na(x)], c(0.25, 0.75)))/diff(qnorm(c(0.25, 0.75))) * qnorm(c(0.25, 0.75))[1L]}
@@ -185,10 +177,12 @@ plot.ccamres<-function(x){
   df <- data.frame(do.call('cbind',x))
   df$by <- attr(x,"fleetNames")[x$fleet]
   df[df$by=='Total catch','age'] <- rep(c(0,1),each=length(df[df$by=='Total catch','age'])/2)
-  df <- df[!is.na(df$observation),]
+  if('observation' %in% colnames(df)) df <- df[!is.na(df$observation),]
 
   df$negpos <- ifelse(df$residual<0,'-','+')
   df <- ddply(df,c('by'),transform,slope=slope(residual),int=intercept(residual) )
+
+  if(!is.null(fleet)){df <- df[df$fleet %in% fleet,]}
 
   p1 <- ggplot(df,aes(x=year,y=age,size=abs(residual),col=negpos))+geom_point(alpha=0.6)+
       scale_size(range = c(1, 9)) +ylab('Age') + xlab('Year')+
@@ -199,13 +193,14 @@ plot.ccamres<-function(x){
             strip.background = element_blank(),
             strip.text.y = element_blank())
 
-  p2 <- ggplot(df, aes(sample = residual)) + stat_qq() +
-      facet_grid(by~.)+
-      geom_abline(aes(slope = slope, intercept = int))
-
-
-    grid.arrange(p1,p2,ncol=2,widths=c(4,1))
-
+  if(isTRUE(qq)){
+      p2 <- ggplot(df, aes(sample = residual)) + stat_qq() +
+          facet_grid(by~.)+
+          geom_abline(aes(slope = slope, intercept = int))
+      grid.arrange(p1,p2,ncol=2,widths=c(4,1))
+  }else{
+      p1
+  }
 }
 
 ##' Print ccam object

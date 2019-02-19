@@ -199,11 +199,12 @@ jit <- function(data, conf, par=defpar(data, conf), nojit=10,  sd=.25, ncores=de
 
   if(parallell){
       cl <- makeCluster(ncores) #set up nodes
-      clusterEvalQ(cl, {library(ccam)}) #load the package to each node
-      fits <- parLapply(cl, pars, function(p) ccam.fit(data, conf, p, silent = TRUE,...))
+      clusterEvalQ(cl, {library(CCAM)}) #load the package to each node
+      clusterExport(cl, c('conf','data'), envir=environment()) #load the data to each node
+      fits <- parLapply(cl, pars, function(p) ccam.fit(data, conf, p, silent = TRUE, paracheck=FALSE,...))
       stopCluster(cl) #shut it down
   }else{
-      fits <- lapply(pars, function(p) ccam.fit(data, conf, p, silent = TRUE,paracheck=FALSE,...))
+      fits <- lapply(pars, function(p) ccam.fit(data, conf, p, silent = TRUE, paracheck=FALSE,...))
   }
 
   attr(fits,"fit") <- fit

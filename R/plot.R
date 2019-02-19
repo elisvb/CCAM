@@ -149,7 +149,7 @@ expplot<-function(x, ...){
 ##' @export
 expplot.default <- function(x,...){
     df <- exptable(x)
-    plotit(df,ylab='Exploitation rate',...)
+    plotit(df,ylab='Exploitation rate',...)+scale_y_continuous(limits=c(0,1),expand=c(0,0))
 }
 
 ##' CCAM recruitment plot
@@ -543,18 +543,18 @@ parplot.default <- function(fit, cor.report.limit=0.95, col=NULL){
     )
     mat <- do.call('rbind',mat)
 
-    corrs <- lapply(1:length(param), function(x) {corrs <- cov2cor(attr(param[[x]], "cov"))-diag(length(param[[x]]))
-                                        rownames(corrs)<-nam
-                                        colnames(corrs)<-nam
-                                        co <- data.frame(melt(corrs))
-                                        names(co) <- c('nam','label','value')
-                                        co$hc <- ifelse(co$value>cor.report.limit,round(co$value*100),NA)
-                                        co$lc <- ifelse(co$value< -cor.report.limit,round(co$value*100),NA)
-                                        co <- co[!(is.na(co$hc) & is.na(co$lc)),]
-                                        co$fit <- lab[x]
-                                        co
-    })
-    print(do.call('rbind',corrs))
+    # corrs <- lapply(1:length(param), function(x) {corrs <- cov2cor(attr(param[[x]], "cov"))-diag(length(param[[x]]))
+    #                                     rownames(corrs)<-nam
+    #                                     colnames(corrs)<-nam
+    #                                     co <- data.frame(melt(corrs))
+    #                                     names(co) <- c('nam','label','value')
+    #                                     co$hc <- ifelse(co$value>cor.report.limit,round(co$value*100),NA)
+    #                                     co$lc <- ifelse(co$value< -cor.report.limit,round(co$value*100),NA)
+    #                                     co <- co[!(is.na(co$hc) & is.na(co$lc)),]
+    #                                     co$fit <- lab[x]
+    #                                     co
+    # })
+    # print(do.call('rbind',corrs))
 
     p <- ggplot(mat,aes(x=nam,y=est,col=as.factor(fit),group=as.factor(fit)))+
         geom_point(position=position_dodge(width=0.5))+
@@ -760,17 +760,18 @@ plotobs <- function(x,trans=TRUE,years=unique(x$aux[,1]),fleets=unique(x$aux[,2]
 ##' fitplot
 ##' @param x fit from ccam
 ##' @param type 'AIC' (default) or 'nll'
+##' @param n logical. Add the number of parameters.
 ##' @import ggplot2
 ##' @export
 ##' @details plots the AIC or nll for every model with the number of parameters on top
-fitplot<-function(x,type='AIC'){
+fitplot<-function(x,type='AIC',n=TRUE){
     UseMethod("fitplot")
 }
 
 ##' @rdname fitplot
 ##' @method fitplot default
 ##' @export
-fitplot.default <- function(x,type=c('AIC','nll')){
+fitplot.default <- function(x,type=c('AIC','nll'),n=TRUE){
     tab <- as.data.frame(modeltable(x))
     tab$fit <- rownames(tab)
     names(tab)[2] <-'par'
@@ -779,11 +780,14 @@ fitplot.default <- function(x,type=c('AIC','nll')){
     if(tolower(type)=='aic') names(tab)[3] <- 'y'
     if(tolower(type)=='nll') names(tab)[1] <- 'y'
 
-    ggplot(tab,aes(x=fit,y=y))+geom_point()+
-        geom_text(aes(label=par,x=fit,y=y),vjust=-0.3)+
+    p <- ggplot(tab,aes(x=fit,y=y))+geom_point()+
         xlab('Model')+
         theme(axis.text.x = element_text(angle = 90, hjust = 1))+
         ylab(type)
+    if(isTRUE(n)){
+        p <- p+geom_text(aes(label=par,x=fit,y=y),vjust=-0.3)
+    }
+    return(p)
 }
 
 ##' Bubble plot

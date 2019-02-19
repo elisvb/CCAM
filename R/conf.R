@@ -21,24 +21,24 @@ setS<-function(x){
 ##' Setup basic minimal configuration for ccam assessment
 ##' @param dat ccam data object
 ##' @return a list containing
-##' \item{minAge}{}
-##' \item{maxAge}{}
-##' \item{maxAgePlusGroup}{}
-##' \item{keyLogFsta}{}
-##' \item{keyLogFpar}{}
-##' \item{keyQpow}{}
-##' \item{keyVarF}{}
-##' \item{keyVarLogN}{}
-##' \item{keyVarObs}{}
-##' \item{obsCorStruct}{}
-##' \item{keyCorObs}{}
-##' \item{corFlag}{set to zero as a placeholder here.}
-##' \item{stockRecruitmentModelCode}{set to zero as a placeholder here.}
+##' \item{minAge}{minimum age}
+##' \item{maxAge}{maximum age}
+##' \item{maxAgePlusGroup}{plus group (0 or 1)}
+##' \item{keySel}{selectivity structure}
+##' \item{keyLogFpar}{survey catchability}
+##' \item{keyQpow}{Qpow structure}
+##' \item{keyVarF}{F variance structure}
+##' \item{keyVarLogN}{N variance structure}
+##' \item{keyVarObs}{observation variance structure}
+##' \item{obsCorStruct}{correlation structure if MVN observation error}
+##' \item{keyCorObs}{correlation if MVN observation error}
+##' \item{stockRecruitmentModelCode}{0: RW, 1: ricker, 2: BH, 3: mean}
 ##' \item{noScaledYears}{set to zero as a placeholder here.}
 ##' \item{keyScaledYears}{a scalar set to zero as a placeholder here.}
 ##' \item{keyParScaledYA}{an array set to zero as a placeholder here.}
-##' \item{fbarRange}{}
+##' \item{fbarRange}{Range of ages over which Fbar should be taken}
 ##' \item{obsLikelihoodFlag}{A vector with an element for each fleet. "LN","ALN" or for fleetType 3 "CE" or "RO"}
+##' \item{fixVarToWeight}{a scalar set to zero as a placeholder here.}
 ##' @details ...
 ##' @export
 defcon<-function(dat){

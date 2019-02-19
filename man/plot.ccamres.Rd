@@ -4,7 +4,7 @@
 \alias{plot.ccamres}
 \title{Plot ccam residuals}
 \usage{
-\method{plot}{ccamres}(x)
+\method{plot}{ccamres}(x, qq = TRUE, fleet = NULL)
 }
 \arguments{
 \item{x}{...}
