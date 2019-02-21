@@ -117,13 +117,12 @@ class(IEindep4800) <- append(class(IEindep4800),"IE")
 IEdep0025<- function(x,y,seed=NULL,ssb,i){
     if(!is.null(seed)) set.seed(seed)
     IErw <- t(mapply(function(x){cumsum.bounded(c(runif(1,0,0.25),rnorm(y-1,0,0.08)),0,0.20)},x=1:x)) #matplot(t(IErw),type='l')
-
+    if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
+        s <- get("ctUSA", envir = .GlobalEnv)[,1]
+    } else {
+        print('To use IEdep a ctUSA objects need to be available in the global environment')
+    }
     if(!exists('smat')){
-        if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
-            s <- get("ctUSA", envir = .GlobalEnv)[,1]
-        } else {
-            print('To use IEdep a ctUSA objects need to be available in the global environment')
-        }
         smat <<- matrix(s,x,length(s),byrow = T)
     }
 
@@ -155,13 +154,13 @@ IEdep2550<- function(x,y,seed=NULL,ssb,i){
 
     if(!is.null(seed)) set.seed(seed)
     IErw <- t(mapply(function(x){cumsum.bounded(c(runif(1,0.25,0.5),rnorm(y-1,0,0.08)),0.25,0.50)},x=1:x)) #matplot(t(IErw),type='l')
-
+    if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
+        s <- get("ctUSA", envir = .GlobalEnv)[,1]
+    } else {
+        print('To use IEdep a ctUSA objects need to be available in the global environment')
+    }
     if(!exists('smat')){
-        if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
-            s <- get("ctUSA", envir = .GlobalEnv)[,1]
-        } else {
-            print('To use IEdep a ctUSA objects need to be available in the global environment')
-        }
+
         smat <<- matrix(s,x,length(s),byrow = T)
     }
 
@@ -192,13 +191,12 @@ class(IEdep2550) <- append(class(IEdep2550),"IE")
 IEdep5075<- function(x,y,seed=NULL,ssb,i){
     if(!is.null(seed)) set.seed(seed)
     IErw <- t(mapply(function(x){cumsum.bounded(c(runif(1,0.50,0.75),rnorm(y-1,0,0.08)),0.50,0.75)},x=1:x)) #matplot(t(IErw),type='l')
-
+    if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
+        s <- get("ctUSA", envir = .GlobalEnv)[,1]
+    } else {
+        print('To use IEdep a ctUSA objects need to be available in the global environment')
+    }
     if(!exists('smat')){
-        if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
-            s <- get("ctUSA", envir = .GlobalEnv)[,1]
-        } else {
-            print('To use IEdep a ctUSA objects need to be available in the global environment')
-        }
         smat <<- matrix(s,x,length(s),byrow = T)
     }
     cnew <-  apply(smat,1,function(x){
@@ -228,13 +226,13 @@ class(IEdep5075) <- append(class(IEdep5075),"IE")
 IEdep75100<- function(x,y,seed=NULL,ssb,i){
     if(!is.null(seed)) set.seed(seed)
     IErw <- t(mapply(function(x){cumsum.bounded(c(runif(1,0.75,1),rnorm(y-1,0,0.08)),0.75,1)},x=1:x)) #matplot(t(IErw),type='l')
-
+    if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
+        s <- get("ctUSA", envir = .GlobalEnv)[,1]
+    } else {
+        print('To use IEdep a ctUSA objects need to be available in the global environment')
+    }
     if(!exists('smat')){
-        if ("ctUSA" %in% ls(envir = .GlobalEnv)) {
-            s <- get("ctUSA", envir = .GlobalEnv)[,1]
-        } else {
-            print('To use IEdep a ctUSA objects need to be available in the global environment')
-        }
+
         smat <<- matrix(s,x,length(s),byrow = T)
     }
     cnew <-  apply(smat,1,function(x){

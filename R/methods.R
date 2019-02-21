@@ -413,17 +413,7 @@ print.ccamforecast<-function(x, ...){
 ##' @export
 print.ccamset<-function(x,...){
   if("jitflag"%in%names(attributes(x))){
-    fit<-attr(x,"fit")
-    maxabsdiff <- apply(abs(do.call(cbind, lapply(x, function(f)unlist(f$pl)-unlist(fit$pl)))),1,max)
-    maxlist <- relist(maxabsdiff, fit$pl)
-    ret <- as.data.frame(unlist(lapply(maxlist,function(x)if(length(x)>0)max(x) else NULL)))
-    fbar <- max(unlist(lapply(x, function(f)abs(fbartable(f)[,1]-fbartable(fit)[,1]))))
-    ssb <- max(unlist(lapply(x, function(f)abs(ssbtable(f)[,1]-ssbtable(fit)[,1]))))
-    rec <- max(unlist(lapply(x, function(f)abs(rectable(f)[,1]-rectable(fit)[,1]))))
-    catch <- max(unlist(lapply(x, function(f)abs(catchtable(f)[,1]-catchtable(fit)[,1]))))
-    logLik <- max(abs(unlist(lapply(x, logLik))-logLik(fit)))
-    ret <- rbind(ret, ssb=ssb,  fbar=fbar, rec=rec, catch=catch, logLik=logLik)
-    names(ret) <- "max(|delta|)"
+    ret <- jittable(x)
     print(ret)
   }else{
     print.default(x,...)
