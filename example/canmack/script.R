@@ -31,7 +31,7 @@ ct[,2] <- ct[,2] + ctUSA[-c(1:8),1]*0.25
 
 dat <- setup.ccam.data(surveys=surveys,
                       residual.fleet=cn, # add argument called split.catch and see that residual.fleet does nothing if null
-                      total.catch=ct,
+                      total.catch=ctwusa,
                       prop.mature=mo,
                       stock.mean.weight=sw,
                       stock.start.weight=sw0,
@@ -51,7 +51,7 @@ conf$keySel <- matrix(c(0,1,2,3,4,4,4,4,4,4), nrow=49, ncol=10,byrow = T)
 #                     matrix(c(5,6,7,8,9,9,9,9,9,9), nrow=49-28, ncol=10,byrow = T))
 
 conf$keyVarObs[1,]=-1                       # sd around total catch always estimated as nearly zero, and problem calculating sd
-conf$keyVarObs[2,1:9]=c(0,1,2,2,2,2,2,2,3)
+conf$keyVarObs[2,1:9]=c(0,1,2,2,2,2,2,2,1)
 conf$keyVarObs[3,1]=4
 conf$stockRecruitmentModelCode=2 #0: RW, 1: ricker, 2: BH, 3:mean
 conf$fbarRange=c(5,10)

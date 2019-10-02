@@ -4,7 +4,7 @@
 \alias{force.fit}
 \title{Force fit}
 \usage{
-force.fit(data, conf, parameters, nojit, silent = TRUE, ...)
+force.fit(data, conf, parameters, nojit = 10, silent = TRUE, ...)
 }
 \arguments{
 \item{data}{data to fit a model}

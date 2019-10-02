@@ -73,6 +73,8 @@ Type objective_function<Type>::operator() ()
   DATA_ARRAY(landMeanWeight); dataset.landMeanWeight=landMeanWeight; 
   DATA_ARRAY(propF); dataset.propF=propF; 
   DATA_ARRAY(propM); dataset.propM=propM; 
+  DATA_ARRAY(propFemale); dataset.propFemale=propFemale; // ADDED BY EVB: for link with TEP
+  DATA_ARRAY(fec); dataset.fec=fec;  // ADDED BY EVB: for link with TEP
   DATA_ARRAY(env); dataset.env=env; 
 
   confSet confset;
@@ -117,8 +119,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logScale); paraset.logScale=logScale; 
   PARAMETER_VECTOR(logitReleaseSurvival); paraset.logitReleaseSurvival=logitReleaseSurvival;    
   PARAMETER_VECTOR(logitRecapturePhi); paraset.logitRecapturePhi=logitRecapturePhi; 
+  PARAMETER_VECTOR(logitSel); paraset.logitSel=logitSel; 
   PARAMETER_VECTOR(logFy); //random effect
-  PARAMETER_VECTOR(logitSel);
   PARAMETER_ARRAY(logN); // random effect
   PARAMETER_VECTOR(missing); // random effect
 
@@ -145,11 +147,11 @@ Type objective_function<Type>::operator() ()
   if(confset.debug==1) std::cout << "ans1"  << ans <<std::endl; 
 
   if(confset.debug==1) std::cout << "*** N"  << std::endl; 
-  ans += nllN(dataset, confset, paraset, logN, logFy, logitSel, keep, this);
+  ans += nllN(dataset, confset, paraset, logN, logFy, keep, this);
   if(confset.debug==1) std::cout << "ans2"  << ans <<std::endl; 
 
   if(confset.debug==1) std::cout << "*** Observations "  << std::endl; 
-  ans += nllObs(dataset, confset, paraset, logN, logFy, logitSel, keep, this);
+  ans += nllObs(dataset, confset, paraset, logN, logFy, keep, this);
   if(confset.debug==1) std::cout << "ans3"  << ans <<std::endl; 
 
   return ans;

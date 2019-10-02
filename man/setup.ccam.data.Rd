@@ -9,7 +9,8 @@ setup.ccam.data(fleets = NULL, surveys = NULL, residual.fleet = NULL,
   stock.start.weight = NULL, catch.mean.weight = NULL,
   dis.mean.weight = NULL, land.mean.weight = NULL,
   natural.mortality = NULL, prop.f = NULL, prop.m = NULL,
-  land.frac = NULL, recapture = NULL, env = NULL)
+  land.frac = NULL, recapture = NULL, prop.fem = NULL, fec = NULL,
+  env = NULL)
 }
 \arguments{
 \item{fleets}{comm fleets vith effort (currently unimplemented)}
@@ -39,6 +40,12 @@ setup.ccam.data(fleets = NULL, surveys = NULL, residual.fleet = NULL,
 \item{land.frac}{...}
 
 \item{recapture}{...}
+
+\item{prop.fem}{....}
+
+\item{fec}{...}
+
+\item{env}{...}
 }
 \description{
 Combine the data sources to CCAM readable object

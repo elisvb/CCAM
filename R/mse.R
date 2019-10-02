@@ -6,11 +6,12 @@
 ##' @details generates observations of fleet 3 (keybiomasstreat 4 not yet implemented, 3 needs to be verified)
 ##' @return returns an array of dim (na-1) x 2 (observation columns) x number of simulations
 ##' @export
-fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw){
+fleet3 <- function(x,fit,f,simpara,deterministic,ULpool=NULL, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw,pfem=pfem, fec=fec){
     if(fit$conf$keyBiomassTreat[f]==0) obs <- ssb(x, nm, sw, mo, pm, pf)
     if(fit$conf$keyBiomassTreat[f] %in% c(1,3)) obs <- catch(x,nm, cw)
     if(fit$conf$keyBiomassTreat[f]==2) obs <- fsb(x, cw, nm)
-    if(fit$conf$keyBiomassTreat[f]<3){
+    if(fit$conf$keyBiomassTreat[f]==5) obs <- tep(x, nm, mo, pm, pf, pfem, fec)
+    if(fit$conf$keyBiomassTreat[f] %in% c(0,1,2,5)){
         q <- simpara[,which(colnames(simpara)=="logFpar"),drop=FALSE]
         q <- q[,fit$conf$keyLogFpar[f,1]+1]
         obs <- obs*exp(q)
@@ -58,13 +59,13 @@ fleet6 <- function(x,nm){
 ##' @details create new observations to apply model based management procedures
 ##' @return returns and array of size (n observations,2 (lower and upper column), number of simulations)
 ##' @export
-newobs <- function(fit, sim, simpara, ULpool,deterministic, nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw){
+newobs <- function(fit, sim, simpara, ULpool,deterministic, nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw, pfem=pfem,fec=fec){
     aux <- unique(fit$data$aux[,2:3])
     fleetsim <- array(dim=c(nrow(aux),2,nrow(sim)))
     for(f in unique(aux[,1])){
         ft <- fit$data$fleetTypes[f]
         if(ft==3) {
-            mysim <- fleet3(x=sim,fit,f,simpara,deterministic,ULpool, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw)
+            mysim <- fleet3(x=sim,fit,f,simpara,deterministic,ULpool, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw, pfem=pfem, fec=fec)
             fleetsim[which(aux[,1]==f),,] <- mysim
         }
         if(ft==6) {
@@ -96,7 +97,7 @@ stepconf <- function(x){
 ##' @param x fit returned from ccam.fit
 ##' @param ... next year data objects
 ##' @export
-stepdat <- function(x,obs,aux,mo,sw,sw0,cw,nm,lf,dw,lw,pm,pf,en){
+stepdat <- function(x,obs,aux,mo,sw,sw0,cw,nm,lf,dw,lw,pm,pf,pfem,fec,en){
     newY <- tail(x$years,1)+1
     x$noYears <- x$noYears+1
     x$years <- c(x$years,newY)
@@ -129,6 +130,10 @@ stepdat <- function(x,obs,aux,mo,sw,sw0,cw,nm,lf,dw,lw,pm,pf,en){
     rownames(x$propM )[length(rownames(x$propM))] <- newY
     x$propF <- rbind(x$propF ,newY=pf)
     rownames(x$propF)[length(rownames(x$propF))] <- newY
+    x$propFemale <- rbind(x$propFemale ,pfem)
+    rownames(x$propFemale)[length(rownames(x$propFemale))] <- newY
+    x$fec <- rbind(x$fec ,newY=fec)
+    rownames(x$fec)[length(rownames(x$fec))] <- newY
     x$env <- rbind(x$env,en)
     rownames(x$env)[length(rownames(x$env))] <- newY
     return(x)

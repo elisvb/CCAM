@@ -257,13 +257,18 @@ read.ices<-function(filen){
 ##' @param prop.m ...
 ##' @param land.frac ...
 ##' @param recapture ...
+##' @param prop.fem ....
+##' @param fec ...
+##' @param env ...
 ##' @importFrom stats complete.cases
 ##' @details ...
 ##' @export
 setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
                             total.catch=NULL,prop.mature=NULL, stock.mean.weight=NULL, stock.start.weight=NULL,catch.mean.weight=NULL,
                            dis.mean.weight=NULL, land.mean.weight=NULL,
-                           natural.mortality=NULL, prop.f=NULL, prop.m=NULL, land.frac=NULL, recapture=NULL,env=NULL){
+                           natural.mortality=NULL, prop.f=NULL, prop.m=NULL, land.frac=NULL, recapture=NULL,
+                           prop.fem=NULL,fec=NULL,env=NULL
+                           ){
   # Function to write records in state-space assessment format and create
   # collected data object for future use
   fleet.idx<-0
@@ -364,11 +369,16 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
   if(is.null(prop.m)){
     prop.m<-matrix(0,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet))
   }
+  if(is.null(prop.fem)){
+    prop.fem<-matrix(0.5,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet))
+  }
+  if(is.null(fec)){
+    fec<-matrix(1,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet))
+  }
   if(is.null(env)){
     env<-matrix(0,nrow=nrow(residual.fleet), ncol=1)
     rownames(env)=rownames(residual.fleet)
   }
-
   dat<-dat[!is.na(dat$year),]
 
   if(!is.null(recapture)){
@@ -402,8 +412,8 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
   idx2<-outer(newfleet, newyear, Vectorize(mmfun,c("f","y")), ff=max)
   attr(dat,'idx1')<-idx1
   attr(dat,'idx2')<-idx2
-  attr(dat,"minAgePerFleet")<-tapply(as.integer(dat[,"age"]), INDEX=dat[,"fleet"], FUN=min)
-  attr(dat,"maxAgePerFleet")<-tapply(as.integer(dat[,"age"]), INDEX=dat[,"fleet"], FUN=max)
+  attr(dat,"minAgePerFleet")<-unname(tapply(as.integer(dat[,"age"]), INDEX=dat[,"fleet"], FUN=min))
+  attr(dat,"maxAgePerFleet")<-unname(tapply(as.integer(dat[,"age"]), INDEX=dat[,"fleet"], FUN=max))
   attr(dat,'year')<-newyear
   attr(dat,'nyear')<-max(as.numeric(dat$year))-min(as.numeric(dat$year))+1 ##length(unique(dat$year))
   cutY<-function(x)x[rownames(x)%in%newyear,,drop=FALSE]
@@ -416,6 +426,8 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
   attr(dat,'natural.mortality')<-cutY(natural.mortality)
   attr(dat,'prop.f')<-cutY(prop.f)
   attr(dat,'prop.m')<-cutY(prop.m)
+  attr(dat,'prop.fem')<-cutY(prop.fem)
+  attr(dat,'fec')<-cutY(fec)
   attr(dat,'env')<-cutY(env)
   attr(dat,'land.frac')<-cutY(land.frac)
   ret<-list(
@@ -442,6 +454,8 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
     landMeanWeight=attr(dat,'land.mean.weight'),
     propF=attr(dat,'prop.f'),
     propM=attr(dat,'prop.m'),
+    propFemale=attr(dat,'prop.fem'),
+    fec=attr(dat,'fec'),
     env=attr(dat,'env')
   )
   attr(ret,"fleetNames")<-attr(dat,"name")

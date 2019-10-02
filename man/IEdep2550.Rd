@@ -4,7 +4,7 @@
 \alias{IEdep2550}
 \title{IEdep2550}
 \usage{
-IEdep2550(x, y, seed = NULL, ssb, i)
+IEdep2550(x, y, seed = NULL, ssb, TAC, i, past = NULL)
 }
 \arguments{
 \item{x}{number of simulations}
@@ -14,6 +14,8 @@ IEdep2550(x, y, seed = NULL, ssb, i)
 \item{seed}{set.seed}
 
 \item{ssb}{vector of ssb values}
+
+\item{TAC}{TAC values}
 
 \item{i}{future year index}
 }

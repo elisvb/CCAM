@@ -4,8 +4,8 @@
 \alias{simulate.ccam}
 \title{Simulate from a ccam object}
 \usage{
-\method{simulate}{ccam}(object, nsim = 1, seed = NULL, full.data = TRUE,
-  ...)
+\method{simulate}{ccam}(object, nsim = 1, seed = NULL,
+  full.data = TRUE, ...)
 }
 \arguments{
 \item{object}{ccam fitted object (result from ccam.fit)}

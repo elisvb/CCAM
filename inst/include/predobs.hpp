@@ -28,11 +28,31 @@ array<Type> crltransform(array<Type> x){   // ADDED BY EVB (continuation ratio l
  return xcrl;
 }
 
+
+template <class Type> // ADDED BY EVB (total egg production)
+Type TEP(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int f, int y){   
+  int stateDimN=logN.dim[0];
+  Type tep=0;
+  Type logtep;
+  Type ts = dat.sampleTimes(f-1);
+  Type Zprop;
+   for(int a=0; a<stateDimN; ++a){
+    Zprop=dat.natMor(y,a);
+    if(conf.keySel(y,a)<0) Zprop+=exp(logF(a,y));
+    tep += exp(logN(a,y))*dat.propMat(y,a)*exp(-Zprop*ts)*dat.propFemale(y,a)*dat.fec(y,a);
+   }
+  logtep = log(tep);
+ return logtep;
+}
+
+
 template <class Type>
 vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &logN, array<Type> &logF, vector<Type> &logssb, vector<Type> &logfsb, vector<Type> &logCatch, array<Type> &catNr,vector<Type> &logLand){
   vector<Type> pred(dat.nobs);
   pred.setZero();
 
+
+  // for tagging
   vector<Type> releaseSurvival(par.logitReleaseSurvival.size());
   vector<Type> releaseSurvivalVec(dat.nobs);
   if(par.logitReleaseSurvival.size()>0){
@@ -43,12 +63,15 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
       }
     }
   }
-
+  
+  // for crl transform
   array<Type> cprop = crltransform(catNr);
 
+  // predict observations
   int f, ft, a, y, yy, scaleIdx;  // a is no longer just ages, but an attribute (e.g. age or length) 
   int minYear=dat.aux(0,0);
   Type zz=Type(0);
+  Type logtep;
   for(int i=0;i<dat.nobs;i++){
     y=dat.aux(i,0)-minYear;
     f=dat.aux(i,1);
@@ -96,7 +119,7 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
         
       break;
   
-      case 3:// annual data (whether it be I, C, land, etc.)
+      case 3:// annual data (whether it be I, C, land, TEP, etc.)
         if(conf.keyBiomassTreat(f-1)==0){
           pred(i) = logssb(y)+par.logFpar(conf.keyLogFpar(f-1,a)); 
         }
@@ -112,6 +135,10 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
         if(conf.keyBiomassTreat(f-1)==4){
           pred(i) = logLand(y);
         }
+        if(conf.keyBiomassTreat(f-1)==5){
+          logtep = TEP(dat, conf, logN, logF, f, y);
+          pred(i) = logtep+par.logFpar(conf.keyLogFpar(f-1,a));
+        }
 	break;
   
       case 4: 
@@ -121,7 +148,7 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
   
       case 5:// tag data  
         if((a+conf.minAge)>conf.maxAge){a=conf.maxAge-conf.minAge;} 
-	pred(i)=exp(log(dat.aux(i,6))+log(dat.aux(i,5))-logN(a,y)-log(1000))*releaseSurvivalVec(i);
+	      pred(i)=exp(log(dat.aux(i,6))+log(dat.aux(i,5))-logN(a,y)-log(1000))*releaseSurvivalVec(i);
       break;
   
       case 6: // Catch-at-age in proportions (crl transformed)
@@ -129,7 +156,7 @@ vector<Type> predObsFun(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, a
       break;
   
       case 7: 
-  	error("Unknown fleet code");
+          error("Unknown fleet code");
         return 0;
       break;
   

@@ -4,10 +4,11 @@
 \alias{ccam.fit}
 \title{Fit CCAM model}
 \usage{
-ccam.fit(data, conf, parameters, newtonsteps = 3, rm.unidentified = FALSE,
-  run = TRUE, lower = getLowerBounds(parameters),
-  upper = getUpperBounds(parameters), sim.condRE = TRUE, paracheck = TRUE,
-  debug = FALSE, ...)
+ccam.fit(data, conf, parameters, newtonsteps = 3,
+  rm.unidentified = FALSE, run = TRUE,
+  lower = getLowerBounds(parameters),
+  upper = getUpperBounds(parameters), sim.condRE = TRUE,
+  paracheck = TRUE, debug = FALSE, ...)
 }
 \arguments{
 \item{data}{data for the ccam model as returned from the setup.ccam.data function}

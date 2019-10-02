@@ -14,9 +14,9 @@ foreplot(x, what.y, what.x = NULL, ylab = what.y, xlab = "Year",
 \method{foreplot}{ccamforecast}(x, ...)
 
 \method{foreplot}{forecastset}(x, what.y, what.x = NULL, ylab = what.y,
-  xlab = "Year", rect = NULL, ci = TRUE, vline = NULL, hline = NULL,
-  by = NULL, text = FALSE, IE = NULL, year = NULL, legendnames = NULL,
-  data = FALSE, ratio = FALSE)
+  xlab = "Year", rect = NULL, ci = TRUE, vline = NULL,
+  hline = NULL, by = NULL, text = FALSE, IE = NULL, year = NULL,
+  legendnames = NULL, data = FALSE, ratio = FALSE)
 }
 \arguments{
 \item{x}{the object(s) returned from ccam.forecast}
@@ -45,7 +45,7 @@ foreplot(x, what.y, what.x = NULL, ylab = what.y, xlab = "Year",
 
 \item{data}{logical data returned?}
 
-\item{ratio}{logical. devide by LRP (0.4*SSBf40%)?}
+\item{ratio}{logical. devide by LRP?}
 
 \item{legend}{names vector of new legend names}
 }

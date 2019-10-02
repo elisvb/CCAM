@@ -5,7 +5,7 @@
 \title{create new observations (logobs), only for one new year}
 \usage{
 newobs(fit, sim, simpara, ULpool, deterministic, nm, sw = sw, mo = mo,
-  pm = pm, pf = pf, cw = cw)
+  pm = pm, pf = pf, cw = cw, pfem = pfem, fec = fec)
 }
 \arguments{
 \item{fit}{returned from ccam.fit}

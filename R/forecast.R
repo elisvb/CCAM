@@ -51,6 +51,7 @@ rmvnorm <- function(n = 1, mu, Sigma, seed){
 ##' @param bio.scale names list with multipliers used to scale future bio values (nm, en, pr,sw,cw,lf,dw,lw,pm,pf)
 ##' @param deadzone ssb value below which there is no recruitment anymore and the stock goes extinct. Avoids 'dead' stock popping back to live because of recruitment peak.
 ##' @param Flim Upper limit of F value. defaults to 3.
+##' @param fleet fleet for which the future observations are extracted
 ##' @details There are four ways to specify a scenario; fscale, catchval, fval and MP. There are also multiple recruitment options;
 #' \enumerate{
 #'   \item parametric BH estimated within the model. If attribute 'AC' not NULL, use autocorrelation estimated outside the model.
@@ -72,7 +73,7 @@ rmvnorm <- function(n = 1, mu, Sigma, seed){
 forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1000, year.base=max(fit$data$years),
                      ave.years=max(fit$data$years)+(-4:0), rec.years=max(fit$data$years)+(-9:0),rec.meth=4, rec.scale=1, MPlabel=NULL,
                      OMlabel=NULL,overwriteSelYears=NULL, deterministic=FALSE,CZ=0,HZ=0,IE=0,
-                     capLower=NULL,capUpper=NULL,UL.years=max(fit$data$years)+(-4:0),TAC.base=0,bio.scale=NULL,verbose=TRUE,deadzone=0, Flim=3){
+                     capLower=NULL,capUpper=NULL,UL.years=max(fit$data$years)+(-4:0),TAC.base=0,bio.scale=NULL,verbose=FALSE,deadzone=0, Flim=3,fleet=3){
 
   #.. check/clean/prepare input.................................................................................................
   parameters <- as.list(match.call())
@@ -97,11 +98,9 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
 
   ny <-length(fscale)
 
-  MPs <- avail(x='MP')
+  MPs <- avail('MP')
   if(all(!is.na(MP)) & any(!MP %in% MPs) & !is.numeric(MP)) stop("Undefined MP (see avail('MP'))")
 
-
-  if(!is.list(IE)){IElist <- vector('list',length(IE));names(IElist)=IE} #allow multiple IE types
   dummy <- lapply(as.list(IE),function(x) if(!x %in% avail('IE') & !is.numeric(x)) stop("Undefined IE (see avail('IE'))"))
 
   if(!all(fit$data$fleetTypes %in% c(3,6))) warning('MPs based on fleettypes different from 3 and 6 need more code')
@@ -313,6 +312,13 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
       return(rowSums(N*mo*sw))
   }
 
+  tep <<- function(x, nm, mo, pm, pf, pfem, fec){
+      F <- getF(x)
+      N <- getN(x)*exp(-pm*nm-pf*F)
+      TEP <- rowSums(N*mo*pfem*fec)
+      return(TEP)
+  }
+
   fsb <<- function(x, cw, nm){
       F <- getF(x)
       Z <- F+nm
@@ -348,8 +354,17 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
       x <- x[rownames(x)%in%ave.years,,drop=FALSE]
       n <- ncol(x)
       xl <- tail(x,1)
-      if(deterministic){ #last value plus variance
-          delta <- rmvnorm(ny*nosim,rep(0,n),cov(x),seed=nosim)
+      if(ncol(x)>=nrow(x)){warning('An error might occur because the #age classes > ave.years')}
+      if(!deterministic){ #last value plus variance (zero variance if cov is positive definite because last ages are too similar)
+          for(i in 0:ncol(x)){
+              ix <-head(1:n,10-i)
+              works <- try(rmvnorm(ny*nosim,rep(0,n-i),cov(x[,ix,drop=FALSE]),seed=nosim), silent=TRUE)
+              if(!'try-error' %in% class(works)){
+                  delta <- rmvnorm(ny*nosim,rep(0,n-i),cov(x[,ix,drop=FALSE]),seed=nosim)
+                  if(i>0) delta <- cbind(delta,matrix(0,ncol=i,nrow=nrow(delta)))
+                  break
+              }
+          }
           xnew <- sweep(delta,2,xl,'+')
           xnew <- sweep(xnew,2,ra[1,],pmax) #keep values between observed, mainly because of propmature (don't get above 1)
           xnew <- sweep(xnew,2,ra[2,],pmin)
@@ -370,6 +385,10 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
           ret <- new[,as.character(year),]
       }
       ret
+  }
+
+  pair<-function(x,y){
+      0.5*(x+y)*(x+y+1)+x
   }
 
   #.. create pools for recruitment and observation upper and lower limits.................................................................................................
@@ -400,9 +419,9 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     stop("State not saved, so cannot proceed from this year")
   }
 
+  names(est) <- gsub('par.','',names(est))
   rmsel <- which(names(est)=='logitSel') #high colinearity with lastF so cov matrix not positive definite.
-  est <- est[-rmsel]
-  cov <- cov[-rmsel,-rmsel]
+  if(length(rmsel)>0) {est <- est[-rmsel];cov <- cov[-rmsel,-rmsel]}
 
   idxN <- (fit$conf$minAge-fit$conf$minAge+1):(fit$conf$maxAge-fit$conf$minAge+1)
   idxF <-  fit$conf$keySel[fit$data$noYears,]+fit$conf$maxAge-fit$conf$minAge+2
@@ -418,13 +437,14 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   sim <- sim[,c(idxN,idxF)]
 
   #.. get last year reference points .................................................................................................
-  refs <- t(apply(simpara,1,function(x) unlist(ypr(fit,deterministic=TRUE)[c('f40','f40ssb','f40U')])))
+  #refs <- t(apply(simpara,1,function(x) unlist(ypr(fit)[c('f40','f40ssb','f40U')]))) # to try stochastically
+  refs <- matrix(unlist(ypr(fit)[c('f40','f40ssb','f40U')]),ncol=3,nrow=nosim,byrow=TRUE,dimnames=list(sim=1:nosim,ref=c('f40','f40ssb','f40U')))
 
   #.. get process variance................................................................................................
   # precalculated so for every forecast the same, if identical number of simulations are used
   procVar <- getProcessVar(fit, simpara)
   if(deterministic) procVar[] <- 0
-  procsim <- sapply(1:ny,function(y) t(sapply(1:nosim,function(x) rmvnorm(1,mu=rep(0,nrow(procVar)), Sigma=procVar[,,x],seed=nosim+y+x))),simplify='array')
+  procsim <- sapply(1:ny,function(y) t(sapply(1:nosim,function(x) rmvnorm(1,mu=rep(0,nrow(procVar)), Sigma=procVar[,,x],seed=nosim+pair(y,x)))),simplify='array')
 
   #.. get observation residuals.................................................................................................
   # precalculated so for every forecast the same, if identical number of simulations are used
@@ -439,17 +459,17 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
       ressim <- array(dim=c(nobs,2,nosim,ny))
       for(y in 1:ny){
           for(i in 1:nosim){
-              set.seed(nosim+y)
+              set.seed(pair(y,i))
               ressim[,1,i,y] <- rnorm(nobs,rep(0,nobs),sds[i,])
               ce <- which(fit$conf$obsLikelihoodFlag=='CE')
               if(length(ce)>0){
                   idxce <- which(aux[,1]==ce)
                   if(deterministic){
-                      set.seed(nosim+y)
+                      set.seed(pair(y,i))
                       ressim[idxce,1,i,y] <- log(mean(ULpool[,1],1))
                       ressim[idxce,2,i,y] <- log(mean(ULpool[,2],1))
                   }else{
-                      set.seed(nosim+y)
+                      set.seed(pair(y,i))
                       ressim[idxce,1,i,y] <- log(sample(ULpool[,1],1))
                       ressim[idxce,2,i,y] <- log(sample(ULpool[,2],1))
                   }
@@ -460,7 +480,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
 
   #.. get implementation errors (if SSB independent, otherwise 0).................................................................................................
   IElist <- lapply(as.list(IE),function(x){
-        if(grepl('indep',x)){                           #IEs independent of SSB that can be calculated directly
+        if(grepl('IEindep',x)){                           #IEs independent of SSB that can be calculated directly
             IEfun <- match.fun(as.character(x))
             IEmatrix <- IEfun(nosim,ny,seed=nosim)
             return(IEmatrix)
@@ -470,6 +490,8 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
         }
       return(IEconstant(nosim,ny))                      #0
     })
+  names(IElist) <- IE
+
 
   #.. get future data.................................................................................................
    new.sw <- doNew(fit$data$stockMeanWeight,ave.years,nosim,deterministic)
@@ -482,6 +504,8 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
    new.pm <- doNew(fit$data$propM,ave.years,nosim,deterministic)
    new.pf <- doNew(fit$data$propF,ave.years,nosim,deterministic)
    new.dw <- doNew(fit$data$disMeanWeight,ave.years,nosim,deterministic)
+   new.pfem <- doNew(fit$data$propFemale,ave.years,nosim,deterministic)
+   new.fec <- doNew(fit$data$fec,ave.years,nosim,deterministic)
    new.en <- doNew(fit$data$env,ave.years,nosim,deterministic)
 
    #.. Start forecast.................................................................................................
@@ -507,6 +531,8 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     pm<-getThisOrNew(fit$data$propM, y, new.pm)
     pf<-getThisOrNew(fit$data$propF, y, new.pf)
     dw<-getThisOrNew(fit$data$disMeanWeight, y, new.dw)
+    pfem<-getThisOrNew(fit$data$propFemale, y, new.pfem)
+    fec<-getThisOrNew(fit$data$fec, y, new.fec)
     en<-getThisOrNew(fit$data$env, y, new.en)
 
     # if not the final year get new data, state and observations
@@ -554,7 +580,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
 
         if(any(grepl('IEdep',unlist(IE)))){
             IEfun <- match.fun(as.character(IE[grep('IEdep',IE)]))
-            IElist[[grep('IEdep',unlist(IE))]] <- IEfun(nosim,ny,seed=nosim,ssb=ssb0(sim, sw=sw, mo=mo),i=i)
+            IElist[[grep('IEdep',unlist(IE))]] <- IEfun(nosim,ny,seed=nosim,ssb=ssb0(sim, sw=sw, mo=mo),TAC=TAC,i=i,past=IElist[[grep('IEdep',unlist(IE))]]) #update IE
         }
 
         Ctrue <- TAC + colSums(do.call('rbind',lapply(IElist,function(x) x[,i]))) # add sum of all IEs
@@ -570,7 +596,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
 
 
     # generate data/parameters during the year if management procedure used next year (no matter which one)
-    if(any(!is.na(MP)) & i!=ny){
+    if(any(!is.na(MP))){
         if(i==0){
             parasim <- fit$pl
             confsim <- fit$conf
@@ -578,12 +604,13 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
         }else{
             parasim <- steppar(parasim)
             confsim <- stepconf(confsim)
-            obssim <- newobs(fit, sim, simpara, ULpool, deterministic, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw)
+            obssim <- newobs(fit, sim, simpara, ULpool, deterministic, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf, cw=cw, pfem=pfem, fec=fec)
             obssim <- obssim+ressim[,,,i]
             datasim <- lapply(1:nrow(sim),function(x){stepdat(datasim[[ifelse(i==1,1,x)]],
                                                               obs=obssim[,,x],
                                                               aux=cbind(year=y,unique(fit$data$aux[,2:3])),
-                                                              mo[x,],sw[x,],sw0[x,],cw[x,],nm[x,],lf[x,],dw[x,],lw[x,],pm[x,],pf[x,],en[x])})
+                                                              mo[x,],sw[x,],sw0[x,],cw[x,],nm[x,],lf[x,],dw[x,],
+                                                              lw[x,],pm[x,],pf[x,],pfem[x,],fec[x,],en[x])})
 
         }
     }
@@ -595,20 +622,22 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     ssbsim <- ssb(sim, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf)
     ssb0sim <- ssb0(sim, sw=sw0, mo=mo)
     recsim <- exp(sim[,1])
-    exploitsim <- catchsim/ssb0sim
     ssbmsyratiosim <- ssb0sim/refs[,'f40ssb']
     fmsyratiosim <- fbarsim/refs[,'f40']
-    Umsyratiosim <- exploitsim/refs[,'f40U']
     CZ <- refs[,'f40ssb']*0.4
     HZ <- refs[,'f40ssb']*0.8
     IEperc <- (Ctrue-TAC)/Ctrue*100
     age <- rowSums(sweep(getN(sim)  ,2,1:10,'*'))/rowSums(getN(sim))
+    if(any(!is.na(MP))){
+        index <- unlist(lapply(datasim,function(x){exp(x$logobs[x$idx1[fleet,ncol(x$idx1)]+1,1])})) #values of last year
+    }else{
+        index <-NA
+    }
+    simlist[[i+1]] <- list(sim=sim, fbar=fbarsim, catch=catchsim, ssb=ssbsim, rec=recsim, age=age, TAC=TAC, ssbmsyratio=ssbmsyratiosim,
+                           fmsyratio=fmsyratiosim,CZ=CZ,HZ=HZ,year=y,extinctions=length(deadsim[deadsim]),ssb0=ssb0sim,
+                           IEperc=IEperc,index=index)
 
-    simlist[[i+1]] <- list(sim=sim, fbar=fbarsim, catch=catchsim, ssb=ssbsim, rec=recsim, age=age, TAC=TAC, exploit=exploitsim, ssbmsyratio=ssbmsyratiosim,
-                           fmsyratio=fmsyratiosim,Umsyratio=Umsyratiosim,CZ=CZ,HZ=HZ,year=y,extinctions=length(deadsim[deadsim]),ssb0=ssb0sim,
-                           IEperc=IEperc)
-
-    if(verbose)print(tail(data.frame(size=sort( sapply(ls(),function(x){object.size(get(x))}))*1e-9,unit='GB'),10))
+    if(verbose)print(tail(data.frame(size=sort( sapply(ls(),function(x){object.size(get(x))}),decreasing=TRUE)*1e-9,unit='GB'),10))
   }
   if(verbose)print('summarise...')
 
@@ -623,11 +652,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   collectprob <- function(x){
       probCZ <- signif(sum(simlist[[x]]$ssb0>simlist[[x]]$CZ)/nosim,2)
       probHZ <- signif(sum(simlist[[x]]$ssb0>simlist[[x]]$HZ)/nosim,2)
-      probLY <- signif(sum(simlist[[x]]$ssb0>simlist[[1]]$ssb)/nosim,2)
-      probGrowth <- signif(sum(simlist[[x]]$ssb0>simlist[[max(x-1,1)]]$ssb0)/nosim,2)
-      probGrowth20 <- signif(sum(simlist[[x]]$ssb0>(1.2*simlist[[max(x-1,1)]]$ssb0))/nosim,2)
-      probGrowth30 <- signif(sum(simlist[[x]]$ssb0>(1.3*simlist[[max(x-1,1)]]$ssb0))/nosim,2)
-      c(probCZ=probCZ, probHZ=probHZ,probLY=probLY, probGrowth=probGrowth, probGrowth20=probGrowth20, probGrowth30=probGrowth30)
+      c(probCZ=probCZ, probHZ=probHZ)
   }
   fbar <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$fbar))),3)
   rec <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$rec))))
@@ -635,7 +660,6 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   ssb0 <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$ssb0))))
   age <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$age))))
   catch <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$catch))))
-  exploit <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$exploit))),3)
   ssbmsyratio <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$ssbmsyratio))),3)
   fmsyratio <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$fmsyratio))),3)
   Umsyratio <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$Umsyratio))),3)
@@ -653,20 +677,20 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   TAC <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$TAC))))
   probs <- do.call(rbind, lapply(1:(ny+1), collectprob))
 
-  tab <- cbind(fbar, rec,ssb,catch,age,exploit,ssb0, ssbmsyratio,fmsyratio,Umsyratio,catchcumul,TAC,TACrel,IEperc,probs,extinctions)
+  tab <- cbind(fbar, rec,ssb,catch,age,ssb0, ssbmsyratio,fmsyratio,catchcumul,TAC,TACrel,IEperc,probs,extinctions)
   rownames(tab) <- unlist(lapply(simlist, function(xx)xx$year))
   nam <- c("median","low","high")
-  colnames(tab) <- c(paste0(rep(c("fbar:","rec:","ssb:","catch:",'age:',"exploit:","ssb0","ssbmsyratio:","fmsyratio:","Umsyratio:",'catchcumul:',"TAC:","TACrel:",'IEperc'), each=length(nam)), nam),colnames(probs),'percExtinct')
+  colnames(tab) <- c(paste0(rep(c("fbar:","rec:","ssb:","catch:",'age:',"ssb0:","ssbmsyratio:","fmsyratio:",'catchcumul:',"TAC:","TACrel:",'IEperc'), each=length(nam)), nam),colnames(probs),'percExtinct')
   attr(simlist, "tab")<-tab
   shorttab<-t(tab[,grep("median",colnames(tab))])
   label <- paste(OMlabel,MPlabel,".")
   rownames(shorttab)<-sub(":median","",paste0(label,if(length(label)!=0)":",rownames(shorttab)))
 
-  attr(simlist, "shorttab")<-shorttab
+  attr(simlist, "shorttab") <- shorttab
   attr(simlist, "OMlabel") <- OMlabel
   attr(simlist, "MPlabel") <- MPlabel
   attr(simlist, "parameters") <- parameters
-  attr(simlist, "IE") <- IElist
+  attr(simlist, "IE") <- lapply(IElist,function(x) {ies <- rbind(apply(x,2,quantile, c(.50,.025,.975,0.75,0.25)),x)})
   attr(simlist, "MPmessage") <- paste0('%model fails:',nfail/nfit*100)
   return(simlist)
 }

@@ -50,7 +50,7 @@ diamondplot(x, what, ylab = what, xlab = "Management Procedure",
 
 \item{data}{logical. return data instead of plot.}
 
-\item{ratio}{logical. devide by LRP (0.40*SSBf40%)?}
+\item{ratio}{logical. devide by LRP?}
 
 \item{OMtype}{logical. OMbase/core/whatever present?}
 }

@@ -53,7 +53,7 @@ plot.ccamset<-function(x, ...){
 ##' @details ...
 ##' @export
 plot.ccamforecast<-function(x, ...){
-    gA <- ggplotGrob(ssbplot(x,...))
+    gA <- ggplotGrob(ssb0plot(x,...))
     gB <- ggplotGrob(fbarplot(x,...))
     gC <- ggplotGrob(recplot(x,...))
     grid.newpage()
@@ -80,7 +80,7 @@ plot.forecastset<-function(x, ...){
     lheight <- sum(mylegend$height)
     lwidth <- sum(mylegend$width)
 
-    gA <- ggplotGrob(ssbplot(x,...)+ theme(legend.position="none"))
+    gA <- ggplotGrob(ssb0plot(x,...)+ theme(legend.position="none"))
     gB <- ggplotGrob(fbarplot(x,...)+ theme(legend.position="none"))
     gC <- ggplotGrob(recplot(x,...)+ theme(legend.position="none"))
 
@@ -287,7 +287,8 @@ nobs.ccam<-function(object, ...){
 ##' @export
 residuals.ccam<-function(object, discrete=FALSE, ...){
   cat("One-observation-ahead residuals. Total number of observations: ", nobs(object), "\n")
-  res <- oneStepPredict(object$obj, observation.name="logobs", data.term.indicator="keep", discrete=discrete,...)
+  res <- oneStepPredict(object$obj, observation.name="logobs", data.term.indicator="keep",
+                        subset=TRUE,conditional=541:1040,discrete=discrete,...)
   cat("One-observation-ahead residuals. Done\n")
   ret <- cbind(object$data$aux, res)
   attr(ret,"fleetNames") <- attr(object$data, "fleetNames")

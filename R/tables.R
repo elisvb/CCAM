@@ -96,7 +96,7 @@ tableset <- function(fit, fun, what, ...){
     ret <- do.call('rbind',tabs)
     rownames(ret) <- 1:nrow(ret)
     ret <- data.frame(ret)
-    if(!is.null(names(fit))) ret$fit <- as.factor(rep(names(fit),each=(nrow(ret)/length(fit))))
+    if(!is.null(names(fit))) ret$fit <- type.convert(rep(names(fit),each=(nrow(ret)/length(fit))))
     return(ret)
 }
 
@@ -225,11 +225,11 @@ catchtable.default <- function(fit, fleet=NULL,...){
 seltable<-function(fit, fleet=NULL,...){
     UseMethod("seltable")
 }
-##' @rdname catchtable
-##' @method catchtable default
+##' @rdname seltable
+##' @method seltable default
 ##' @export
 seltable.default <- function(fit, fleet=NULL,...){
-    ret <- tableit(fit, what="logitSel",trans = invlogit)
+    ret <- tableit(fit, what="logitSel",trans = exp)
     return(ret)
 }
 
@@ -428,6 +428,56 @@ extract.forecastset <- function(x,what,add=FALSE){
     return(ret)
 }
 
+##' extract raw predictions for a given variable
+##' @param x A forecast object
+##' @param what value from forecast
+##' @details ...
+##' @export
+raw <-function (x,what){
+    UseMethod("raw")
+}
+##' @rdname raw
+##' @method raw ccamforecast
+##' @export
+raw.ccamforecast <- function(x,what){
+    if(missing(what)) stop('what should be specified')
+    if(!what %in% c(names(x[[1]]),'IE'))  stop('what is not available')
+
+    if(what!='IE'){
+        names(x) <- 1:length(x)
+        shape <- function(y, what){
+            v <- y[[what]]
+            if(is.matrix(v))
+                r <- melt(v,varnames = c('nsim','statedim'))
+            if(is.vector(v))
+                r <- cbind(nsim=1:length(v),statedim = 1, value=v)
+            return(r)
+        }
+        ret <- ldply(x,shape,what,.id='year')
+    }else{
+        ret <- attr(x,'IE')
+        ret <- ldply(ret,function(y){
+            y <- t(y[-c(1:5),])
+            colnames(y) <- 1:ncol(y)
+            rownames(y) <- 2:(nrow(y)+1)
+            melt(y,varnames = c('nsim','year'))
+        },.id='statedim')
+    }
+    ret <- ret[c('nsim', 'year', 'statedim', 'value')]
+    ret$MP <- attr(x,'parameters')$MPlabel
+    ret$OM <- attr(x,'parameters')$OMlabel
+    return(ret)
+}
+##' @rdname raw
+##' @method raw forecastset
+##' @export
+raw.forecastset <- function(x,what){
+    if(is.null(dimnames(x))) names(x) <- 1:length(x)
+    ret <- ldply(x,raw,what)
+    return(ret)
+}
+
+
 ##' Yield per recruit calculation
 ##' @param fit the object returned from ccam.fit
 ##' @param Flimit Upper limit for Fbar
@@ -523,11 +573,40 @@ ypr.ccam <- function(fit, Flimit=2, Fdelta=0.01, aveYears=min(15,length(fit$data
   f30U <- f30yield/f30ssb
   f35U <- f35yield/f35ssb
   f40U <- f40yield/f40ssb
+  LRP <-f40ssb*0.4
+  USR <-f40ssb*0.8
+
+  ### MSY
+  if(fit$conf$stockRecruitmentModelCode==2){
+      par <- partable(fit)
+      ix <-  grep('rec',rownames(par))
+      ab <- par[ix,1]
+      alpha <- exp(ab[1])
+      K <- 1/exp(ab[2])
+      equi.S <- c()
+      equi.R <- c()
+      yield <- c()
+      for(f in 1:length(scales))
+      {
+          equi.S[f]<-(alpha*ssbs[f]-1)*K
+          equi.R[f]<-(alpha*equi.S[f])/(1+(equi.S[f]/K))
+          yield[f]<-equi.R[f]*yields[f]
+          if(yield[f]<0){yield[f]<-0}
+      }
+
+      Fmsy<-scales[yield==max(yield)]
+      Umsy<-1-exp(-Fmsy)
+      SSBmsy<-equi.S[yield==max(yield)]
+      RECmsy<-equi.R[yield==max(yield)]
+      YIELDmsy<-max(yield)
+  }
+
 
   fbarlab <- substitute(bar(F)[X - Y], list(X = fit$conf$minAge, Y = fit$conf$maxAge))
   ret<-list(fbar=scales, ssb=ssbs, yield=yields, fbarlab=fbarlab, f30=f30, f35=f35, f40=f40, f01=f01, fmax=fmax,f30Idx=f30spridx,
             f35Idx=f35spridx, f40Idx=f40spridx,f01Idx=f01idx, fmaxIdx=fmaxidx, f30ssb=f30ssb, f35ssb=f35ssb, f40ssb=f40ssb,
-            f30yield=f30yield, f35yield=f35yield, f40yield=f40yield, f30U=f30U, f35U=f35U, f40U=f40U)
+            f30yield=f30yield, f35yield=f35yield, f40yield=f40yield, f30U=f30U, f35U=f35U, f40U=f40U,
+            fmsy=Fmsy,umsy=Umsy, ssbmsy=SSBmsy,recmsy=RECmsy,ymsy=YIELDmsy,LRP=LRP,USR=USR)
   class(ret)<-"ccamypr"
   return(ret)
 }

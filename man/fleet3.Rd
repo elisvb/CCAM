@@ -4,8 +4,9 @@
 \alias{fleet3}
 \title{fleet 3}
 \usage{
-fleet3(x, fit, f, simpara, deterministic, ULpool = NULL, nm = nm, sw = sw,
-  mo = mo, pm = pm, pf = pf, cw = cw)
+fleet3(x, fit, f, simpara, deterministic, ULpool = NULL, nm = nm,
+  sw = sw, mo = mo, pm = pm, pf = pf, cw = cw, pfem = pfem,
+  fec = fec)
 }
 \arguments{
 \item{x}{simulations of states}

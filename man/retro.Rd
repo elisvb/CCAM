@@ -4,7 +4,8 @@
 \alias{retro}
 \title{retro run}
 \usage{
-retro(fit, year = NULL, parallell = TRUE, ncores = detectCores(), ...)
+retro(fit, year = NULL, parallell = TRUE, ncores = detectCores(),
+  ...)
 }
 \arguments{
 \item{fit}{a fitted model object as returned from ccam.fit}

@@ -6,17 +6,20 @@
 ##' @param years years to plot
 ##' @param linesize linesize
 ##' @param linetype linetype
+##' @param scale values by which to devide the estimate
 ##' @import ggplot2 viridis
 ##' @details The basic plotting used by many of the plotting functions (e.g. ssbplot, fbarplot ...)
-plotit <-function (x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year),linetype=1,linesize=2,...){
+plotit <-function (x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year),linetype=1,linesize=2,scale=1,...){
     UseMethod("plotit")
 }
 
 ##' @rdname plotit
 ##' @export
-plotit.dfccam <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year),col="black",linetype=1,linesize=2){
+plotit.dfccam <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year),col="black",linetype=1,scale=1){
     x <- x[x$year %in% years,]
-     p <- ggplot(x,aes(x=year,y=Estimate))+geom_line(col=col,linetype=linetype,size=linesize)+
+    x$Estimate <- x$Estimate/scale
+    if(ci){x$High <- x$High/scale;x$Low <- x$Low/scale}
+     p <- ggplot(x,aes(x=year,y=Estimate))+geom_line(col=col,linetype=linetype)+
     scale_y_continuous(expand=c(0,0))+
     scale_x_continuous(expand=c(0,0))+
     ylab(ylab)+xlab(xlab)
@@ -29,13 +32,15 @@ plotit.dfccam <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$y
 ##' @rdname plotit
 ##' @method plotit dfccamset
 ##' @export
-plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,years=unique(x$year),col=NULL,linetype=1,linesize=2,legendnames=NULL){
+plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,years=unique(x$year),col=NULL,linetype=1,legendnames=NULL,scale=1){
     x <- x[x$year %in% years,]
     if(!is.null(legendnames)){
         x$fit <- as.factor(x$fit)
         levels(x$fit) <- legendnames
     }
-    p <- ggplot(x,aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit),linetype=linetype,size=linesize)+
+    x$Estimate <- x$Estimate/scale
+    if(ci){x$High <- x$High/scale;x$Low <- x$Low/scale}
+    p <- ggplot(x,aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit),linetype=linetype)+
         scale_y_continuous(expand=c(0,0))+
         scale_x_continuous(expand=c(0,0))+
 
@@ -58,9 +63,12 @@ plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,years=unique
 ##' @rdname plotit
 ##' @method plotit dfccamforecast
 ##' @export
-plotit.dfccamforecast <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year),col='black',linetype=1,linesize=2){
+plotit.dfccamforecast <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=unique(x$year),col='black',linetype=1,final=TRUE,scale=1){
     x <- x[x$year %in% years,]
-    p <- ggplot(x,aes(x=year,y=Estimate))+geom_line(col=col,linetype=linetype,size=linesize)+
+    x$Estimate <- x$Estimate/scale
+    if(ci){x$High <- x$High/scale;x$Low <- x$Low/scale}
+    if(!isTRUE(final))x[x$period=='Future','Estimate'][1]<-tail(x[x$period=='Passed','Estimate'],1)
+    p <- ggplot(x,aes(x=year,y=Estimate))+geom_line(col=col,linetype=linetype)+
         scale_x_continuous(expand=c(0,0))+
         ylab(ylab)+xlab(xlab)+
         geom_errorbar(data=x[x$period=='Future',],aes(ymax=High, ymin=Low),col=col,alpha=0.2)+
@@ -74,18 +82,21 @@ plotit.dfccamforecast <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=un
 ##' @rdname plotit
 ##' @method plotit dfforecastset
 ##' @export
-plotit.dfforecastset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE, years=unique(x$year),col=NULL,linetype=1,linesize=2,legendnames=NULL){
+plotit.dfforecastset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE, years=unique(x$year),col=NULL,linesize=2,legendnames=NULL,final=TRUE,scale=1){
     x <- x[x$year %in% years,]
+    x$Estimate <- x$Estimate/scale
+    if(ci){x$High <- x$High/scale;x$Low <- x$Low/scale}
+    if(!isTRUE(final))x[x$period=='Future' & x$year==2018,'Estimate']<-x[x$period=='Passed' & x$year==2018,'Estimate']
     if(!is.null(legendnames)){
         x$fit <- as.factor(x$fit)
         levels(x$fit) <- legendnames
     }
-    p <-ggplot(x[x$year %in% years,],aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit),linetype=linetype,size=linesize)+
+    p <- ggplot(x[x$year %in% years,],aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit),linetype=linetype)+
         ylab(ylab)+xlab(xlab)+
         labs(col='',fill='')
     if(is.null(col)){
-        p<- p+scale_color_viridis(discrete = TRUE)+
-            scale_fill_viridis(discrete = TRUE)
+        p<- p+scale_color_viridis(discrete = !is.numeric(x$fit))+
+                scale_fill_viridis(discrete = !is.numeric(x$fit))
     }else{
         coll <- c(rep(col,length(unique(x$fit)) %/% length(col)),col[1:length(unique(x$fit)) %% length(col)])
         p <- p+scale_fill_manual(values=coll)+
@@ -117,6 +128,22 @@ ssbplot<-function(x, ...){
 ##' @export
 ssbplot.default <- function(x,...){
     df <- ssbtable(x)
+    plotit(df,ylab='SSB',...)
+}
+
+##' CCAM SSB0 plot
+##' @param x the object(s) returned from ccam.fit or forecast
+##' @param ... extra arguments transferred to plotit
+##' @details Plot of spawning stock biomass
+##' @export
+ssb0plot<-function(x, ...){
+    UseMethod("ssb0plot")
+}
+##' @rdname ssb0plot
+##' @method ssb0plot default
+##' @export
+ssb0plot.default <- function(x,...){
+    df <- ssb0table(x)
     plotit(df,ylab='SSB',...)
 }
 
@@ -220,7 +247,7 @@ catchplot.default <- function(x,fleet=NULL,...){
     a$x <- df
     p <- do.call(plotit, c(a, ylab='Catch'))
     if(!is.null(fleet)){
-        if(class(x) %in% c('ccam','ccamforecast')) p <- p+geom_line(aes(y=aux1),col='darkgrey',size=1)+geom_line(aes(y=aux2),col='darkgrey',size=1)
+        if(class(x) %in% c('ccam','ccamforecast')) p <- p+geom_line(aes(y=aux1),col='darkgrey')+geom_line(aes(y=aux2),col='darkgrey')
         if(class(x) %in% c('ccamset','forecastset')) p <- p+geom_line(aes(y=aux1,col=fit))+geom_line(aes(y=aux2,col=fit))
     }
     p
@@ -314,7 +341,7 @@ srplot.ccamset <- function(fit,text=TRUE,linecol='black',curve=FALSE){
             e <- fit[[x]]$opt$par['rec_e']
             if(is.na(e)) e <- 0
             env <-fit[[x]]$data$env[idxS,1]
-            df$SRenv <- exp(a+log(S)-log(1.0+exp(b)*S)+e*env)
+            df$SR <- exp(a+log(S)-log(1.0+exp(b)*S)+e*env)
         }
         return(df)
     })
@@ -331,7 +358,7 @@ srplot.ccamset <- function(fit,text=TRUE,linecol='black',curve=FALSE){
     }
 
     if(curve){
-        p <- p+geom_line(aes(y=SRenv))
+        p <- p+geom_line(aes(y=SR))
     }
     if(length(fit)>1){
         p<- p+ facet_wrap(~fit)
@@ -479,7 +506,7 @@ resplot.ccam <- function(fit, trans=function(x) x,fleets=unique(fit$data$aux[,"f
                     p <- ggplot(df,aes(x=year,y=res))+geom_point()+
                         facet_wrap(~age,ncol=3)+
                         geom_hline(yintercept = 0, lty='dashed')+
-                        geom_smooth(method = "loess",col='black')+
+                        #geom_smooth(method = "loess",col='black')+
                         ylab('Residuals')+xlab('Year')
                 },
                 'six' = {
@@ -812,7 +839,7 @@ bubble <- function(x,xlab='Year',ylab='Age',scale=15,col=c('black','darkgreen'),
     })
     xx <- do.call('rbind',xx)
 
-    xx$posneg <- ifelse(xx$value<0,'#8B000099','#00640099')
+    xx$posneg <- ifelse(xx$value<=0,'#8B000099','#00640099')
     coll <- length(unique(xx$posneg))
     p <- ggplot(xx,aes(x=Var1,y=Var2,size=value,col=posneg))+geom_point(alpha=alpha)+
         scale_size(range = c(1,scale)) +
@@ -877,18 +904,32 @@ heat <- function(x,high=NULL,low=NULL,xlab='Year',ylab='Age',posneg=FALSE){
 ##' @param x matrix
 ##' @param ylab y label
 ##' @param xlab x label
+##' @param legend logical
+##' @param col colors
+##' @param lwd line with
 ##' @importFrom reshape2 melt
 ##' @import ggplot2
 ##' @import viridis
 ##' @export
-prettymatplot <- function(x,ylab='Value',xlab='Year',col=NULL,lwd=1){
-    xm <- melt(x)
-    xm[,1] <- as.numeric(xm[,1])
-    if(is.null(col)) xm[,2] <- as.numeric(xm[,2])
-    p <- ggplot(xm,aes(x=Var1,y=value,col=Var2,group=Var2))+geom_line(lwd=lwd)+
-        labs(col='')+ylab(ylab)+xlab(xlab)+
-        scale_color_viridis()
-    if(!is.null(col)) p <- p+scale_color_manual(values=col)
+prettymatplot <- function(x,ylab=ifelse(is.null(names(dimnames(x))[1]),'y',names(dimnames(x))[1]),
+                          xlab=ifelse(is.null(names(dimnames(x))[1]),'x',names(dimnames(x))[1]),
+                          legend=guide_legend(),
+                          col=NULL,lwd=1){
+    dimnames(x) <- lapply(1:2,function(k){
+        nam <- dimnames(x)[[k]]
+        if(is.null(nam)|all(duplicated(nam)[2:length(nam)])) {
+            warning(paste('No dimnames for dim',k))
+            nam <- 1:length(nam)
+        }
+        return(nam)
+    })
+    xm <- type.convert(melt(x))
+    l <- list(x=xm[,1],y=xm[,3])
+    if(length(unique(xm[,2]))>1) l <- c(l,list(col=xm[,2],group=xm[,2]))
+    p <- ggplot()+
+        geom_line(do.call(aes,l),lwd=lwd)+
+        labs(col='',y=ylab,x=xlab)
+    if(!is.null(col)) p <- p+scale_color_manual(values=col,guide = legend) else p <- p+scale_color_viridis(guide= legend)
     p
 }
 
@@ -907,7 +948,7 @@ prettymatplot <- function(x,ylab='Value',xlab='Year',col=NULL,lwd=1){
 ##' @param IE numeric. which IE to use for naming if vector of IEs is used.
 ##' @param legend names vector of new legend names
 ##' @param data logical data returned?
-##' @param ratio logical. devide by LRP (0.4*SSBf40%)?
+##' @param ratio logical. devide by LRP?
 ##' @details Plot of probability of what over time
 ##' @importFrom graphics points
 ##' @import ggplot2 viridis
@@ -936,6 +977,8 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
     colnames(df)[1]='y'
     if(!is.null(IE)){
         df$IE <- unlist(lapply(strsplit(df$IE,'[.]'),'[[',IE))
+    }else{
+        byopt <- byopt[-2]
     }
     if(ratio){
         LRP=unlist(lapply(x,function(y) ypr(attr(y,'fit'))$f40ssb*0.4))
@@ -968,7 +1011,8 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
         p <- ggplot(df,aes_string(x='x',y='y',col=int))+facet_wrap(reformulate(by) )
     }
     if(length(by)==2){
-        p <- ggplot(df,aes_string(x='x',y='y',col=byopt[!byopt %in% by]))+facet_grid(reformulate(by[1],by[2]) )
+        int <- byopt[!byopt %in% by]
+        p <- ggplot(df,aes_string(x='x',y='y',col=int))+facet_grid(reformulate(by[1],by[2]) )
     }
     if(length(by)==3){
         p <- ggplot(df,aes(x=x,y=y))+facet_grid(reformulate(by[1],by[2:3])  )
@@ -1012,10 +1056,11 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
     if(length(unique(df$id))==1){
         p <- p+scale_color_manual(values ='black')+theme(legend.position = '')
     }else{
-        if(length(by)<3) p <- p+scale_color_viridis(discrete = TRUE,labels=names(x))
+        if(length(by)<3) {
+            if(!is.null(legendnames)) p <- p+scale_color_viridis(discrete = TRUE,labels=legendnames) else
+             p <- p+scale_color_viridis(discrete = TRUE)
+        }
     }
-
-
     return(p)
 }
 
@@ -1039,7 +1084,7 @@ foreplot.forecastset <- function(x, what.y,what.x=NULL, ylab=what.y,xlab='Year',
 ##' @param legnames character string containing alternative names for the legend (OM types)
 ##' @param threshold if year=TRUE than a threshold can be specified and the year at which it is reached becomes the y value for 'what'
 ##' @param data logical. return data instead of plot.
-##' @param ratio logical. devide by LRP (0.40*SSBf40%)?
+##' @param ratio logical. devide by LRP?
 ##' @param OMtype logical. OMbase/core/whatever present?
 ##' @details performance (what) by management procedure, IE and OM type. OM type is defined by the OM name (numbers and 'OM' are removed).
 ##' @importFrom plyr ddply
@@ -1073,7 +1118,7 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
                                                      }))
     }
     if(ratio){
-        LRP=unlist(lapply(x,function(y) ypr(attr(y,'fit'))$f40ssb*0.4))
+        LRP=unlist(lapply(x,function(y) ypr(attr(y,'fit'))$LRP))
         df$y=df$y/LRP
     }
 
@@ -1081,8 +1126,12 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
     MPnum <- as.numeric(unlist(lapply(strsplit(df$MP, "\\D+"),'[[',2)))
     if(length(MPnum)>0) df$MP <- MPnum
     df$IE <- as.factor(df$IE)
-    if(!is.null(IEnames)) levels(df$IE) <- IEnames
-
+    if(!is.null(IEnames)) {
+         levels(df$IE) <- IEnames
+        if(!is.null(attr(IEnames,'order'))) {
+           df$IE <- factor(df$IE,levels(df$IE)[attr(IEnames,'order')])
+        }
+    }
 
     inter <- ifelse(ncol(df)==6,FALSE,TRUE)
     if(inter){
@@ -1098,7 +1147,12 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
     colnames(df)[which(colnames(df)=='year')]='x'
     df <- df[df$x!=min(df$x),] #remove the first year because not part of the future
 
-
+    if(is.numeric(year)){ #take average specified years
+        df <- df[df$x %in% year,]
+        yearlab <- range(df$x)
+        if(yearlab[1]==yearlab[2]){yearlab=as.character(yearlab[1])}else{yearlab <- paste(yearlab,collapse = '-')}
+        df <- ddply(df,c('OM','MP','IE','id','type'),summarise,y=median(y))
+    }else{
     if(year=='all'){ # take average all years
         yearlab <- paste(range(df$x),collapse = '-')
         df <- ddply(df,c('OM','MP','IE','id','type'),summarise,y=median(y))
@@ -1112,12 +1166,6 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
         df$zones <- ifelse(cz[,1]<0.75,'Critical Zone',ifelse(hz[,1]>0.75,'Healthy Zone','Cautious Zone'))
         perc <- table(df$zones)/sum(table(df$zones))
         df <- df[!df$zones %in% names(perc)[which(perc<0.1)],] #remove zones if it doesn't get there
-    }
-    if(is.numeric(year)){ #take average specified years
-        df <- df[df$x %in% year,]
-        yearlab <- range(df$x)
-        if(yearlab[1]==yearlab[2]){yearlab=as.character(yearlab[1])}else{yearlab <- paste(yearlab,collapse = '-')}
-        df <- ddply(df,c('OM','MP','IE','id','type'),summarise,y=median(y))
     }
     if(year=='threshold'){ # if TRUE take year that meets threshold
         if(is.null(threshold)){stop('If year=threshold a threshold should be defined')}
@@ -1136,7 +1184,7 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
         df <- ddply(df,c('OM','MP','IE','id','type','zones'),summarise,y=median(y))
         yearlab <-''
     }
-
+    }
 
     if(data) return(df)
 
@@ -1150,7 +1198,9 @@ diamondplot.forecastset <- function(x, what, ylab=what, xlab='Management Procedu
         ggtitle(yearlab)+
         scale_x_continuous(labels = as.character(unique(df$MP)), breaks = unique(df$MP))
 
-    if(year=='zone'){ p <- p+facet_grid(zones~IE)}else{p <- p+facet_wrap(~IE)}
+    if(!is.null(IE)){
+        if(year=='zone'){ p <- p+facet_grid(zones~IE)}else{p <- p+facet_wrap(~IE)}
+    }
 
     return(p)
 }

@@ -27,6 +27,11 @@ Type print(vector<Type> v){
   return 0;
 }
 
+template <class Type> // ADDED BY EVB for debugging
+Type print(Type v){
+  std::cout<< v << std::endl; 
+  return 0;
+}
 
 template <class Type> // ADDED BY EVB
 array<Type> SelFun(confSet &conf, vector<Type> &logitSel){
@@ -52,7 +57,8 @@ array<Type> SelFun(confSet &conf, vector<Type> &logitSel){
     if(conf.keySel(j,i)<0){
       Sel(i,ix(j))=Type(0.0000001);
     }else{
-      Sel(i,ix(j))=invlogit(logitSel(conf.keySel(j,i)));
+      if(conf.keySel(j,i)!=conf.keySel.matrix().maxCoeff())  Sel(i,ix(j))=invlogit(logitSel(conf.keySel(j,i))); // if on logit scale
+      //Sel(i,ix(j))=exp(logitSel(conf.keySel(j,i))); // if on log scale
     }
    }
   } 
@@ -61,7 +67,7 @@ array<Type> SelFun(confSet &conf, vector<Type> &logitSel){
 
 
 template <class Type> // Changed BY EVB
-array<Type> FFun(confSet &conf, vector<Type> &logFy, vector<Type> &logitSel,int tran){
+array<Type> FFun(confSet &conf, paraSet<Type> &par, vector<Type> &logFy, int tran){
   if(conf.debug==1) std::cout << "-- f check"  << std::endl;
   int timeSteps=conf.keySel.dim[0];
   int stateDimN=conf.keySel.dim[1];
@@ -73,7 +79,8 @@ array<Type> FFun(confSet &conf, vector<Type> &logFy, vector<Type> &logitSel,int 
       F(i,j)=Type(0.0000001);
     }else{
       F(i,j)=exp(logFy(j));
-      if(conf.keySel(j,i)!=conf.keySel.matrix().maxCoeff())  F(i,j)*=invlogit(logitSel(conf.keySel(j,i)));
+      if(conf.keySel(j,i)!=conf.keySel.matrix().maxCoeff())  F(i,j)*=invlogit(par.logitSel(conf.keySel(j,i))); // if on logitscale, max automatically 1
+      //F(i,j)=exp(logFy(j))*exp(logitSel(conf.keySel(j,i))); // if on log scale
     }
    }
   } 
@@ -291,6 +298,54 @@ vector<Type> fbarFun(confSet &conf, array<Type> &logF){
   }
   return fbar;
 }
+
+template <class Type>
+vector<Type> ffullFun(confSet &conf, array<Type> &logF){
+  int timeSteps=logF.dim[1];
+  int stateDimN=logF.dim[0];
+  vector<Type> ffull(timeSteps);
+  ffull.setZero();
+  int n;
+  for(int y=0;y<timeSteps;y++){ 
+      n=0; 
+    for(int a=0;a<stateDimN;++a){
+      if(conf.keySel(y,a)!=conf.keySel.matrix().maxCoeff()){
+        ffull(y)+=exp(logF(a,y));
+        n+=1;
+      } 
+    }
+    ffull(y)/=n;
+  }
+  return ffull;
+}
+
+template <class Type>
+vector<Type> fmatFun(confSet &conf, dataSet<Type> &dat, array<Type> &logF, array<Type> &logN){
+  int timeSteps=logF.dim[1];
+  int stateDimN=logF.dim[0];
+  vector<Type> ffull(timeSteps);
+  ffull.setZero();
+  Type w;
+
+  vector<Type> propMatmin=dat.propMat.matrix().row(0); // colmins
+  for(int a=0;a<stateDimN;++a){
+    for(int y=0;y<timeSteps;y++){  
+      if(dat.propMat(y,a)<propMatmin(a)) propMatmin(a)=dat.propMat(y,a);
+    }
+  }
+
+  for(int y=0;y<timeSteps;y++){  
+    w=0;
+    for(int a=0;a<stateDimN;++a){
+      if(propMatmin(a)>Type(0.95)){ // over age classes that always have at least 95% of mature individuals
+        ffull(y)+=exp(logF(a,y))*exp(logN(a,y));
+        w+=exp(logN(a,y));
+      } 
+    }
+    ffull(y)/=w;
+  }
+  return ffull;
+}  
 
 template <class Type>  // ADDED BY EVB
 vector<Type> exploitFun(vector<Type> &cat, vector<Type> &ssb){

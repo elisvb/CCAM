@@ -45,6 +45,8 @@ struct dataSet{
   array<Type> landMeanWeight;
   array<Type> propF;
   array<Type> propM;
+  array<Type> propFemale;
+  array<Type> fec;
   array<Type> env;
 
 dataSet() {};
@@ -74,6 +76,8 @@ dataSet(SEXP x) {
     landMeanWeight = asArray<Type>(getListElement(x,"landMeanWeight"));
     propF = asArray<Type>(getListElement(x,"propF"));
     propM = asArray<Type>(getListElement(x,"propM"));
+    propFemale = asArray<Type>(getListElement(x,"propFemale"));
+    fec = asArray<Type>(getListElement(x,"fec"));
     env = asArray<Type>(getListElement(x,"env"));
   };
 
@@ -101,6 +105,8 @@ dataSet(SEXP x) {
     landMeanWeight = rhs.landMeanWeight;
     propF = rhs.propF;
     propM = rhs.propM;
+    propFemale = rhs.propFemale;
+    fec = fec;
     env = rhs.env;
     return *this;
   };

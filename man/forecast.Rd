@@ -4,14 +4,16 @@
 \alias{forecast}
 \title{forecast function to do shortterm}
 \usage{
-forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
-  nosim = 1000, year.base = max(fit$data$years),
-  ave.years = max(fit$data$years) + (-4:0), rec.years = max(fit$data$years)
-  + (-9:0), rec.meth = 4, rec.scale = 1, MPlabel = NULL, OMlabel = NULL,
+forecast(fit, fscale = NULL, catchval = NULL, fval = NULL,
+  MP = NULL, nosim = 1000, year.base = max(fit$data$years),
+  ave.years = max(fit$data$years) + (-4:0),
+  rec.years = max(fit$data$years) + (-9:0), rec.meth = 4,
+  rec.scale = 1, MPlabel = NULL, OMlabel = NULL,
   overwriteSelYears = NULL, deterministic = FALSE, CZ = 0, HZ = 0,
   IE = 0, capLower = NULL, capUpper = NULL,
-  UL.years = max(fit$data$years) + (-4:0), TAC.base = 0, bio.scale = NULL,
-  verbose = TRUE, deadzone = 0, Flim = 3)
+  UL.years = max(fit$data$years) + (-4:0), TAC.base = 0,
+  bio.scale = NULL, verbose = FALSE, deadzone = 0, Flim = 3,
+  fleet = 3)
 }
 \arguments{
 \item{fit}{an assessment object of type ccam, as returned from the function ccam.fit}
@@ -59,6 +61,8 @@ forecast(fit, fscale = NULL, catchval = NULL, fval = NULL, MP = NULL,
 \item{deadzone}{ssb value below which there is no recruitment anymore and the stock goes extinct. Avoids 'dead' stock popping back to live because of recruitment peak.}
 
 \item{Flim}{Upper limit of F value. defaults to 3.}
+
+\item{fleet}{fleet for which the future observations are extracted}
 
 \item{label}{optional label to appear in short table}
 }

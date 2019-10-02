@@ -1,7 +1,9 @@
 # CCAM
 
 Package to fit a Censored Catch Assessment Model (largely based on the SAM package) and perform a Management Strategy Evaluation.
+
 *under construction*
+*ONLY intended for western Atlantic mackerel*
 
 # Installation
 
@@ -12,7 +14,7 @@ The package requires installation of Rtools and TMB.
 # Information
 
 Key differences with the SAM package are:
-- Catches can be censored
+- Total catches can be censored
 - F is separable (to accommodate the previous)
 - forecasting can include management procedures
 - functions for MSE

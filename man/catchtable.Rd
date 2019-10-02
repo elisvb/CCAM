@@ -3,12 +3,9 @@
 \name{catchtable}
 \alias{catchtable}
 \alias{catchtable.default}
-\alias{seltable.default}
 \title{Catch table}
 \usage{
 catchtable(fit, fleet = NULL, ...)
-
-\method{catchtable}{default}(fit, fleet = NULL, ...)
 
 \method{catchtable}{default}(fit, fleet = NULL, ...)
 }

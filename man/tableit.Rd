@@ -10,10 +10,11 @@
 \usage{
 tableit(fit, what, trans = function(x) x, fleet = NULL, ...)
 
-\method{tableit}{ccam}(fit, what, trans = function(x) x, fleet = NULL, ...)
-
-\method{tableit}{ccamset}(fit, what, trans = function(x) x, fleet = NULL,
+\method{tableit}{ccam}(fit, what, trans = function(x) x, fleet = NULL,
   ...)
+
+\method{tableit}{ccamset}(fit, what, trans = function(x) x,
+  fleet = NULL, ...)
 
 \method{tableit}{ccamforecast}(fit, what, trans = function(x) x,
   fleet = NULL, ...)

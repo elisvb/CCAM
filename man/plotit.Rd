@@ -9,22 +9,24 @@
 \title{Plot helper}
 \usage{
 plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  years = unique(x$year), linetype = 1, linesize = 2, ...)
+  years = unique(x$year), linetype = 1, linesize = 2, scale = 1,
+  ...)
 
-\method{plotit}{dfccam}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  years = unique(x$year), col = "black", linetype = 1, linesize = 2)
+\method{plotit}{dfccam}(x, ylab = "Estimate", xlab = "Year",
+  ci = TRUE, years = unique(x$year), col = "black", linetype = 1,
+  scale = 1)
 
-\method{plotit}{dfccamset}(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
-  years = unique(x$year), col = NULL, linetype = 1, linesize = 2,
-  legendnames = NULL)
+\method{plotit}{dfccamset}(x, ylab = "Estimate", xlab = "Year",
+  ci = TRUE, years = unique(x$year), col = NULL, linetype = 1,
+  legendnames = NULL, scale = 1)
 
 \method{plotit}{dfccamforecast}(x, ylab = "Estimate", xlab = "Year",
   ci = TRUE, years = unique(x$year), col = "black", linetype = 1,
-  linesize = 2)
+  final = TRUE, scale = 1)
 
 \method{plotit}{dfforecastset}(x, ylab = "Estimate", xlab = "Year",
-  ci = TRUE, years = unique(x$year), col = NULL, linetype = 1,
-  linesize = 2, legendnames = NULL)
+  ci = TRUE, years = unique(x$year), col = NULL, linesize = 2,
+  legendnames = NULL, final = TRUE, scale = 1)
 }
 \arguments{
 \item{x}{dataframe from table()}
@@ -40,6 +42,8 @@ plotit(x, ylab = "Estimate", xlab = "Year", ci = TRUE,
 \item{linetype}{linetype}
 
 \item{linesize}{linesize}
+
+\item{scale}{values by which to devide the estimate}
 }
 \description{
 Plot helper

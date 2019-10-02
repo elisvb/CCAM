@@ -7,7 +7,8 @@
 \usage{
 kobeplot(x)
 
-\method{kobeplot}{ccam}(x, textsize = 2, limit = NULL, legend = FALSE)
+\method{kobeplot}{ccam}(x, textsize = 2, limit = NULL,
+  legend = FALSE)
 }
 \arguments{
 \item{x}{fit from ccam}

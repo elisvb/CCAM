@@ -2,9 +2,12 @@
 % Please edit documentation in R/tables.R
 \name{seltable}
 \alias{seltable}
+\alias{seltable.default}
 \title{Selectivity table}
 \usage{
 seltable(fit, fleet = NULL, ...)
+
+\method{seltable}{default}(fit, fleet = NULL, ...)
 }
 \arguments{
 \item{fit}{...}

@@ -53,7 +53,6 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
           parameters<-definit
       }
   }
-
   censored <- 'CE' %in% conf$obsLikelihoodFlag
   if(censored){
           TrueObs <- data$logobs
@@ -74,7 +73,6 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
   parameters$missing <- numeric(nmissing)
   ran <- c("logN", "logFy", "missing")
   obj <- MakeADFun(tmball, parameters, random=ran, DLL="CCAM",...)
-
   if(rm.unidentified){
     skel <- parameters[!names(parameters)%in%ran]
     gr <- obj$gr()
@@ -89,7 +87,6 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
   for(nn in names(upper)) upper2[names(obj$par)==nn]=upper[[nn]]
 
   if(!run) return( list(sdrep=NA, pl=parameters, plsd=NA, data=data, conf=conf, opt=NA, obj=obj) )
-
   opt <- nlminb(obj$par, obj$fn,obj$gr ,control=list(trace=1, eval.max=2000, iter.max=1000),lower=lower2,upper=upper2)
 
   if(censored){
@@ -109,17 +106,14 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
               safemap <- lapply(safemap, function(x)factor(ifelse(abs(x)>1.0e-15,1:length(x),NA)))
               obj <- MakeADFun(tmball, parameters, random=ran, map=safemap, DLL="CCAM", ...)
           }
-
       opt <- nlminb(obj$par, obj$fn,obj$gr ,control=list(trace=1, eval.max=2000, iter.max=1000),lower=lower2,upper=upper2)
   }
-
   for(i in seq_len(newtonsteps)) { # Take a few extra newton steps
       g <- as.numeric( obj$gr(opt$par) )
       h <- optimHess(opt$par, obj$fn, obj$gr)
       opt$par <- opt$par - solve(h, g)
       opt$objective <- obj$fn(opt$par)
   }
-
   rep <- obj$report()
   sdrep <- sdreport(obj,opt$par)
 
@@ -223,7 +217,7 @@ jit <- function(data, conf, par=defpar(data, conf), nojit=10,  sd=.25, ncores=de
 ##' @return ccam object
 ##' @details Try fitting the model with different initial parameters untill it fits (or untill it is clear it most likely never will)
 ##' @export
-force.fit <- function(data,conf, parameters,nojit,silent=TRUE,...){
+force.fit <- function(data,conf, parameters,nojit=10,silent=TRUE,...){
     # try to run the model
     fit <- tryCatch(ccam.fit(data, #if(u==1){x}else{attr(x,paste0('alternative',u-1))},
                              conf,

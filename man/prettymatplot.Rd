@@ -4,7 +4,10 @@
 \alias{prettymatplot}
 \title{prettymatplot plot}
 \usage{
-prettymatplot(x, ylab = "Value", xlab = "Year", col = NULL, lwd = 1)
+prettymatplot(x, ylab = ifelse(is.null(names(dimnames(x))[1]), "y",
+  names(dimnames(x))[1]), xlab = ifelse(is.null(names(dimnames(x))[1]),
+  "x", names(dimnames(x))[1]), legend = guide_legend(), col = NULL,
+  lwd = 1)
 }
 \arguments{
 \item{x}{matrix}
@@ -12,6 +15,12 @@ prettymatplot(x, ylab = "Value", xlab = "Year", col = NULL, lwd = 1)
 \item{ylab}{y label}
 
 \item{xlab}{x label}
+
+\item{legend}{logical}
+
+\item{col}{colors}
+
+\item{lwd}{line with}
 }
 \description{
 prettymatplot plot

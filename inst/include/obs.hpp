@@ -104,17 +104,17 @@ Type jacobianDet(vector<Type> x,vector<Type> w){
 
 template <class Type>
 Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &logN, vector<Type> &logFy,
-     vector<Type> &logitSel, data_indicator<vector<Type>,Type> &keep, objective_function<Type> *of){
+     data_indicator<vector<Type>,Type> &keep, objective_function<Type> *of){
 
   if(conf.debug==1) std::cout << "-- start"  << std::endl;
   using CppAD::abs;
   Type nll=0;
 
   if(conf.debug==1) std::cout << "-- selectivity"  << std::endl;
-  array<Type> Sel = SelFun(conf,logitSel); 
+  array<Type> Sel = SelFun(conf,par.logitSel); 
 
   if(conf.debug==1)   std::cout << "-- F"  << std::endl;
-  array<Type> logF = FFun(conf, logFy, logitSel, 1);
+  array<Type> logF = FFun(conf, par, logFy, 1);
   vector<Type> fbar = fbarFun(conf, logF);
   vector<Type> logfbar = log(fbar);
   if(conf.debug==1) print(fbar);
@@ -308,7 +308,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
                   sd = exp(par.logSdLogObs(conf.keyVarObs(f,0)));
                 }
               }
- 
+ 			if(conf.debug==1) std::cout << "pred "  <<  predObs(idxfrom) <<  " /obs  "  <<  dat.logobs(idxfrom,0) << std::endl;
               nll += -keep(idxfrom)*dnorm(dat.logobs(idxfrom,0),predObs(idxfrom),sd,true);
               SIMULATE_F(of){
                dat.logobs(idxfrom,0) = rnorm(predObs(idxfrom),sd);
@@ -318,7 +318,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
               if(conf.debug==1) std::cout << "pred "  <<  predObs(idxfrom) <<  " /obs1 "  <<  dat.logobs(idxfrom,0)  << " /obs2 "  <<  dat.logobs(idxfrom,1) << std::endl;
                 ZU = (dat.logobs(idxfrom,1) - predObs(idxfrom))/0.01;
                 ZL = (dat.logobs(idxfrom,0) - predObs(idxfrom))/0.01;
-                nll -= log(pnorm(ZU) - pnorm(ZL));
+                nll -= keep(idxfrom)*log(pnorm(ZU) - pnorm(ZL));
 				  //SIMULATE_F(of){
 				   // Not figured out yet
 				   //dat.logobs(idxfrom,0)=
@@ -427,7 +427,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   ADREPORT_F(par.logScale,of);
   ADREPORT_F(par.logitReleaseSurvival,of);
   ADREPORT_F(par.logitRecapturePhi,of);
-  ADREPORT_F(logitSel,of); 
+  ADREPORT_F(par.logitSel,of); 
 
   return nll;
 }

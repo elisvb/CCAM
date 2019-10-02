@@ -1,5 +1,5 @@
 template <class Type>
-Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &logN, vector<Type> &logFy, vector<Type> &logitSel, data_indicator<vector<Type>,Type> &keep, objective_function<Type> *of){ 
+Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &logN, vector<Type> &logFy, data_indicator<vector<Type>,Type> &keep, objective_function<Type> *of){ 
   if(conf.debug==1) std::cout << "-- N check1"  << std::endl; 
   Type nll=0;
   int stateDimN=logN.dim[0];
@@ -18,7 +18,7 @@ Type nllN(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &lo
   matrix<Type> LinvN = LN.inverse();
 
   if(conf.debug==1) std::cout << "-- N check2"  << std::endl; 
-  array<Type> logF = FFun(conf, logFy, logitSel, 1);
+  array<Type> logF = FFun(conf, par, logFy, 1);
 
   for(int i = 1; i < timeSteps; ++i){ 
     vector<Type> predN = predNFun(dat,conf,par,logN,logF,i); 

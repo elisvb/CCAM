@@ -86,7 +86,7 @@ runwithout <- function(fit, year=NULL, fleet=NULL, ...){
   conf <- attr(data, "conf")
   attr(data, "conf") <- NULL
   par <- defpar(data,conf)
-  ret <- force.fit(data, conf, par, rm.unidentified=TRUE, ...)
+  ret <- ccam.fit(data, conf, par, rm.unidentified=TRUE, ...)
   return(ret)
 }
 
