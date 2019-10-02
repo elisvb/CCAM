@@ -41,3 +41,9 @@ Key differences with the SAM package are:
 - Hammond, T. R., and Trenkel, V. M. 2005. Censored catch data in fisheries stock assessment. ICES Journal of Marine Science, 62: 1118–1130. https://academic.oup.com/icesjms/article/62/6/1118/617407/Censored-catch-data-in-fisheries-stock-assessment
 
 - Bousquet, N., Cadigan, N., Duchesne, T., and Rivest, L.-P. 2010. Detecting and correcting underreported catches in fish stock assessment: trial of a new method. Can. J. Fish. Aquat. Sci., 67: 1247–1261.http://www.nrcresearchpress.com/doi/abs/10.1139/F10-051#.WKyhadcrKM8
+
+*Examples*
+
+See mackerel assessment and MSE:
+- https://github.com/iml-assess/mackerel_assessment
+- https://github.com/iml-assess/mackerel_mse
