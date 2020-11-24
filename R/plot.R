@@ -82,7 +82,7 @@ plotit.dfccamforecast <- function(x,ylab='Estimate',xlab='Year',ci=TRUE,years=un
 ##' @rdname plotit
 ##' @method plotit dfforecastset
 ##' @export
-plotit.dfforecastset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE, years=unique(x$year),col=NULL,linesize=2,legendnames=NULL,final=TRUE,scale=1){
+plotit.dfforecastset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE, years=unique(x$year),col=NULL,linetype=1,legendnames=NULL,final=TRUE,scale=1){
     x <- x[x$year %in% years,]
     x$Estimate <- x$Estimate/scale
     if(ci){x$High <- x$High/scale;x$Low <- x$Low/scale}
