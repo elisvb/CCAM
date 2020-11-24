@@ -47,10 +47,11 @@ dat <- setup.ccam.data(surveys=surveys,
 conf <- defcon(dat)
 conf$keySel <- matrix(c(0,1,2,3,4,4,4,4,4,4), nrow=49, ncol=10,byrow = T)
 
+# split selectivity in time blocks
 #conf$keySel <- rbind(matrix(c(0,1,2,3,4,4,4,4,4,4), nrow=28, ncol=10,byrow = T),
 #                     matrix(c(5,6,7,8,9,9,9,9,9,9), nrow=49-28, ncol=10,byrow = T))
 
-conf$keyVarObs[1,]=-1                       # sd around total catch always estimated as nearly zero, and problem calculating sd
+conf$keyVarObs[1,]=-1                       # no sd for censored catch
 conf$keyVarObs[2,1:9]=c(0,1,2,2,2,2,2,2,1)
 conf$keyVarObs[3,1]=3
 conf$stockRecruitmentModelCode=2 #0: RW, 1: ricker, 2: BH, 3:mean
