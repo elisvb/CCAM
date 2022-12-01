@@ -396,8 +396,9 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
     name<-c(name,"Recaptures")
   }
   dat<-dat[complete.cases(dat[,1:3]),]
+  dat<-type.convert(dat,as.is=TRUE)
 
-  o<-order(as.numeric(dat$year),as.numeric(dat$fleet),as.numeric(dat$age))
+  o<-order(dat$year,dat$fleet,dat$age)
   attr(dat,'type')<-type
   names(time)<-NULL
   attr(dat,'time')<-time
@@ -405,15 +406,15 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
   attr(dat,'name')<-name
   dat<-dat[o,]
   weight<-weight[o]
-  newyear<-min(as.numeric(dat$year)):max(as.numeric(dat$year))
-  newfleet<-min(as.numeric(dat$fleet)):max(as.numeric(dat$fleet))
+  newyear<-min(dat$year):max(dat$year)
+  newfleet<-min(dat$fleet):max(dat$fleet)
   mmfun<-function(f,y, ff){idx<-which(dat$year==y & dat$fleet==f); ifelse(length(idx)==0, NA, ff(idx)-1)}
   idx1<-outer(newfleet, newyear, Vectorize(mmfun,c("f","y")), ff=min)
   idx2<-outer(newfleet, newyear, Vectorize(mmfun,c("f","y")), ff=max)
   attr(dat,'idx1')<-idx1
   attr(dat,'idx2')<-idx2
-  attr(dat,"minAgePerFleet")<-unname(tapply(as.integer(dat[,"age"]), INDEX=dat[,"fleet"], FUN=min))
-  attr(dat,"maxAgePerFleet")<-unname(tapply(as.integer(dat[,"age"]), INDEX=dat[,"fleet"], FUN=max))
+  attr(dat,"minAgePerFleet")<-as.vector(tapply(dat[,"age"], INDEX=dat[,"fleet"], FUN=min))
+  attr(dat,"maxAgePerFleet")<-as.vector(tapply(dat[,"age"], INDEX=dat[,"fleet"], FUN=max))
   attr(dat,'year')<-newyear
   attr(dat,'nyear')<-max(as.numeric(dat$year))-min(as.numeric(dat$year))+1 ##length(unique(dat$year))
   cutY<-function(x)x[rownames(x)%in%newyear,,drop=FALSE]

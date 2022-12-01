@@ -43,6 +43,8 @@ reduce<-function(data, year=NULL, fleet=NULL, age=NULL, conf=NULL){
   data$catchMeanWeight <- data$catchMeanWeight[rownames(data$catchMeanWeight)%in%data$years, colnames(data$catchMeanWeight)%in%ages]
   data$disMeanWeight <- data$disMeanWeight[rownames(data$disMeanWeight)%in%data$years, colnames(data$disMeanWeight)%in%ages]
   data$landMeanWeight <- data$landMeanWeight[rownames(data$landMeanWeight)%in%data$years, colnames(data$landMeanWeight)%in%ages]
+  data$propFemale  <- data$propFemale [rownames(data$propFemale)%in%data$years, colnames(data$propFemale)%in%ages]
+  data$fec  <- data$fec [rownames(data$fec)%in%data$years, colnames(data$fec)%in%ages]
   data$env <- data$env[rownames(data$env)%in%data$years,,drop=FALSE]
   attr(data,"fleetNames") <- attr(data,"fleetNames")[suf]
   if(!missing(conf)){
