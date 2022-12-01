@@ -80,15 +80,14 @@ reduce<-function(data, year=NULL, fleet=NULL, age=NULL, conf=NULL){
 ##' @param fit a fitted model object as returned from ccam.fit
 ##' @param year a vector of years to be excluded.  When both fleet and year are supplied they need to be of same length, as only the pairs are excluded
 ##' @param fleet a vector of fleets to be excluded.  When both fleet and year are supplied they need to be of same length, as only the pairs are excluded
-##' @param ... extra arguments to ccam.fit
 ##' @details ...
 ##' @export
-runwithout <- function(fit, year=NULL, fleet=NULL, ...){
-  data <- reduce(fit$data, year=year, fleet=fleet, conf=fit$conf)
+runwithout <- function(fit, year=NULL, fleet=NULL){
+  data <- CCAM::reduce(fit$data, year=year, fleet=fleet, conf=fit$conf)
   conf <- attr(data, "conf")
   attr(data, "conf") <- NULL
   par <- defpar(data,conf)
-  ret <- ccam.fit(data, conf, par, rm.unidentified=TRUE, ...)
+  ret <- ccam.fit(data, conf, par, rm.unidentified=TRUE)
   return(ret)
 }
 
@@ -101,7 +100,7 @@ runwithout <- function(fit, year=NULL, fleet=NULL, ...){
 ##' @details run a retrospective plot. If run in parallell, success might depend on the available RAM.
 ##' @import parallel
 ##' @export
-retro <- function(fit, year=NULL, parallell=TRUE, ncores=detectCores(), ...){
+retro <- function(fit, year=NULL, parallell=TRUE, ncores=detectCores()){
   data <- fit$data
   y <- fit$data$aux[,"year"]
   f <- fit$data$aux[,"fleet"]
@@ -143,10 +142,10 @@ retro <- function(fit, year=NULL, parallell=TRUE, ncores=detectCores(), ...){
 ##' @details ...
 ##' @import parallel
 ##' @export
-leaveout <- function(fit, fleet=as.list(2:fit$data$noFleets), ncores=detectCores(), ...){
+leaveout <- function(fit, fleet=as.list(2:fit$data$noFleets), ncores=detectCores()){
   cl <- makeCluster(ncores) #set up nodes
   clusterExport(cl, varlist="fit", envir=environment())
-  runs <- parLapply(cl, fleet, function(f)CCAM::runwithout(fit, fleet=f, ...))
+  runs <- parLapply(cl, fleet, function(f)CCAM::runwithout(fit, fleet=f))
   stopCluster(cl) #shut it down
   names(runs) <- paste0("w.o. ", lapply(fleet, function(x)paste(attr(fit$data,"fleetNames")[x], collapse=" and ")))
   attr(runs, "fit") <- fit
@@ -159,10 +158,9 @@ leaveout <- function(fit, fleet=as.list(2:fit$data$noFleets), ncores=detectCores
 ##' @param fits a ccamset object as returned from the retro function.
 ##' @param what a function computing the quantity to calculate Mohn's rho for (default NULL computes Fbar, SSB, and R).
 ##' @param lag lag applied to fits and reference fit.
-##' @param ... extra arguments
 ##' @details ...
 ##' @export
-mohn <- function(fits, what=NULL, lag=0, ...){
+mohn <- function(fits, what=NULL, lag=0){
   if(is.null(what)){
     what <- function(fit)summary(fit)[,c(1,4,7),drop=FALSE]
   }
