@@ -89,14 +89,14 @@ tableit.forecastset <- function (fit, what,  trans=function(x)x, fleet=NULL,...)
 ##' @export
 tableset <- function(fit, fun, what, ...){
     na <- 1:length(fit)
+    nm <- names(fit)
     tabs <- lapply(na,function(x) {
         tab <- fun(fit[[x]],what,...)
-        tab <- cbind(tab,fit=as.factor(x))
+        if(is.null(nm)) tab$fit <- as.factor(x) else tab$fit <- nm[x]
         return(tab)})
     ret <- do.call('rbind',tabs)
     rownames(ret) <- 1:nrow(ret)
     ret <- data.frame(ret)
-    if(!is.null(names(fit))) ret$fit <- type.convert(rep(names(fit),each=(nrow(ret)/length(fit))))
     return(ret)
 }
 

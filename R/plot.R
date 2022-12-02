@@ -923,7 +923,7 @@ prettymatplot <- function(x,ylab=ifelse(is.null(names(dimnames(x))[1]),'y',names
         }
         return(nam)
     })
-    xm <- type.convert(melt(x))
+    xm <- type.convert(melt(x),as.is=TRUE)
     l <- list(x=xm[,1],y=xm[,3])
     if(length(unique(xm[,2]))>1) l <- c(l,list(col=xm[,2],group=xm[,2]))
     p <- ggplot()+
