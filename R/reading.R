@@ -351,8 +351,9 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
       name<-c(name,strtrim(gsub("\\s", "", names(dummy)), 50))
     }
   }
+  ny <- length(min(as.numeric(dat$year),na.rm=T):max(as.numeric(dat$year),na.rm=T))
   if(is.null(land.frac)){
-    land.frac<-matrix(1,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet)) # should be pure 1
+    land.frac<-matrix(1,nrow=ny, ncol=ncol(residual.fleet)) # should be pure 1
   }
   if(is.null(stock.start.weight)){
     stock.start.weight<-stock.mean.weight
@@ -364,20 +365,20 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
     land.mean.weight<-catch.mean.weight
   }
   if(is.null(prop.f)){
-    prop.f<-matrix(0,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet))
+    prop.f<-matrix(0,nrow=ny, ncol=ncol(residual.fleet))
   }
   if(is.null(prop.m)){
-    prop.m<-matrix(0,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet))
+    prop.m<-matrix(0,nrow=ny, ncol=ncol(residual.fleet))
   }
   if(is.null(prop.fem)){
-    prop.fem<-matrix(0.5,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet))
+    prop.fem<-matrix(0.5,nrow=ny, ncol=ncol(residual.fleet))
   }
   if(is.null(fec)){
-    fec<-matrix(1,nrow=nrow(residual.fleet), ncol=ncol(residual.fleet))
+    fec<-matrix(1,nrow=ny, ncol=ncol(residual.fleet))
   }
   if(is.null(env)){
-    env<-matrix(0,nrow=nrow(residual.fleet), ncol=1)
-    rownames(env)=rownames(residual.fleet)
+    env<-matrix(0,nrow=ny, ncol=1)
+    rownames(env)=min(as.numeric(dat$year),na.rm=T):max(as.numeric(dat$year),na.rm=T)
   }
   dat<-dat[!is.na(dat$year),]
 

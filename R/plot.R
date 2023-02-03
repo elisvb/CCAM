@@ -829,7 +829,7 @@ fitplot.default <- function(x,type=c('AIC','nll'),n=TRUE){
 ##' @importFrom reshape2 melt
 ##' @export
 bubble <- function(x,xlab='Year',ylab='Age',scale=15,col=c('black','darkgreen'),alpha=0.8){
-    if(class(x)!='list') x=list(x)
+    if(class(x)[1]!='list') x=list(x)
     n <- names(x)
     if(is.null(n)) n <- 1:length(x)
     xx <- lapply(n,function(y){
@@ -846,7 +846,7 @@ bubble <- function(x,xlab='Year',ylab='Age',scale=15,col=c('black','darkgreen'),
         ylab(ylab)+xlab(xlab)+
         labs(size="")+
         scale_color_manual(values=col[1:coll])+
-        guides(col=FALSE)
+        guides(col='none')
 
     if(length(unique(xx$id))>1){
         p <- p+facet_wrap(~id)
@@ -867,7 +867,7 @@ bubble <- function(x,xlab='Year',ylab='Age',scale=15,col=c('black','darkgreen'),
 ##' @import viridis
 ##' @export
 heat <- function(x,high=NULL,low=NULL,xlab='Year',ylab='Age',posneg=FALSE){
-    if(class(x)!='list') x=list(x)
+    if(class(x)[1]!='list') x=list(x)
     n <- names(x)
     if(is.null(n)) n <- 1:length(x)
     xx <- lapply(n,function(y){
