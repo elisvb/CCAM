@@ -2,9 +2,6 @@
 
 Package to fit a Censored Catch Assessment Model (largely based on the SAM package) and perform a Management Strategy Evaluation.
 
-*under construction*
-*ONLY intended for western Atlantic mackerel*
-
 # Installation
 
 devtools::install_github("elisvb/CCAM")
@@ -14,8 +11,10 @@ The package requires installation of Rtools and TMB.
 # Information
 
 Key differences with the SAM package are:
-- Total catches can be censored
-- F is separable (to accommodate the previous)
+- Observation equations: total catches can be censored (NCAM approach)
+- Observation equations: CAA proportions seperate (crl transformed: NCAM approach) 
+- Observation equations: Total Egg Production index (original approach?)
+- F is separable (to accommodate the censored catch: classical approach)
 - forecasting can include management procedures
 - functions for MSE
 - additional plots, tables, etc.
