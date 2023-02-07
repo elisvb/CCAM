@@ -353,7 +353,7 @@ setup.ccam.data <- function(fleets=NULL, surveys=NULL, residual.fleet=NULL,
   }
   ny <- length(min(as.numeric(dat$year),na.rm=T):max(as.numeric(dat$year),na.rm=T))
   if(is.null(land.frac)){
-    land.frac<-matrix(1,nrow=ny, ncol=ncol(residual.fleet)) # should be pure 1
+    land.frac<-matrix(as.integer(1),nrow=ny, ncol=ncol(residual.fleet),dimnames=dimnames(catch.mean.weight)) # should be pure 1
   }
   if(is.null(stock.start.weight)){
     stock.start.weight<-stock.mean.weight
