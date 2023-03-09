@@ -101,7 +101,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
   MPs <- avail('MP')
   if(all(!is.na(MP)) & any(!MP %in% MPs) & !is.numeric(MP)) stop("Undefined MP (see avail('MP'))")
 
-  dummy <- lapply(as.list(IE),function(x) if(!x %in% avail('IE') & !is.numeric(x)) stop("Undefined IE (see avail('IE'))"))
+  #dummy <- lapply(as.list(IE),function(x) if(!x %in% avail('IE') & !is.numeric(x)) stop("Undefined IE (see avail('IE'))"))
 
   if(!all(fit$data$fleetTypes %in% c(3,6))) warning('MPs based on fleettypes different from 3 and 6 need more code')
 
@@ -205,7 +205,14 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
                  rho <- attr(rec.meth,'AC')
                  if(is.null(rho)) rho <- acf(recpool,plot=FALSE)$acf[2,1,1]
                  mu <- mean(log(recpool))
-                 sigma <- sd(log(recpool))
+                 sd.option <- attr(rec.meth,'sd.option')
+                 if(is.null(sd.option)){
+                    sigma <- sd(log(recpool))
+                 }
+                 if(sd.option=='ci'){
+                     l <- log(rectab[rownames(rectab)%in%rec.years,])
+                     sigma <- max((l[,1]-l[,2])/1.96)
+                 }
                  if(deterministic) sigma <- 0
                  recs <- Rautocorr(sim[,1],mu,sigma,rho,i)
              },
@@ -622,7 +629,7 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     ssbsim <- ssb(sim, nm=nm, sw=sw, mo=mo, pm=pm, pf=pf)
     ssb0sim <- ssb0(sim, sw=sw0, mo=mo)
     recsim <- exp(sim[,1])
-    ssbmsyratiosim <- ssb0sim/refs[,'f40ssb']
+    ssbmsyratiosim <- ssbsim/refs[,'f40ssb']
     fmsyratiosim <- fbarsim/refs[,'f40']
     CZ <- refs[,'f40ssb']*0.4
     HZ <- refs[,'f40ssb']*0.8
@@ -650,8 +657,8 @@ forecast <- function(fit, fscale=NULL, catchval=NULL, fval=NULL, MP=NULL,nosim=1
     c(median=quan[1], low=quan[2], high=quan[3])
   }
   collectprob <- function(x){
-      probCZ <- signif(sum(simlist[[x]]$ssb0>simlist[[x]]$CZ)/nosim,2)
-      probHZ <- signif(sum(simlist[[x]]$ssb0>simlist[[x]]$HZ)/nosim,2)
+      probCZ <- signif(sum(simlist[[x]]$ssb>simlist[[x]]$CZ)/nosim,2)
+      probHZ <- signif(sum(simlist[[x]]$ssb>simlist[[x]]$HZ)/nosim,2)
       c(probCZ=probCZ, probHZ=probHZ)
   }
   fbar <- round(do.call(rbind, lapply(simlist, function(xx)collect(xx$fbar))),3)

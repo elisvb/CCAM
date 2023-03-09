@@ -75,6 +75,17 @@ reduce<-function(data, year=NULL, fleet=NULL, age=NULL, conf=NULL){
   data
 }
 
+##' runwithout helper function
+##' @param fit a fitted model object as returned from sam.fit
+##' @param year a vector of years to be excluded.  When both fleet and year are supplied they need to be of same length, as only the pairs are excluded
+##' @param fleet a vector of fleets to be excluded.  When both fleet and year are supplied they need to be of same length, as only the pairs are excluded
+##' @param map map from original fit
+##' @param ... extra arguments to sam.fit
+##' @details ...
+##' @export
+runwithout <- function(fit, year, fleet, ...){
+    UseMethod("runwithout")
+}
 
 ##' runwithout helper function
 ##' @param fit a fitted model object as returned from ccam.fit
@@ -82,13 +93,19 @@ reduce<-function(data, year=NULL, fleet=NULL, age=NULL, conf=NULL){
 ##' @param fleet a vector of fleets to be excluded.  When both fleet and year are supplied they need to be of same length, as only the pairs are excluded
 ##' @details ...
 ##' @export
-runwithout <- function(fit, year=NULL, fleet=NULL){
-  data <- CCAM::reduce(fit$data, year=year, fleet=fleet, conf=fit$conf)
-  conf <- attr(data, "conf")
-  attr(data, "conf") <- NULL
-  par <- defpar(data,conf)
-  ret <- ccam.fit(data, conf, par, rm.unidentified=TRUE)
-  return(ret)
+runwithout.ccam <- function(fit, year=NULL, fleet=NULL, map=fit$obj$env$map, ...){
+    data <- CCAM::reduce(fit$data, year=year, fleet=fleet, conf=fit$conf)
+    conf <- attr(data, "conf")
+    fakefile <- file()
+    sink(fakefile)
+    saveConf(conf, file="")
+    sink()
+    conf <- loadConf(data, fakefile, patch=TRUE)
+    close(fakefile)
+    par <- defpar(data,conf)
+    par[!names(par)%in%c("logN", "logF", "logSW", "logCW", "logitMO", "logNM")]<-fit$pl[!names(fit$pl)%in%c("missing", "logN", "logF", "logSW", "logCW", "logitMO", "logNM")]
+    ret <- ccam.fit(data, conf, par, rm.unidentified=TRUE)
+    return(ret)
 }
 
 ##' retro run
@@ -129,6 +146,8 @@ retro <- function(fit, year=NULL, parallell=TRUE, ncores=detectCores()){
   }else{
       runs <- lapply(setup,function(s) runwithout(fit, year=s[,1], fleet=s[,2]))
   }
+  converg <- unlist(lapply(runs, function(x)x$opt$conv))
+  if(any(converg!=0)) warning(paste0("retro run(s) ", paste0(which(converg!=0),collapse=",")," did not converge."))
   attr(runs, "fit") <- fit
   class(runs)<-"ccamset"
   runs
@@ -153,6 +172,16 @@ leaveout <- function(fit, fleet=as.list(2:fit$data$noFleets), ncores=detectCores
   runs
 }
 
+##' Mohn's rho calculation
+##' @param fits a ccamset object as returned from the retro function.
+##' @param what a function computing the quantity to calculate Mohn's rho for (default NULL computes Fbar, SSB, and R).
+##' @param lag lag applied to fits and reference fit.
+##' @param ... extra arguments
+##' @details ...
+##' @export
+mohn <- function(fits, what=NULL, lag=0, ...){
+    UseMethod("mohn")
+}
 
 ##' Mohn's rho calculation
 ##' @param fits a ccamset object as returned from the retro function.
@@ -160,7 +189,7 @@ leaveout <- function(fit, fleet=as.list(2:fit$data$noFleets), ncores=detectCores
 ##' @param lag lag applied to fits and reference fit.
 ##' @details ...
 ##' @export
-mohn <- function(fits, what=NULL, lag=0){
+mohn.ccamset <- function(fits, what=NULL, lag=0){
   if(is.null(what)){
     what <- function(fit)summary(fit)[,c(1,4,7),drop=FALSE]
   }
