@@ -43,7 +43,6 @@ plotit.dfccamset <- function(x,ylab='Estimate',xlab='Year', ci=TRUE,years=unique
     p <- ggplot(x,aes(x=year,y=Estimate,group=fit))+geom_line(aes(col=fit),linetype=linetype)+
         scale_y_continuous(expand=c(0,0))+
         scale_x_continuous(expand=c(0,0))+
-
         labs(col='',fill='')+
         ylab(ylab)+xlab(xlab)
     if(is.null(col)){
@@ -358,7 +357,7 @@ srplot.ccamset <- function(fit,text=TRUE,linecol='black',curve=FALSE){
     }
 
     if(curve){
-        p <- p+geom_line(aes(y=SR))
+        p <- p+geom_line(aes(y=SR),col=linecol)
     }
     if(length(fit)>1){
         p<- p+ facet_wrap(~fit)

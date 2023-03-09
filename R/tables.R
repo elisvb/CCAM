@@ -92,11 +92,12 @@ tableset <- function(fit, fun, what, ...){
     nm <- names(fit)
     tabs <- lapply(na,function(x) {
         tab <- fun(fit[[x]],what,...)
-        if(is.null(nm)) tab$fit <- as.factor(x) else tab$fit <- nm[x]
+        tab <- as.data.frame(tab)
+        if(!'year' %in% names(tab)) tab <- cbind(year=as.numeric(rownames(tab)),tab)
+        if(is.null(nm)) tab$fit <- x else tab$fit <- nm[x]
         return(tab)})
     ret <- do.call('rbind',tabs)
     rownames(ret) <- 1:nrow(ret)
-    ret <- data.frame(ret)
     return(ret)
 }
 
@@ -163,6 +164,7 @@ exptable<-function(fit,...){
 ##' @export
 exptable.default <- function(fit,...){
     ret<-tableit(fit, "exploit",...)
+    ret[ret<0] <- 0
     return(ret)
 }
 
@@ -229,7 +231,7 @@ seltable<-function(fit, fleet=NULL,...){
 ##' @method seltable default
 ##' @export
 seltable.default <- function(fit, fleet=NULL,...){
-    ret <- tableit(fit, what="logitSel",trans = exp)
+    ret <- tableit(fit, what="par.logitSel",trans = invlogit)
     return(ret)
 }
 
@@ -319,7 +321,17 @@ partable.ccam <- function(fit,...){
 ##' @method partable ccamset
 ##' @export
 partable.ccamset <- function(fit,...){
-    return(tableset(fit, fun=partable, ...))
+    na <- 1:length(fit)
+    nm <- names(fit)
+    tabs <- lapply(na,function(x) {
+        tab <- partable(fit[[x]],...)
+        tab <- as.data.frame(tab)
+        tab <- cbind(par=rownames(tab),tab)
+        if(is.null(nm)) tab$fit <- x else tab$fit <- nm[x]
+        return(tab)})
+    ret <- do.call('rbind',tabs)
+    rownames(ret) <- 1:nrow(ret)
+    return(ret)
 }
 
 ##' model table
@@ -645,5 +657,41 @@ jittable.ccamset <- function(x){
     return(ret)
 }
 
-
+##' Mabs table
+##' @param  x...
+##' @param ... extra arguments not currently used
+##' @details ...
+##' @export
+Mabstable <-function(x, ...){
+    UseMethod("Mabstable")
+}
+##' @rdname faytable
+##' @method Mabstable ccam
+##' @export
+Mabstable.ccam <- function(x){
+    sb <- tsbtable(x)
+    N. <- ntable(x)
+    M. <- x$data$natMor
+    F. <- faytable(x)
+    Z. <- F.+M.
+    Mabs <- (M./Z.)*(1-exp(-Z.))*N.*x$data$stockMeanWeight # but don't really know the WAA of fish consumed!
+    sb$Mabs <- rowSums(Mabs)
+    names(sb)[1:3] <- paste0('TSB.',names(sb)[1:3])
+    return(sb)
+}
+##' @rdname Mabstable
+##' @method Mabstable ccamset
+##' @export
+Mabstable.ccamset <- function(x){
+    na <- 1:length(x)
+    nm <- names(x)
+    tabs <- lapply(na,function(i) {
+        tab <- Mabstable(x[[i]])
+        if(is.null(nm)) tab$fit <- as.factor(i) else tab$fit <- nm[i]
+        return(tab)})
+    ret <- do.call('rbind',tabs)
+    rownames(ret) <- 1:nrow(ret)
+    ret <- data.frame(ret)
+    return(ret)
+}
 
