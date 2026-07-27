@@ -5,11 +5,11 @@ Type print(array<Type> m){
 
     for(int x=0;x<rows;x++)
     {
-        for(int y=0;y<cols;y++) 
+        for(int y=0;y<cols;y++)
         {
             std::cout<<m(x,y) << " ";
         }
-    std::cout<<std::endl; 
+    std::cout<<std::endl;
     }
 
   return 0;
@@ -23,13 +23,13 @@ Type print(vector<Type> v){
     {
       std::cout<< v(x) << " ";
     }
-  std::cout<<std::endl; 
+  std::cout<<std::endl;
   return 0;
 }
 
 template <class Type> // ADDED BY EVB for debugging
 Type print(Type v){
-  std::cout<< v << std::endl; 
+  std::cout<< v << std::endl;
   return 0;
 }
 
@@ -47,12 +47,12 @@ array<Type> SelFun(confSet &conf, vector<Type> &logitSel){
       ix(j)=ix(j-1)+1;
     }else{
       ix(j)=ix(j-1);
-    } 
+    }
    }
 
-  array<Type> Sel(stateDimN,selblocks);  
+  array<Type> Sel(stateDimN,selblocks);
 
-  for(int i=0;i<stateDimN;++i){ 
+  for(int i=0;i<stateDimN;++i){
    for(int j=0;j<timeSteps;++j){
     if(conf.keySel(j,i)<0){
       Sel(i,ix(j))=Type(0.0000001);
@@ -61,7 +61,7 @@ array<Type> SelFun(confSet &conf, vector<Type> &logitSel){
       //Sel(i,ix(j))=exp(logitSel(conf.keySel(j,i))); // if on log scale
     }
    }
-  } 
+  }
   return Sel;
 }
 
@@ -71,9 +71,9 @@ array<Type> FFun(confSet &conf, paraSet<Type> &par, vector<Type> &logFy, int tra
   if(conf.debug==1) std::cout << "-- f check"  << std::endl;
   int timeSteps=conf.keySel.dim[0];
   int stateDimN=conf.keySel.dim[1];
-  array<Type> F(stateDimN,timeSteps);  
+  array<Type> F(stateDimN,timeSteps);
 
-  for(int i=0;i<stateDimN;++i){ 
+  for(int i=0;i<stateDimN;++i){
    for(int j=0;j<timeSteps;++j){
     if(conf.keySel(j,i)<0){
       F(i,j)=Type(0.0000001);
@@ -83,7 +83,7 @@ array<Type> FFun(confSet &conf, paraSet<Type> &par, vector<Type> &logFy, int tra
       //F(i,j)=exp(logFy(j))*exp(logitSel(conf.keySel(j,i))); // if on log scale
     }
    }
-  } 
+  }
   if(conf.debug==1) std::cout << "-- f check2"  << std::endl;
   if(tran==1) F=log(F);
   return F;
@@ -121,14 +121,42 @@ vector<Type> ssbFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<
   return ssb;
 }
 
+//template <class Type> // added by CL for linear model
+//Type ssni(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int i, int s){
+//  int stateDimN=logN.dim[0];
+//Type ssn=0;
+//Type Zprop;
+//for(int j=0; j<stateDimN; ++j){
+//  if(s==1){
+//    Zprop=0; // if s(tart) = 0 ssb is calcuted at another time of year then the beginning
+//}else{
+//  Zprop=dat.natMor(i,j)*dat.propM(i,j);
+//if(conf.keySel(i,j)<0) Zprop+=exp(logF(j,i))*dat.propF(i,j);
+//}
+//ssn += exp(logN(j,i))*exp(-Zprop)*dat.propMat(i,j);
+//}
+//return ssn;
+//}
+
+//template <class Type>
+//vector<Type> ssnFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int s){
+//  int timeSteps=logF.dim[1];
+//vector<Type> ssn(timeSteps);
+//ssn.setZero();
+//for(int i=0;i<timeSteps;i++){
+//  ssn(i)=ssni(dat,conf,logN,logF,i,s);
+//}
+//return ssn;
+//}
+
 template <class Type> // ADDED BY EVB
 array<Type> catchNrFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF){
   int timeSteps=dat.catchMeanWeight.dim(0);
-  int stateDimN=dat.catchMeanWeight.dim(1); 
+  int stateDimN=dat.catchMeanWeight.dim(1);
   array<Type> cat(timeSteps,stateDimN);
   cat.setZero();
   for(int y=0;y<timeSteps;y++){
-    for(int a=0;a<=(conf.maxAge-conf.minAge);a++){  
+    for(int a=0;a<=(conf.maxAge-conf.minAge);a++){
       Type z=dat.natMor(y,a);
       if(conf.keySel(y,a)>(-1)){
         z+=exp(logF(a,y));
@@ -145,7 +173,7 @@ vector<Type> catchFun(dataSet<Type> &dat, confSet &conf, array<Type> &catNr){
   vector<Type> cat(timeSteps);
   cat.setZero();
   for(int y=0;y<timeSteps;y++){
-    for(int a=0;a<=(conf.maxAge-conf.minAge);a++){  
+    for(int a=0;a<=(conf.maxAge-conf.minAge);a++){
         cat(y)+=catNr(y,a)*dat.catchMeanWeight(y,a);
     }
   }
@@ -170,7 +198,7 @@ vector<Type> varLogCatchFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN
         CW=dat.catchMeanWeight(y,a);
         Ca=exp(logF(a,y))/z*exp(logN(a,y))*(Type(1.0)-exp(-z));
         cat(y)+=Ca*CW;
-        varLogCat(y)+=exp(2.0*par.logSdLogObs(conf.keyVarObs(0,a)))*CW*CW*Ca*Ca; 
+        varLogCat(y)+=exp(2.0*par.logSdLogObs(conf.keyVarObs(0,a)))*CW*CW*Ca*Ca;
       }
     }
     varLogCat(y)/=cat(y)*cat(y);
@@ -216,7 +244,7 @@ vector<Type> varLogLandFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN,
   Type Ca=0;
   for(int y=0;y<len;y++){
     for(int a=conf.minAge;a<=conf.maxAge;a++){
-       if(conf.keyVarObs(0,a-conf.minAge)<0) continue; 
+       if(conf.keyVarObs(0,a-conf.minAge)<0) continue;
       Type z=dat.natMor(y,a-conf.minAge);
       if(conf.keySel(y,a-conf.minAge)>(-1)){
         z+=exp(logF(a-conf.minAge,y));
@@ -231,7 +259,7 @@ vector<Type> varLogLandFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN,
       }
     }
 
-    if(land(y)==0) continue; 
+    if(land(y)==0) continue;
     varLogLand(y)/=land(y)*land(y);
   }
   return varLogLand;
@@ -245,12 +273,12 @@ vector<Type> fsbFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<
   Type sumF;
   for(int y=0;y<len;y++){  // calc logfsb
     sumF=Type(0);
-    for(int a=conf.minAge;a<=conf.maxAge;a++){  
+    for(int a=conf.minAge;a<=conf.maxAge;a++){
       if(conf.keySel(y,a-conf.minAge)>(-1)){
         sumF+=exp(logF(a-conf.minAge,y));
       }
     }
-    for(int a=conf.minAge;a<=conf.maxAge;a++){  
+    for(int a=conf.minAge;a<=conf.maxAge;a++){
       Type z=dat.natMor(y,a-conf.minAge);
       if(conf.keySel(y,a-conf.minAge)>(-1)){
         z+=exp(logF(a-conf.minAge,y));
@@ -265,9 +293,9 @@ template <class Type>
 vector<Type> tsbFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN){
   int timeSteps=logN.dim[1];
   vector<Type> tsb(timeSteps);
-  tsb.setZero();  
-  for(int y=0;y<timeSteps;y++){  
-    for(int a=conf.minAge;a<=conf.maxAge;a++){  
+  tsb.setZero();
+  for(int y=0;y<timeSteps;y++){
+    for(int a=conf.minAge;a<=conf.maxAge;a++){
       tsb(y)+=exp(logN(a-conf.minAge,y))*dat.stockMeanWeight(y,a-conf.minAge);
     }
   }
@@ -279,7 +307,7 @@ vector<Type> rFun(array<Type> &logN){
   int timeSteps=logN.dim[1];
   vector<Type> R(timeSteps);
   R.setZero();
-  for(int y=0;y<timeSteps;y++){  
+  for(int y=0;y<timeSteps;y++){
     R(y)=exp(logN(0,y));
   }
   return R;
@@ -290,8 +318,8 @@ vector<Type> fbarFun(confSet &conf, array<Type> &logF){
   int timeSteps=logF.dim[1];
   vector<Type> fbar(timeSteps);
   fbar.setZero();
-  for(int y=0;y<timeSteps;y++){  
-    for(int a=conf.fbarRange(0);a<=conf.fbarRange(1);a++){  
+  for(int y=0;y<timeSteps;y++){
+    for(int a=conf.fbarRange(0);a<=conf.fbarRange(1);a++){
       fbar(y)+=exp(logF(a-conf.minAge,y));
     }
     fbar(y)/=Type(conf.fbarRange(1)-conf.fbarRange(0)+1);
@@ -306,13 +334,13 @@ vector<Type> ffullFun(confSet &conf, array<Type> &logF){
   vector<Type> ffull(timeSteps);
   ffull.setZero();
   int n;
-  for(int y=0;y<timeSteps;y++){ 
-      n=0; 
+  for(int y=0;y<timeSteps;y++){
+      n=0;
     for(int a=0;a<stateDimN;++a){
       if(conf.keySel(y,a)!=conf.keySel.matrix().maxCoeff()){
         ffull(y)+=exp(logF(a,y));
         n+=1;
-      } 
+      }
     }
     ffull(y)/=n;
   }
@@ -329,23 +357,23 @@ vector<Type> fmatFun(confSet &conf, dataSet<Type> &dat, array<Type> &logF, array
 
   vector<Type> propMatmin=dat.propMat.matrix().row(0); // colmins
   for(int a=0;a<stateDimN;++a){
-    for(int y=0;y<timeSteps;y++){  
+    for(int y=0;y<timeSteps;y++){
       if(dat.propMat(y,a)<propMatmin(a)) propMatmin(a)=dat.propMat(y,a);
     }
   }
 
-  for(int y=0;y<timeSteps;y++){  
+  for(int y=0;y<timeSteps;y++){
     w=0;
     for(int a=0;a<stateDimN;++a){
       if(propMatmin(a)>Type(0.95)){ // over age classes that always have at least 95% of mature individuals
         ffull(y)+=exp(logF(a,y))*exp(logN(a,y));
         w+=exp(logN(a,y));
-      } 
+      }
     }
     ffull(y)/=w;
   }
   return ffull;
-}  
+}
 
 template <class Type>  // ADDED BY EVB
 vector<Type> exploitFun(vector<Type> &cat, vector<Type> &ssb){
