@@ -121,6 +121,11 @@ defcon<-function(dat){
   if(Csep)  ret$keyBiomassTreat[1]=3
   ret$obsLikelihoodFlag <- factor(rep("LN",nFleets),levels=c("LN","ALN","CE","RO"))
   ret$fixVarToWeight <- 0
+
+  ret$lmPeriod <- 0 #eriod on which to fit the linear model to calculate mean growth over a time period
+  ret$iyr_lmPeriod <- 0:1 # index of year on with to calculate lm.
+  ret$do_lmPeriod <- 0 # 1= TRUE
+
   return(ret)
 }
 
@@ -191,6 +196,9 @@ saveConf <- function(x, file="", overwrite=FALSE){
     txt$keyBiomassTreat <- "To be defined only if a biomass survey is used (0 SSB index, 1 catch index, and 2 FSB index)."
     txt$obsLikelihoodFlag <- "Option for observational likelihood"
     txt$fixVarToWeight <- "If weight attribute is supplied for observations this option sets the treatment (0 relative weight, 1 fix variance to weight)."
+    txt$lmPeriod <- "Period (numbers of years) on which to fit the linear model to calculate mean growth of the stock over a time period"
+    txt$iyr_lmPeriod <- "Index of years on with to calculate lm."
+    txt$do_lmPeriod <- "Option to calculate the growth of the stock. default to 0, not done. 1=true"
 
 
     nam<-names(x)

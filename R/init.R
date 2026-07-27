@@ -46,5 +46,10 @@ defpar <- function(dat,conf){
   ret$logitSel=log(rep(0.5,max(conf$keySel)))
   ret$logFy=rep(0, dat$noYears)
   ret$logN=matrix(10, nrow=conf$maxAge-conf$minAge+1, ncol=dat$noYears)
+
+  ret$alpha_lmPeriod=1
+  ret$beta_lmPeriod=0
+  ret$log_sig_lmPeriod=0
+
   return(ret)
 }
