@@ -121,33 +121,33 @@ vector<Type> ssbFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<
   return ssb;
 }
 
-//template <class Type> // added by CL for linear model
-//Type ssni(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int i, int s){
-//  int stateDimN=logN.dim[0];
-//Type ssn=0;
-//Type Zprop;
-//for(int j=0; j<stateDimN; ++j){
-//  if(s==1){
-//    Zprop=0; // if s(tart) = 0 ssb is calcuted at another time of year then the beginning
-//}else{
-//  Zprop=dat.natMor(i,j)*dat.propM(i,j);
-//if(conf.keySel(i,j)<0) Zprop+=exp(logF(j,i))*dat.propF(i,j);
-//}
-//ssn += exp(logN(j,i))*exp(-Zprop)*dat.propMat(i,j);
-//}
-//return ssn;
-//}
+template <class Type> // added by CL for linear model
+Type ssni(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int i, int s){
+  int stateDimN=logN.dim[0];
+Type ssn=0;
+Type Zprop;
+for(int j=0; j<stateDimN; ++j){
+  if(s==1){
+    Zprop=0; // if s(tart) = 0 ssb is calcuted at another time of year then the beginning
+}else{
+  Zprop=dat.natMor(i,j)*dat.propM(i,j);
+if(conf.keySel(i,j)<0) Zprop+=exp(logF(j,i))*dat.propF(i,j);
+}
+ssn += exp(logN(j,i))*exp(-Zprop)*dat.propMat(i,j);
+}
+return ssn;
+}
 
-//template <class Type>
-//vector<Type> ssnFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int s){
-//  int timeSteps=logF.dim[1];
-//vector<Type> ssn(timeSteps);
-//ssn.setZero();
-//for(int i=0;i<timeSteps;i++){
-//  ssn(i)=ssni(dat,conf,logN,logF,i,s);
-//}
-//return ssn;
-//}
+template <class Type>
+vector<Type> ssnFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF, int s){
+  int timeSteps=logF.dim[1];
+vector<Type> ssn(timeSteps);
+ssn.setZero();
+for(int i=0;i<timeSteps;i++){
+  ssn(i)=ssni(dat,conf,logN,logF,i,s);
+}
+return ssn;
+}
 
 template <class Type> // ADDED BY EVB
 array<Type> catchNrFun(dataSet<Type> &dat, confSet &conf, array<Type> &logN, array<Type> &logF){
