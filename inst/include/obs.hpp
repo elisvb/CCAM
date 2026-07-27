@@ -123,8 +123,8 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   vector<Type> ssb = ssbFun(dat, conf, logN, logF, 0);
   vector<Type> logssb = log(ssb);
   vector<Type> ssb0 = ssbFun(dat, conf, logN, logF, 1);
-  // vector<Type> ssn = ssnFun(dat, conf, logN, logF, 0);
-  // vector<Type> logssn = log(ssn);
+  vector<Type> ssn = ssnFun(dat, conf, logN, logF, 0);
+  vector<Type> logssn = log(ssn);
   vector<Type> logssb0 = log(ssb0);
   vector<Type> tsb = tsbFun(dat, conf, logN);
   vector<Type> logtsb = log(tsb);
