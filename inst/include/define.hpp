@@ -22,7 +22,7 @@ bool isNAINT(int x){
 template <class Type>
 struct dataSet{
   int noFleets;
-  vector<int> fleetTypes; 
+  vector<int> fleetTypes;
   vector<Type> sampleTimes;
   int noYears;
   vector<Type> years;
@@ -36,8 +36,8 @@ struct dataSet{
   vector<Type> weight;
   // data_indicator<vector<Type>,Type> keep;
   array<Type> propMat;
-  array<Type> stockMeanWeight; 
-  array<Type> stockStartWeight; 
+  array<Type> stockMeanWeight;
+  array<Type> stockStartWeight;
   array<Type> catchMeanWeight;
   array<Type> natMor;
   array<Type> landFrac;
@@ -83,7 +83,7 @@ dataSet(SEXP x) {
 
   dataSet<Type>& operator=(const dataSet<Type>& rhs) {
     noFleets = rhs.noFleets;
-    fleetTypes = rhs.fleetTypes; 
+    fleetTypes = rhs.fleetTypes;
     sampleTimes = rhs.sampleTimes;
     noYears = rhs.noYears;
     years = rhs.years;
@@ -97,7 +97,7 @@ dataSet(SEXP x) {
     weight = rhs.weight;
     // keep = rhs.keep;
     propMat = rhs.propMat;
-    stockMeanWeight = rhs.stockMeanWeight; 
+    stockMeanWeight = rhs.stockMeanWeight;
     catchMeanWeight = rhs.catchMeanWeight;
     natMor = rhs.natMor;
     landFrac = rhs.landFrac;
@@ -121,9 +121,9 @@ struct confSet{
   array<int> keyLogFpar;
   array<int> keyQpow;
   array<int> keyVarF;
-  vector<int> keyVarLogN; 
+  vector<int> keyVarLogN;
   array<int> keyVarObs;
-  vector<int> obsCorStruct; 
+  vector<int> obsCorStruct;
   array<int> keyCorObs;
   int stockRecruitmentModelCode;
   int noScaledYears;
@@ -131,11 +131,14 @@ struct confSet{
   matrix<int> keyParScaledYA;
   vector<int> fbarRange;
   vector<int> keyBiomassTreat;
-  int simFlag; 
-  int resFlag; 
+  int simFlag;
+  int resFlag;
   vector<int> obsLikelihoodFlag;
   int fixVarToWeight;
   int debug;
+  ///int lmPeriod;//period on which to fit the linear model to calculate mean growth over a time period
+  //vector<int> iyr_lmPeriod; // index of year on with to calculate lm.
+  //int do_lmPeriod;// boolean 1= TRUE
 
   confSet() {};
 
@@ -164,11 +167,15 @@ struct confSet{
     obsLikelihoodFlag = asVector<int>(getListElement(x,"obsLikelihoodFlag"));
     fixVarToWeight = (int)*REAL(getListElement(x,"fixVarToWeight"));
     debug = (int)*REAL(getListElement(x,"debug"));
+    //lmPeriod = (int)*REAL(getListElement(x,"lmPeriod"));//period on which to fit the linear model to calculate mean growth over a time period
+    //iyr_lmPeriod = asVector<int>(getListElement(x,"iyr_lmPeriod")); // index of year on with to calculate lm.
+    //do_lmPeriod = (int)*REAL(getListElement(x,"do_lmPeriod"));// boolean 1= TRUE
+
   };
 
   confSet& operator=(const confSet& rhs) {
     minAge = rhs.minAge;
-    maxAge = rhs.maxAge; 
+    maxAge = rhs.maxAge;
     maxAgePlusGroup = rhs.maxAgePlusGroup;
     keySel = rhs.keySel;
     keyLogFpar = rhs.keyLogFpar;
@@ -184,32 +191,38 @@ struct confSet{
     keyScaledYears = rhs.keyScaledYears;
     keyParScaledYA = rhs.keyParScaledYA;
     fbarRange = rhs.fbarRange;
-    keyBiomassTreat = rhs.keyBiomassTreat; 
+    keyBiomassTreat = rhs.keyBiomassTreat;
     simFlag = rhs.simFlag;
     resFlag = rhs.resFlag;
     obsLikelihoodFlag = rhs.obsLikelihoodFlag;
     fixVarToWeight = rhs.fixVarToWeight;
     debug = rhs.debug;
+    //lmPeriod = rhs.lmPeriod;
+    //iyr_lmPeriod = rhs.iyr_lmPeriod;
+    //do_lmPeriod = rhs.do_lmPeriod;
     return *this;
   };
 };
 
 template <class Type>
 struct paraSet{
-  vector<Type> logFpar; 
-  vector<Type> logQpow; 
-  Type logSdLogFsta; 
-  vector<Type> logSdLogN; 
+  vector<Type> logFpar;
+  vector<Type> logQpow;
+  Type logSdLogFsta;
+  vector<Type> logSdLogN;
   vector<Type> logSdLogObs;
   vector<Type> logSdLogTotalObs;
   vector<Type> transfIRARdist;
   vector<Type> sigmaObsParUS;
-  vector<Type> rec_loga; 
-  vector<Type> rec_logb; 
-  vector<Type> rec_e; 
-  //vector<Type> itrans_rho; 
+  vector<Type> rec_loga;
+  vector<Type> rec_logb;
+  vector<Type> rec_e;
+  //vector<Type> itrans_rho;
   vector<Type> logScale;
-  vector<Type> logitReleaseSurvival;   
-  vector<Type> logitRecapturePhi; 
-  vector<Type> logitSel;  
+  vector<Type> logitReleaseSurvival;
+  vector<Type> logitRecapturePhi;
+  vector<Type> logitSel;
+  // Type alpha_lmPeriod;
+  //Type beta_lmPeriod;
+  //Type log_sig_lmPeriod;
 };
