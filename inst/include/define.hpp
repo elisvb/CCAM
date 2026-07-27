@@ -136,9 +136,9 @@ struct confSet{
   vector<int> obsLikelihoodFlag;
   int fixVarToWeight;
   int debug;
-  ///int lmPeriod;//period on which to fit the linear model to calculate mean growth over a time period
-  //vector<int> iyr_lmPeriod; // index of year on with to calculate lm.
-  //int do_lmPeriod;// boolean 1= TRUE
+  int lmPeriod;//period on which to fit the linear model to calculate mean growth over a time period
+  vector<int> iyr_lmPeriod; // index of year on with to calculate lm.
+  int do_lmPeriod;// 1= TRUE
 
   confSet() {};
 
@@ -167,9 +167,9 @@ struct confSet{
     obsLikelihoodFlag = asVector<int>(getListElement(x,"obsLikelihoodFlag"));
     fixVarToWeight = (int)*REAL(getListElement(x,"fixVarToWeight"));
     debug = (int)*REAL(getListElement(x,"debug"));
-    //lmPeriod = (int)*REAL(getListElement(x,"lmPeriod"));//period on which to fit the linear model to calculate mean growth over a time period
-    //iyr_lmPeriod = asVector<int>(getListElement(x,"iyr_lmPeriod")); // index of year on with to calculate lm.
-    //do_lmPeriod = (int)*REAL(getListElement(x,"do_lmPeriod"));// boolean 1= TRUE
+    lmPeriod = (int)*REAL(getListElement(x,"lmPeriod"));//period on which to fit the linear model to calculate mean growth over a time period
+    iyr_lmPeriod = asVector<int>(getListElement(x,"iyr_lmPeriod")); // index of year on with to calculate lm.
+    do_lmPeriod = (int)*REAL(getListElement(x,"do_lmPeriod"));//  1= TRUE
 
   };
 
@@ -197,9 +197,9 @@ struct confSet{
     obsLikelihoodFlag = rhs.obsLikelihoodFlag;
     fixVarToWeight = rhs.fixVarToWeight;
     debug = rhs.debug;
-    //lmPeriod = rhs.lmPeriod;
-    //iyr_lmPeriod = rhs.iyr_lmPeriod;
-    //do_lmPeriod = rhs.do_lmPeriod;
+    lmPeriod = rhs.lmPeriod;
+    iyr_lmPeriod = rhs.iyr_lmPeriod;
+    do_lmPeriod = rhs.do_lmPeriod;
     return *this;
   };
 };
@@ -222,7 +222,7 @@ struct paraSet{
   vector<Type> logitReleaseSurvival;
   vector<Type> logitRecapturePhi;
   vector<Type> logitSel;
-  // Type alpha_lmPeriod;
-  //Type beta_lmPeriod;
-  //Type log_sig_lmPeriod;
+  Type alpha_lmPeriod;
+  Type beta_lmPeriod;
+  Type log_sig_lmPeriod;
 };
