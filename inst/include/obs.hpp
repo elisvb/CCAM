@@ -156,17 +156,17 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   if(conf.debug==1)   std::cout << "-- predicted observations"  << std::endl;
   vector<Type> predObs = predObsFun(dat, conf, par, logN, logF, logssb, logfsb, logCatch, catNr, logLand);
 
-  //Type pchange = 0;
-  //vector<Type> log_ssn_pred;
-  //if(conf.do_lmPeriod==1){
-  //Type sig_lmPeriod = exp(par.log_sig_lmPeriod);
-  //log_ssn_pred = par.alpha_lmPeriod + par.beta_lmPeriod* logssn(conf.iyr_lmPeriod); //predicted log_SSA based on log-linear decline[CL5.1]
-  // vector<Type> reslm = logssn-log_ssn_pred;
-  //nll -= sum(dnorm(reslm, 0, sig_lmPeriod, true));
+  Type pchange = 0;
+  vector<Type> log_ssn_pred;
+  if(conf.do_lmPeriod==1){
+  Type sig_lmPeriod = exp(par.log_sig_lmPeriod);
+  log_ssn_pred = par.alpha_lmPeriod + par.beta_lmPeriod* logssn(conf.iyr_lmPeriod); //predicted log_SSA based on log-linear decline[CL5.1]
+   vector<Type> reslm = logssn-log_ssn_pred;
+  nll -= sum(dnorm(reslm, 0, sig_lmPeriod, true));
 
-  // if(conf.debug==1)   std::cout << "-- predicted change"  << std::endl;
-  // pchange += 100*(1-exp(-par.beta_lmPeriod*conf.lmPeriod)); // calculate decline or growth over a time period iyr.
-  //}
+   if(conf.debug==1)   std::cout << "-- predicted change"  << std::endl;
+   pchange += 100*(1-exp(-par.beta_lmPeriod*conf.lmPeriod)); // calculate decline or growth over a time period iyr.
+  }
 
   // setup obs likelihoods
    if(conf.debug==1)   std::cout << "-- obs likelihood stuff"  << std::endl;
@@ -414,8 +414,8 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   ADREPORT_F(logtsb,of);
   ADREPORT_F(logR,of);
   ADREPORT_F(exploit,of);
-  //ADREPORT_F(pchange,of);
-  //ADREPORT_F(log_ssn_pred,of);
+  ADREPORT_F(pchange,of);
+  ADREPORT_F(log_ssn_pred,of);
 
   int timeSteps=logF.dim[1];
 
@@ -444,7 +444,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   ADREPORT_F(par.logitReleaseSurvival,of);
   ADREPORT_F(par.logitRecapturePhi,of);
   ADREPORT_F(par.logitSel,of);
-  // ADREPORT_F(par.beta_lmPeriod,of);
+  ADREPORT_F(par.beta_lmPeriod,of);
 
   return nll;
 }
