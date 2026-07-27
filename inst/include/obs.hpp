@@ -12,16 +12,16 @@ matrix<Type> setupVarCovMatrix(int minAge, int maxAge, int minAgeFleet, int maxA
   xvec(0)=Type(0);
   int maxrm=-1;
   if(rhoVec.size()>0){
-    for(int i=1; i<xvec.size(); i++) { 
+    for(int i=1; i<xvec.size(); i++) {
       if(rhoMap(i-1+offset)>=0)
-	xvec(i) = xvec(i-1)+rhoVec(rhoMap(i-1+offset)); 
+	xvec(i) = xvec(i-1)+rhoVec(rhoMap(i-1+offset));
       if(rhoMap(i-1+offset)>maxrm) maxrm=rhoMap(i-1+offset);
-    } 
+    }
   }
-   
+
   for(int i=0; i<dim; i++)
     for(int j=0; j<dim; j++){
-      if(i!=j && maxrm>=0){	
+      if(i!=j && maxrm>=0){
 	Type dist = abs(xvec(i)-xvec(j));
      	ret(i,j)=pow( rho0,dist)*sdVec( sdMap(i+offset) )*sdVec( sdMap(j+offset));
       } else if(i==j) ret(i,j) = sdVec( sdMap(i+offset) )*sdVec( sdMap(j+offset));
@@ -29,7 +29,7 @@ matrix<Type> setupVarCovMatrix(int minAge, int maxAge, int minAgeFleet, int maxA
   return ret;
 }
 
-template <class Type> 
+template <class Type>
 density::UNSTRUCTURED_CORR_t<Type> getCorrObj(vector<Type> params){
   density::UNSTRUCTURED_CORR_t<Type> ret(params);
   return ret;
@@ -71,7 +71,7 @@ vector<Type> log2proportion(vector<Type> x){
 
 template<class Type>
 matrix<Type> buildJac(vector<Type> x, vector<Type> w){
-  matrix<Type> res(x.size(),x.size()); 
+  matrix<Type> res(x.size(),x.size());
   Type xs = x.sum();
   Type xsp = pow(xs,Type(2));
   for(int i = 0; i < res.rows(); ++i){
@@ -111,7 +111,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   Type nll=0;
 
   if(conf.debug==1) std::cout << "-- selectivity"  << std::endl;
-  array<Type> Sel = SelFun(conf,par.logitSel); 
+  array<Type> Sel = SelFun(conf,par.logitSel);
 
   if(conf.debug==1)   std::cout << "-- F"  << std::endl;
   array<Type> logF = FFun(conf, par, logFy, 1);
@@ -123,13 +123,15 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   vector<Type> ssb = ssbFun(dat, conf, logN, logF, 0);
   vector<Type> logssb = log(ssb);
   vector<Type> ssb0 = ssbFun(dat, conf, logN, logF, 1);
+  // vector<Type> ssn = ssnFun(dat, conf, logN, logF, 0);
+  // vector<Type> logssn = log(ssn);
   vector<Type> logssb0 = log(ssb0);
   vector<Type> tsb = tsbFun(dat, conf, logN);
   vector<Type> logtsb = log(tsb);
   vector<Type> fsb = fsbFun(dat, conf, logN, logF);
   vector<Type> logfsb = log(fsb);
   if(conf.debug==1) print(ssb);
-  
+
   if(conf.debug==1)   std::cout << "-- catch/land"  << std::endl;
   array<Type> catNr = catchNrFun(dat, conf, logN, logF);
   vector<Type> cat = catchFun(dat, conf, catNr);
@@ -146,13 +148,25 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
 
   if(conf.debug==1)   std::cout << "-- rec"  << std::endl;
   vector<Type> R = rFun(logN);
-  vector<Type> logR = log(R);  
+  vector<Type> logR = log(R);
 
   if(conf.debug==1)   std::cout << "-- exploit"  << std::endl;
   vector<Type> exploit = exploitFun(cat, ssb0);
 
   if(conf.debug==1)   std::cout << "-- predicted observations"  << std::endl;
   vector<Type> predObs = predObsFun(dat, conf, par, logN, logF, logssb, logfsb, logCatch, catNr, logLand);
+
+  //Type pchange = 0;
+  //vector<Type> log_ssn_pred;
+  //if(conf.do_lmPeriod==1){
+  //Type sig_lmPeriod = exp(par.log_sig_lmPeriod);
+  //log_ssn_pred = par.alpha_lmPeriod + par.beta_lmPeriod* logssn(conf.iyr_lmPeriod); //predicted log_SSA based on log-linear decline[CL5.1]
+  // vector<Type> reslm = logssn-log_ssn_pred;
+  //nll -= sum(dnorm(reslm, 0, sig_lmPeriod, true));
+
+  // if(conf.debug==1)   std::cout << "-- predicted change"  << std::endl;
+  // pchange += 100*(1-exp(-par.beta_lmPeriod*conf.lmPeriod)); // calculate decline or growth over a time period iyr.
+  //}
 
   // setup obs likelihoods
    if(conf.debug==1)   std::cout << "-- obs likelihood stuff"  << std::endl;
@@ -179,9 +193,9 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
    if(conf.debug==1)   std::cout << ". "  << std::endl;
   int nfleet = conf.maxAge-conf.minAge+1;
   int dn=nfleet*(nfleet-1)/2;
-  int from=-dn, to=-1; 
+  int from=-dn, to=-1;
   for(int f=0; f<dat.noFleets; f++){
-    if(conf.obsCorStruct(f)!=2) continue; // skip if not US 
+    if(conf.obsCorStruct(f)!=2) continue; // skip if not US
     nfleet = dat.maxAgePerFleet(f)-dat.minAgePerFleet(f)+1;
     if(conf.obsLikelihoodFlag(f) == 1) nfleet-=1; // ALN has dim-1
     dn = nfleet*(nfleet-1)/2;
@@ -189,7 +203,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
     to=to+dn;
     vector<Type> tmp(dn);
     for(int i=from; i<=to; i++) tmp(i-from) = par.sigmaObsParUS(i);
-    sigmaObsParVec(f) = tmp; 
+    sigmaObsParVec(f) = tmp;
   }
    if(conf.debug==1)   std::cout << ". "  << std::endl;
   for(int f=0; f<dat.noFleets; ++f){
@@ -199,7 +213,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
       if(conf.obsLikelihoodFlag(f) == 1) thisdim-=1; // ALN has dim-1
       matrix<Type> cov(thisdim,thisdim);
       cov.setZero();
-      if(conf.obsCorStruct(f)==0){//ID (independent)  
+      if(conf.obsCorStruct(f)==0){//ID (independent)
         for(int i=0; i<thisdim; ++i){
           aidx = i+dat.minAgePerFleet(f)-conf.minAge;
   	      cov(i,i)=varLogObs(conf.keyVarObs(f,aidx));
@@ -211,9 +225,9 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
 	}
 
       } else if(conf.obsCorStruct(f)==2){//(US) unstructured
-        neg_log_densityObsUnstruc(f) = getCorrObj(sigmaObsParVec(f));  
+        neg_log_densityObsUnstruc(f) = getCorrObj(sigmaObsParVec(f));
         matrix<Type> tmp = neg_log_densityObsUnstruc(f).cov();
-  
+
         tmp.setZero();
         int offset = dat.minAgePerFleet(f)-conf.minAge;
         obsCovScaleVec(f).resize(tmp.rows());
@@ -232,7 +246,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
     }
   }
 
-  //eval likelihood 
+  //eval likelihood
   if(conf.debug==1)   std::cout << "!! eval likelihood"  << std::endl;
   Type sd,ZU,ZL,res;
   for(int y=0;y<dat.noYears;y++){
@@ -244,18 +258,18 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
       int idxlength=dat.idx2(f,y)-dat.idx1(f,y)+1;
 
       switch(dat.fleetTypes(f)){
-        case 0: case 2: 
+        case 0: case 2:
         {
         vector<Type> currentVar=nllVec(f).cov().diagonal();
         vector<Type> sqrtW(currentVar.size());
           switch(conf.obsLikelihoodFlag(f)){
             case 0: // (LN) log-Normal distribution
-                    
+
                     for(int idxV=0; idxV<currentVar.size(); ++idxV){
                       if(isNA(dat.weight(idxfrom+idxV))){
                         sqrtW(idxV)=Type(1.0);
                       }else{
-                        if(conf.fixVarToWeight==1){ 
+                        if(conf.fixVarToWeight==1){
                           sqrtW(idxV)=sqrt(dat.weight(idxfrom+idxV)/currentVar(idxV));
                         }else{
                           sqrtW(idxV)=sqrt(Type(1)/dat.weight(idxfrom+idxV));
@@ -286,7 +300,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
                 logProb -= logDenom;
                 Type logTotal = rnorm(log(log2expsum((vector<Type>)predObs.segment(idxfrom,idxlength))),
                     exp(par.logSdLogTotalObs(totalParKey++)));
-                dat.logobs.block(idxfrom,0,idxlength,1) = logProb + logTotal; 
+                dat.logobs.block(idxfrom,0,idxlength,1) = logProb + logTotal;
               }
               break;
             default:
@@ -299,7 +313,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
         {
           switch(conf.obsLikelihoodFlag(f)){
             case 0:      // lognormal distributions
-              if(conf.keyBiomassTreat(f)==3){ 
+              if(conf.keyBiomassTreat(f)==3){
                   sd = sqrt(varLogCatch(y));   // if catch not split, based on logSdLogObs first row
               }else{
                 if(conf.keyBiomassTreat(f)==4){
@@ -314,7 +328,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
                dat.logobs(idxfrom,0) = rnorm(predObs(idxfrom),sd);
               }
              break;
-            case 2:  // censored   
+            case 2:  // censored
               if(conf.debug==1) std::cout << "pred "  <<  predObs(idxfrom) <<  " /obs1 "  <<  dat.logobs(idxfrom,0)  << " /obs2 "  <<  dat.logobs(idxfrom,1) << std::endl;
                 ZU = (dat.logobs(idxfrom,1) - predObs(idxfrom))/0.01;
                 ZL = (dat.logobs(idxfrom,0) - predObs(idxfrom))/0.01;
@@ -326,7 +340,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
 				  //}
              break;
             case 3:      // robuust distributions (mixture lognormal and t(df1))
-              if(conf.keyBiomassTreat(f)==3){ 
+              if(conf.keyBiomassTreat(f)==3){
                   sd = sqrt(varLogCatch(y));   // if catch not split, based on logSdLogObs first row
               }else{
                 if(conf.keyBiomassTreat(f)==4){
@@ -335,7 +349,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
                   sd = exp(par.logSdLogObs(conf.keyVarObs(f,0)));
                 }
               }
-              res =(dat.logobs(idxfrom,0)-predObs(idxfrom))/sd; 
+              res =(dat.logobs(idxfrom,0)-predObs(idxfrom))/sd;
               nll += -keep(idxfrom)*(Type(0.95)*dnorm(dat.logobs(idxfrom,0),predObs(idxfrom),sd,true))+(Type(0.05)*dt(res,Type(1),true));
               SIMULATE_F(of){
                dat.logobs(idxfrom,0) = rnorm(predObs(idxfrom),sd); // too change
@@ -344,7 +358,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
             default:
               error("obsLikelihoodFlag for fleetType 3 should be either LN, CE or RO");
              break;
-          }   
+          }
         break;
         }
         case 5:
@@ -370,12 +384,12 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
         }
         default:
         {
-          error("FleetType should be 0,2,3,5 or 6");        
+          error("FleetType should be 0,2,3,5 or 6");
         break;
         }
       }
       if(conf.debug==1) std::cout << "nll: "<<  nll << std::endl;
-    }    
+    }
   }
 
   if(conf.debug==1) std::cout << "The end"  << std::endl;
@@ -383,7 +397,7 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   SIMULATE_F(of) {
     REPORT_F(logFy,of);
     REPORT_F(logN,of);
-    array<Type> logobs=dat.logobs; 
+    array<Type> logobs=dat.logobs;
     REPORT_F(logobs,of);
   }
 
@@ -400,34 +414,37 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   ADREPORT_F(logtsb,of);
   ADREPORT_F(logR,of);
   ADREPORT_F(exploit,of);
+  //ADREPORT_F(pchange,of);
+  //ADREPORT_F(log_ssn_pred,of);
 
   int timeSteps=logF.dim[1];
-  
+
   vector<Type> lastLogN = logN.col(timeSteps-1);
   ADREPORT_F(lastLogN,of);
   vector<Type> lastLogF = logF.col(timeSteps-1);
-  ADREPORT_F(lastLogF,of);  
+  ADREPORT_F(lastLogF,of);
 
   vector<Type> beforeLastLogN = logN.col(timeSteps-2);
   ADREPORT_F(beforeLastLogN,of);
   vector<Type> beforeLastLogF = logF.col(timeSteps-2);
-  ADREPORT_F(beforeLastLogF,of);  
+  ADREPORT_F(beforeLastLogF,of);
 
-  ADREPORT_F(par.logFpar,of); 
-  ADREPORT_F(par.logQpow,of);  
+  ADREPORT_F(par.logFpar,of);
+  ADREPORT_F(par.logQpow,of);
   ADREPORT_F(par.logSdLogFsta,of);
-  ADREPORT_F(par.logSdLogN,of); 
+  ADREPORT_F(par.logSdLogN,of);
   ADREPORT_F(par.logSdLogObs,of);
   ADREPORT_F(par.logSdLogTotalObs,of);
   ADREPORT_F(par.transfIRARdist,of);
   ADREPORT_F(par.sigmaObsParUS,of);
   ADREPORT_F(par.rec_loga,of);
-  ADREPORT_F(par.rec_logb,of); 
+  ADREPORT_F(par.rec_logb,of);
   ADREPORT_F(par.rec_e,of);
   ADREPORT_F(par.logScale,of);
   ADREPORT_F(par.logitReleaseSurvival,of);
   ADREPORT_F(par.logitRecapturePhi,of);
-  ADREPORT_F(par.logitSel,of); 
+  ADREPORT_F(par.logitSel,of);
+  // ADREPORT_F(par.beta_lmPeriod,of);
 
   return nll;
 }
