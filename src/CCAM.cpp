@@ -102,9 +102,9 @@ Type objective_function<Type>::operator() ()
   DATA_FACTOR(obsLikelihoodFlag); confset.obsLikelihoodFlag=obsLikelihoodFlag;
   DATA_INTEGER(fixVarToWeight); confset.fixVarToWeight=fixVarToWeight;
   DATA_INTEGER(debug); confset.debug=debug;
-  //DATA_INTEGER(lmPeriod); confset.lmPeriod=lmPeriod;//period on which to fit the linear model to calculate mean growth over a time period
-  //DATA_IVECTOR(iyr_lmPeriod); confset.iyr_lmPeriod=iyr_lmPeriod; // index of year on with to calculate lm.
-  //DATA_INTEGER(do_lmPeriod); confset.do_lmPeriod=do_lmPeriod; // boolean 1= TRUE
+  DATA_INTEGER(lmPeriod); confset.lmPeriod=lmPeriod;//period on which to fit the linear model to calculate mean growth over a time period
+  DATA_IVECTOR(iyr_lmPeriod); confset.iyr_lmPeriod=iyr_lmPeriod; // index of year on with to calculate lm.
+  DATA_INTEGER(do_lmPeriod); confset.do_lmPeriod=do_lmPeriod; // boolean 1= TRUE
 
 
   paraSet<Type> paraset;
@@ -127,9 +127,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logFy); //random effect
   PARAMETER_ARRAY(logN); // random effect
   PARAMETER_VECTOR(missing); // random effect
-  //PARAMETER(alpha_lmPeriod); paraset.alpha_lmPeriod; // intercept of the linear model fitted over SSN on a given period
-  //PARAMETER(beta_lmPeriod); paraset.beta_lmPeriod; // slopeof the linear model fitted over SSN on a given period
-  //PARAMETER(log_sig_lmPeriod); paraset.log_sig_lmPeriod; //observation error
+  PARAMETER(alpha_lmPeriod); paraset.alpha_lmPeriod; // intercept of the linear model fitted over SSN on a given period
+  PARAMETER(beta_lmPeriod); paraset.beta_lmPeriod; // slopeof the linear model fitted over SSN on a given period
+  PARAMETER(log_sig_lmPeriod); paraset.log_sig_lmPeriod; //observation error
 
 
   if(confset.debug==1)  std::cout << "*** Start "  << std::endl;

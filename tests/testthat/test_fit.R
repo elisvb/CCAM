@@ -49,7 +49,7 @@ ctwusa[,1] <- ctwusa[,1]*1.10 + ctUSA[,1]*0.2     # lower bound: increase and ad
 ctwusa[,2] <- ctwusa[,2] + ctUSA[,1]*0.8          # add us upper
 
 
-dat <- setup.ccam.data(surveys=survey,
+datnew <- setup.ccam.data(surveys=survey,
                        residual.fleet=cn[-1,],
                        total.catch=ctwusa[-1,],
                        prop.mature=mo[-1,],
@@ -62,41 +62,50 @@ dat <- setup.ccam.data(surveys=survey,
                        prop.fem=pfem[-1,],
                        fec=fec[-1,])
 
-conf <- defcon(dat)
-conf$keySel <- matrix(c(0,1,2,3,4,4,4,4,4,4), nrow=nrow(conf$keySel), ncol=ncol(conf$keySel),byrow = T)
-conf$keyVarObs[1,]=-1
-conf$keyVarObs[2,1:9]=c(0,1,2,2,2,2,1,1,1) # 2024
-#conf$keyVarObs[2,1:9]=c(0,1,2,2,2,2,2,2,1) # 2022
+confnew <- defcon(datnew)
+confnew$keySel <- matrix(c(0,1,2,3,4,4,4,4,4,4), nrow=nrow(confnew$keySel), ncol=ncol(confnew$keySel),byrow = T)
+confnew$keyVarObs[1,]=-1
+confnew$keyVarObs[2,1:9]=c(0,1,2,2,2,2,1,1,1) # 2024
+#confnew$keyVarObs[2,1:9]=c(0,1,2,2,2,2,2,2,1) # 2022
 
 
-conf$keyVarObs[3,1]=3
-conf$stockRecruitmentModelCode=2 #0: RW, 1: ricker, 2: BH, 3:mean
-conf$obsLikelihoodFlag[1]='CE'
-conf$keyBiomassTreat[3]=5
-conf$fbarRange=c(5,10) #fully recruited fish
-conf$do_lmPeriod= NULL
-conf$lmPeriod= NULL
-#conf$iyr_lmPeriod = (length(dat$years) - (conf$lmPeriod)) : (length(dat$years)-1)
-conf$iyr_lmPeriod = NULL
-#length(conf$iyr_lmPeriod)
+confnew$keyVarObs[3,1]=3
+confnew$stockRecruitmentModelCode=2 #0: RW, 1: ricker, 2: BH, 3:mean
+confnew$obsLikelihoodFlag[1]='CE'
+confnew$keyBiomassTreat[3]=5
+confnew$fbarRange=c(5,10) #fully recruited fish
+confnew$do_lmPeriod= 1
+confnew$lmPeriod= 15
+confnew$iyr_lmPeriod = (length(datnew$years) - (confnew$lmPeriod)) : (length(datnew$years)-1)
+length(confnew$iyr_lmPeriod)
 
-par <- defpar(dat,conf)
-par$alpha_lmPeriod=NULL
-par$beta_lmPeriod=NULL
-par$log_sig_lmPeriod=NULL
-fit <- ccam.fit(dat,conf,par,debug=T)
+parnew <- defpar(datnew,confnew)
+parnew$beta_lmPeriod <- -1
+
+newfit2 <- ccam.fit(datnew,confnew,parnew,debug=T)
 
 ##########END OF FULL READ########
-load(paste0(dir, "fit.Rdata"))
-load(paste0(dir, "conf.Rdata"))
+
 load(paste0(dir, "dat.Rdata"))
-load(paste0(dir, "par.Rdata"))
+load(paste0(dir, "conf.Rdata"))
+conf$do_lmPeriod= NULL
+conf$lmPeriod= NULL
+conf$iyr_lmPeriod = NULL
+par <- defpar(dat,conf)
 
 
-fit <- ccam.fit(data=dat,conf,par,debug=T)
-fit
 
-return(fit)
+oldfit <- ccam.fit(data=dat,conf,par,debug=T) # working sans dolm
+oldfit
+
+library(tidyverse)
+checkfit<- full_join(ssbtable(oldfit) |>  as_tibble() |>  dplyr::mutate(type="old_fit"),
+ssbtable(newfit) |>  as_tibble() |>  mutate(type="newfit"))
+ggplot(checkfit, aes(x=year, y=Estimate, col=type)) +geom_line()
+
+
+
+#return(fit)
 }
 
 #load_all()

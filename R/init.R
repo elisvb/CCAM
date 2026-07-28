@@ -47,9 +47,9 @@ defpar <- function(dat,conf){
   ret$logFy=rep(0, dat$noYears)
   ret$logN=matrix(10, nrow=conf$maxAge-conf$minAge+1, ncol=dat$noYears)
 
-  ret$alpha_lmPeriod=1
-  ret$beta_lmPeriod=0
-  ret$log_sig_lmPeriod=0
+  ret$alpha_lmPeriod=10
+  ret$beta_lmPeriod=-1
+  ret$log_sig_lmPeriod=0.5
 
   return(ret)
 }
