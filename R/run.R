@@ -53,6 +53,7 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
           parameters<-definit
       }
   }
+
   censored <- 'CE' %in% conf$obsLikelihoodFlag
   if(censored){
           TrueObs <- data$logobs
@@ -133,8 +134,8 @@ ccam.fit <- function(data, conf, parameters, newtonsteps=3, rm.unidentified=FALS
   sdrep$cov<-NULL # save memory
 
   ret <- list(sdrep=sdrep, pl=pl, plsd=plsd, data=data, conf=conf, opt=opt, obj=obj, rep=rep, low=lower2, hig=upper2)
-  attr(ret, "RemoteSha") <- substr(packageDescription("ccam")$RemoteSha, 1, 12)
-  attr(ret, "Version") <- packageDescription("ccam")$Version
+  attr(ret, "RemoteSha") <- substr(packageDescription("CCAM")$RemoteSha, 1, 12)
+  attr(ret, "Version") <- packageDescription("CCAM")$Version
   class(ret)<-"ccam"
   return(ret)
 }
