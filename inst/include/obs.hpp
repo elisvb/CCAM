@@ -160,28 +160,16 @@ Type nllObs(dataSet<Type> &dat, confSet &conf, paraSet<Type> &par, array<Type> &
   vector<Type> log_ssn_pred;
   if(conf.debug==1)   std::cout << conf.do_lmPeriod  << std::endl;
   if(conf.do_lmPeriod==1){
-      if(conf.debug==1)   std::cout << "-- predicted change 1"  << std::endl;
   Type sig_lmPeriod = exp(par.log_sig_lmPeriod);
-  if(conf.debug==1)   std::cout << sig_lmPeriod  << std::endl;
-  if(conf.debug==1)   std::cout << "-- predicted change years"  << std::endl;
-  if(conf.debug==1)   std::cout << dat.years(conf.iyr_lmPeriod)  << std::endl;
-  if(conf.debug==1)   std::cout << "-- predicted change beta"  << std::endl;
-  if(conf.debug==1)   std::cout << par.beta_lmPeriod  << std::endl;
-  if(conf.debug==1)   std::cout << "-- predicted change alpha"  << std::endl;
-  if(conf.debug==1)   std::cout <<  par.alpha_lmPeriod << std::endl;
-  log_ssn_pred = par.alpha_lmPeriod + par.beta_lmPeriod*dat.years(conf.iyr_lmPeriod); //predicted log_SSA based on log-linear decline[CL5.1]
-  if(conf.debug==1)   std::cout << "-- predicted change pred"  << std::endl;
-  if(conf.debug==1)   std::cout << log_ssn_pred  << std::endl;
+      vector<Type> yrs = dat.years(conf.iyr_lmPeriod);
+      Type yrbar = yrs.mean();
+      log_ssn_pred =
+          par.alpha_lmPeriod +
+          par.beta_lmPeriod * (yrs - yrbar); //predicted log_SSA based on log-linear decline[CL5.1]
    vector<Type> reslm = logssn(conf.iyr_lmPeriod)-log_ssn_pred;
-   if(conf.debug==1)   std::cout << "-- predicted change res"  << std::endl;
-   if(conf.debug==1)   std::cout << reslm  << std::endl;
-   if(conf.debug==1)   std::cout << "-- predicted change ssn"  << std::endl;
-   if(conf.debug==1)   std::cout << logssn  << std::endl;
-  nll -= sum(dnorm(reslm, Type(0), sig_lmPeriod, true));
-  //nll -= sum(dnorm(logssn(conf.iyr_lmPeriod), log_ssn_pred, sig_lmPeriod, true));
+    nll -= sum(dnorm(reslm, Type(0), sig_lmPeriod, true));
 
-   if(conf.debug==1)   std::cout << "-- predicted change"  << std::endl;
-   pchange += 100*(1-exp(-par.beta_lmPeriod*conf.lmPeriod)); // calculate decline or growth over a time period iyr.
+  pchange += 100*(exp(par.beta_lmPeriod*conf.lmPeriod)-1); // calculate decline or growth over a time period iyr.
   }
 
   // setup obs likelihoods
