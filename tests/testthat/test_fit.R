@@ -3,8 +3,7 @@
 #usethis::use_testthat(3)
 #usethis::use_test()
 library(TMB)
-compile('src/CCAM.cpp');dyn.load(dynlib("src/CCAM")) # check c++ code pour grammar error
-
+#compile('src/CCAM.cpp');dyn.load(dynlib("src/CCAM")) # check c++ code pour grammar error
 
 #library(gert)
 #git_branch_list()
@@ -13,14 +12,12 @@ compile('src/CCAM.cpp');dyn.load(dynlib("src/CCAM")) # check c++ code pour gramm
 #git diff origin/master..lmPeriod > diff_complet.txt four faire un fichier text mais sans culeur c,est difficile ligne précédente est mieux
 
 library(devtools)
-load_all()
+load_all() # works better of using install in the build tab
 #library(CCAM)
 
-test_2024_fit <-  function(){
 dir <- "example/2024/"
 
 ##########FULL READ########
-
 cn <- read.ices(paste0(dir,'cn.dat'))
 ct <- read.ices(paste0(dir,'ct.dat'))
 ctUSA <- read.ices(paste0(dir,'ctUSA.dat'))
@@ -80,35 +77,51 @@ confnew$iyr_lmPeriod = (length(datnew$years) - (confnew$lmPeriod)) : (length(dat
 length(confnew$iyr_lmPeriod)
 
 parnew <- defpar(datnew,confnew)
-parnew$beta_lmPeriod <- -1
 
-newfit2 <- ccam.fit(datnew,confnew,parnew,debug=T)
+newfit2 <- ccam.fit(datnew,confnew,parnew,debug=T, rm.unidentified = F, run=T)
+
+
+out<- newfit2$sdrep$value
+ssn_trend<- data.frame(year=datnew$years[confnew$iyr_lmPeriod+1],
+pred_ssn=exp(out[grep(names(out), pattern="log_ssn_pred")]),
+ssn=exp(out[grep(names(out), pattern="logssn")])[confnew$iyr_lmPeriod+1])
+
+
+ ggplot()+geom_point(data=ssn_trend,aes(x=year, y=ssn)) +
+     geom_line(data=ssn_trend,aes(x=year, y=pred_ssn), col="red") +
+    ylab("Spawning stock abundance") +
+    geom_text(aes(x=2020, y=max(ssn_trend$ssn),
+                  label=paste("% change =",as.numeric(round(out[grep(names(out), pattern="pchange")])))))
+ggsave("example/2024/DeclineSSN2010_2024.png", width=5, height=3, dpi=300, units="in")
 
 ##########END OF FULL READ########
 
 load(paste0(dir, "dat.Rdata"))
 load(paste0(dir, "conf.Rdata"))
-conf$do_lmPeriod= NULL
-conf$lmPeriod= NULL
-conf$iyr_lmPeriod = NULL
+conf$do_lmPeriod= 0
+conf$lmPeriod= 15
+conf$iyr_lmPeriod = (length(dat$years) - (conf$lmPeriod)) : (length(dat$years)-1)
+length(confnew$iyr_lmPeriod)
 par <- defpar(dat,conf)
 
-
-
-oldfit <- ccam.fit(data=dat,conf,par,debug=T) # working sans dolm
+oldfit <- ccam.fit(data=dat,conf,par,debug=T, rm.unidentified = T) # use rm.unidentified to remove unused parameters from the linear regression.
 oldfit
 
+########return results
 library(tidyverse)
-checkfit<- full_join(ssbtable(oldfit) |>  as_tibble() |>  dplyr::mutate(type="old_fit"),
-ssbtable(newfit) |>  as_tibble() |>  mutate(type="newfit"))
-ggplot(checkfit, aes(x=year, y=Estimate, col=type)) +geom_line()
+
+newfit2$sdrep$sd[grep(x=names(newfit2$sdrep$value), pattern="pchange")]
+newfit2$sdrep$sd[grep(x=names(newfit2$sdrep$value), pattern="pchange")]
+
+checkfit<- full_join(ssbtable(oldfit) |>  as_tibble() |>  dplyr::mutate(type="oldfit"),
+ssbtable(newfit2) |>  as_tibble() |>  mutate(type="newfit"))
+ggplot(checkfit, aes(x=year, y=Estimate, col=type)) +geom_line() + ylab("SSB")
+ggsave("example/2024/SSBchangewithlm2010_2024.png", width=5, height=3, dpi=300, units="in")
+
+pt<- partable(c(oldfit,newfit2)) |> as_tibble(.name_repair = "unique") |>  dplyr::select(par...1, `par...2`, fit) |>
+    pivot_wider(names_from=fit, values_from=par...2) |>
+    mutate(newfit=round(`1`,3), oldfit=round(`2`,3)) |>  dplyr::select(-`1`, -`2`)
+write.table(pt, "example/2024/changeinparameterswithlm.txt", sep="\t", dec=".", row.names=F)
 
 
 
-#return(fit)
-}
-
-#load_all()
-#test_that("get_fit ", {
-#    expect_snapshot_output(cat(get_fit()))
-#    })
