@@ -127,9 +127,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(logFy); //random effect
   PARAMETER_ARRAY(logN); // random effect
   PARAMETER_VECTOR(missing); // random effect
-  PARAMETER(alpha_lmPeriod); paraset.alpha_lmPeriod; // intercept of the linear model fitted over SSN on a given period
-  PARAMETER(beta_lmPeriod); paraset.beta_lmPeriod; // slopeof the linear model fitted over SSN on a given period
-  PARAMETER(log_sig_lmPeriod); paraset.log_sig_lmPeriod; //observation error
+  PARAMETER(alpha_lmPeriod); paraset.alpha_lmPeriod=alpha_lmPeriod; // intercept of the linear model fitted over SSN on a given period
+  PARAMETER(beta_lmPeriod); paraset.beta_lmPeriod=beta_lmPeriod; // slopeof the linear model fitted over SSN on a given period
+  PARAMETER(log_sig_lmPeriod); paraset.log_sig_lmPeriod=log_sig_lmPeriod; //observation error
 
 
   if(confset.debug==1)  std::cout << "*** Start "  << std::endl;
